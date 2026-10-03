@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mukkani CRM
 
-## Getting Started
+CRM and daily dashboard for Mukkani, a healthy food box business in Trichy.
+One path for every customer: Lead, Follow-up, Trial box, Trial result, Monthly package (regular box).
+It replaces WhatsApp coordination between Sales and the Kitchen.
 
-First, run the development server:
+## Roles
 
-```bash
+| Role | Can do |
+|---|---|
+| Admin | Everything: overview and reports, users, regions, plus all sales screens and the kitchen view |
+| Sales | Leads, follow-ups, customers, trial and regular boxes, location links |
+| Kitchen manager | View only. Count tiles, today's boxes (each marked Trial box or Regular box), monthly customers. No buttons. |
+
+## What happens automatically
+
+- A lead set to **Trial Box Requested** (from the lead panel or a logged call) creates a trial box, assigns it to the kitchen manager and shows on the kitchen screens.
+- Sales moves a trial along. Delivered or Trial active sets the lead to Trial Box Active. Completed asks sales to record the result.
+- **Converted** creates a monthly package (regular box). Kitchen counts and reports update on the next page load.
+- **Location link**: sales sends a link on WhatsApp or SMS. The customer taps "Share my location", and the phone's GPS pin, the address (from OpenStreetMap) and the nearest region are saved to their profile.
+
+## Stack
+
+Next.js 16 (App Router, server actions), TypeScript, Tailwind CSS 4, Prisma 7, PostgreSQL. Login is username and password with a signed cookie. No paid services.
+Design: Figma file "Mukkani CRM Dashboard".
+
+## Run it on your computer
+
+You need Node.js 22 and PostgreSQL.
+
+```
+cp .env.example .env            # set DATABASE_URL and SESSION_SECRET
+npm install
+npx prisma migrate deploy
+SEED_DEMO=1 npm run db:seed     # demo data and logins below
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Demo logins (only with SEED_DEMO=1): admin / admin123, divya / sales123, karthik / sales123, kitchen / kitchen123.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Put it on a server
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Any Ubuntu VPS (for example Hostinger KVM 1) with a domain or subdomain pointed at it:
 
-## Learn More
+```
+git clone https://github.com/arunvishnu-02/mukkani-crm.git /opt/mukkani-crm
+cd /opt/mukkani-crm
+bash deploy/install.sh crm.yourdomain.com
+```
 
-To learn more about Next.js, take a look at the following resources:
+The script installs Docker if needed, creates `.env` with random passwords, starts PostgreSQL, the app and Caddy (automatic HTTPS), and prints the admin password.
+HTTPS is required: phones only share GPS location with https sites.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Update: `bash deploy/update.sh`
+- Daily backup: `bash deploy/backup.sh` (add it to cron)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Placeholders to replace
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Package names and delivery slots are in `src/lib/labels.ts`. Regions and their map centres are edited by the admin in Users + regions.

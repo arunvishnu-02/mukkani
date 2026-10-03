@@ -1,0 +1,195 @@
+// Mukkani CRM - Prisma schema (PostgreSQL)
+// Flow: Lead -> Follow-up -> Trial box -> Trial result -> Monthly package (regular box).
+// Prisma 7: the database URL lives in prisma.config.ts.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  SALES
+  KITCHEN
+}
+
+enum LeadSource {
+  CALL
+  WHATSAPP
+  REFERRAL
+  WEBSITE
+  FACEBOOK
+  INSTAGRAM
+  WALK_IN
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  FOLLOW_UP
+  NOT_INTERESTED
+  TRIAL_REQUESTED
+  TRIAL_ACTIVE
+  CONVERTED
+  LOST
+}
+
+enum TrialStatus {
+  PENDING
+  ASSIGNED
+  PREPARING
+  DELIVERED
+  TRIAL_ACTIVE
+  COMPLETED
+}
+
+enum TrialResult {
+  CONVERTED
+  NOT_CONVERTED
+}
+
+enum PackageStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum LocationStatus {
+  MISSING
+  LINK_SENT
+  PIN_SAVED
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  username     String   @unique
+  passwordHash String
+  role         Role
+  phone        String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  leads        Lead[]       @relation("LeadOwner")
+  regions      Region[]
+  trialBoxes   TrialBox[]   @relation("TrialAssignee")
+  activities   Activity[]
+  followUps    FollowUp[]
+}
+
+model Region {
+  id      String  @id @default(uuid()) @db.Uuid
+  name    String  @unique
+  lat     Float?
+  lng     Float?
+  ownerId String? @db.Uuid
+  owner   User?   @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  leads   Lead[]
+}
+
+model Lead {
+  id                String         @id @default(uuid()) @db.Uuid
+  name              String
+  phone             String
+  altPhone          String?
+  address           String?
+  source            LeadSource     @default(CALL)
+  status            LeadStatus     @default(NEW)
+  notes             String?
+  foodNotes         String?
+  slot              String?
+  regionId          String?        @db.Uuid
+  region            Region?        @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  ownerId           String?        @db.Uuid
+  owner             User?          @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  nextFollowUpAt    DateTime?      @db.Date
+  locationStatus    LocationStatus @default(MISSING)
+  lat               Float?
+  lng               Float?
+  accuracyM         Int?
+  locationUpdatedAt DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  followUps        FollowUp[]
+  trialBoxes       TrialBox[]
+  packages         Package[]
+  locationRequests LocationRequest[]
+  activities       Activity[]
+
+  @@index([status])
+  @@index([nextFollowUpAt])
+}
+
+model FollowUp {
+  id        String    @id @default(uuid()) @db.Uuid
+  leadId    String    @db.Uuid
+  lead      Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  outcome   String
+  note      String?
+  byId      String?   @db.Uuid
+  by        User?     @relation(fields: [byId], references: [id], onDelete: SetNull)
+  createdAt DateTime  @default(now())
+}
+
+model TrialBox {
+  id           String       @id @default(uuid()) @db.Uuid
+  leadId       String       @db.Uuid
+  lead         Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  startDate    DateTime     @db.Date
+  endDate      DateTime     @db.Date
+  status       TrialStatus  @default(PENDING)
+  result       TrialResult?
+  notes        String?
+  assignedToId String?      @db.Uuid
+  assignedTo   User?        @relation("TrialAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([status])
+}
+
+model Package {
+  id          String        @id @default(uuid()) @db.Uuid
+  leadId      String        @db.Uuid
+  lead        Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  packageType String
+  startDate   DateTime      @db.Date
+  status      PackageStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([status])
+}
+
+model LocationRequest {
+  id          String    @id @default(uuid()) @db.Uuid
+  token       String    @unique
+  leadId      String    @db.Uuid
+  lead        Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  channel     String
+  createdById String?   @db.Uuid
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  sharedAt    DateTime?
+}
+
+model Activity {
+  id        String   @id @default(uuid()) @db.Uuid
+  leadId    String   @db.Uuid
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  kind      String
+  text      String
+  detail    String?
+  byId      String?  @db.Uuid
+  by        User?    @relation(fields: [byId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([leadId, createdAt])
+  @@index([createdAt])
+}
