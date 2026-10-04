@@ -3,20 +3,21 @@ import { requireUser } from '@/lib/auth'
 import { CUSTOMER_COLUMNS } from '@/lib/csv'
 import { db } from '@/lib/db'
 import { fmtDay } from '@/lib/dates'
-import { LOCATION_STATUS, PACKAGE_STATUS } from '@/lib/labels'
-import { customerWhere, leadInclude } from '@/lib/queries'
-import { importCustomers } from '../actions'
+import { day, dayInput } from '@/lib/dates'
+import { LOCATION_STATUS, PACKAGE_STATUS, PACKAGE_TYPES, SLOTS } from '@/lib/labels'
+import { customerWhere, leadInclude, regionsList } from '@/lib/queries'
+import { createCustomer, importCustomers } from '../actions'
 import { Callout, Empty, PageHeader, StatusChip, Tabs, Tile, Tiles, Who } from '@/components/ui'
 
 export default async function CustomersPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   await requireUser(['SALES'])
   const sp = await searchParams
   const q = sp.q?.trim()
-  const all = await db.lead.findMany({
+  const [all, regions] = await Promise.all([db.lead.findMany({
     where: { ...customerWhere, ...(q ? { OR: [{ name: { contains: q, mode: 'insensitive' } }, { phone: { contains: q } }] } : {}) },
     include: leadInclude,
     orderBy: { name: 'asc' },
-  })
+  }), sp.new ? regionsList() : []])
   const regular = all.filter((l) => l.packages[0]?.status === 'ACTIVE')
   const paused = all.filter((l) => l.packages[0]?.status === 'PAUSED')
   const missing = all.filter((l) => l.locationStatus !== 'PIN_SAVED')
@@ -27,8 +28,39 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
     <>
       <PageHeader title="Customers" sub="Converted leads with a monthly package">
         <a href="/customers/export" download className="btn-secondary">Export</a>
-        <Link href="/customers?import=1" className="btn">Import</Link>
+        <Link href="/customers?import=1" className="btn-secondary">Import</Link>
+        <Link href="/customers?new=1" className="btn">Add customer</Link>
       </PageHeader>
+      {sp.new && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-ink/45 p-4">
+          <form action={createCustomer} className="card w-full max-w-[560px] space-y-3.5 p-7">
+            <div>
+              <h2 className="font-display text-lg font-semibold">Add customer</h2>
+              <p className="text-[13px] text-muted">For someone starting a monthly package right away, without a trial.</p>
+            </div>
+            {sp.error === 'phone' && (
+              <Callout tone="red">This phone number is already in the CRM. <Link href={`/leads?lead=${sp.lead}`} className="font-semibold text-sky">Open that person</Link> and set the status to Monthly Package Converted.</Callout>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="label">Name</label><input name="name" className="input" required /></div>
+              <div><label className="label">Phone number</label><input name="phone" className="input" inputMode="tel" required /></div>
+            </div>
+            <div>
+              <label className="label">Location</label>
+              <select name="regionId" className="input"><option value="">Area not set</option>{regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select>
+              <input name="address" className="input mt-2" placeholder="Address, or send a location link after saving" />
+            </div>
+            <div><label className="label">Health issues</label><input name="foodNotes" className="input" placeholder="Diabetes, BP, allergy, food to avoid" /></div>
+            <div><label className="label">Notes</label><textarea name="notes" rows={2} className="input" /></div>
+            <div className="grid grid-cols-3 gap-3">
+              <div><label className="label">Package</label><select name="packageType" className="input">{PACKAGE_TYPES.map((p) => <option key={p}>{p}</option>)}</select></div>
+              <div><label className="label">Start date</label><input type="date" name="startDate" className="input" defaultValue={dayInput(day(0))} /></div>
+              <div><label className="label">Delivery slot</label><select name="slot" className="input">{SLOTS.map((p) => <option key={p}>{p}</option>)}</select></div>
+            </div>
+            <div className="flex justify-end gap-2.5"><Link href="/customers" className="btn-secondary">Cancel</Link><button className="btn">Save customer</button></div>
+          </form>
+        </div>
+      )}
       {sp.added != null && (
         <Callout tone={Number(sp.added) > 0 ? 'leaf' : 'warn'}>
           {sp.added} customers imported.
@@ -84,7 +116,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
       </div>
       <section className="card overflow-x-auto">
         {rows.length === 0 ? (
-          <Empty>No customers here.</Empty>
+          <Empty>No customers here. Use Add customer, Import, or convert a lead.</Empty>
         ) : (
           <table className="w-full">
             <thead><tr><th className="th">Customer</th><th className="th">Region</th><th className="th">Package</th><th className="th">Delivery location</th><th className="th">Slot</th><th className="th">Since</th></tr></thead>

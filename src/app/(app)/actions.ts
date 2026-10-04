@@ -119,6 +119,28 @@ export async function requestLocationAction(form: FormData) {
   redirect(`/leads/${id}/location?channel=${channel}`)
 }
 
+// A customer added directly: someone who starts a monthly package without going through a lead and a trial.
+export async function createCustomer(form: FormData) {
+  const user = await requireUser(['SALES'])
+  const name = z.string().min(1).parse(s(form, 'name'))
+  const phone = z.string().min(6).parse(s(form, 'phone'))
+  const digits = (v: string) => v.replace(/\D/g, '')
+  const taken = (await db.lead.findMany({ select: { id: true, phone: true } })).find((l) => digits(l.phone) === digits(phone))
+  if (taken) redirect(`/customers?new=1&error=phone&lead=${taken.id}`)
+  const packageType = s(form, 'packageType') ?? 'Monthly'
+  const lead = await db.lead.create({
+    data: {
+      name, phone, status: 'CONVERTED', ownerId: user.id,
+      regionId: z.string().uuid().nullable().parse(s(form, 'regionId')),
+      address: s(form, 'address'), foodNotes: s(form, 'foodNotes'), notes: s(form, 'notes'), slot: s(form, 'slot'),
+      packages: { create: { packageType, startDate: s(form, 'startDate') ? parseDay(s(form, 'startDate')!) : day(0) } },
+    },
+  })
+  await log(lead.id, 'package', 'Customer added', packageType, user.id)
+  revalidatePath('/', 'layout')
+  redirect(`/customers/${lead.id}`)
+}
+
 // Customers from a CSV file in the format of the sample file. A phone number already in the CRM is skipped, so the
 // same file can be imported twice without making duplicates.
 export async function importCustomers(form: FormData) {
