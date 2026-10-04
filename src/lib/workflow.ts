@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 import { day } from '@/lib/dates'
 import { nearestRegionId, reverseGeocode } from '@/lib/geo'
 import type { LeadStatus, TrialStatus } from '@/generated/prisma/enums'
-import { LEAD_STATUS, TRIAL_STATUS } from '@/lib/labels'
+import { LEAD_STATUS, TRIAL_STATUS, packagePrice } from '@/lib/labels'
 
 const OPEN_TRIAL: TrialStatus[] = ['PENDING', 'ASSIGNED', 'PREPARING', 'DELIVERED', 'TRIAL_ACTIVE']
 
@@ -57,7 +57,7 @@ export async function recordResult(
     data: { status: 'COMPLETED', result: r.converted ? 'CONVERTED' : 'NOT_CONVERTED' },
   })
   if (r.converted) {
-    await db.package.create({ data: { leadId: t.leadId, packageType: r.packageType, startDate: r.startDate } })
+    await db.package.create({ data: { leadId: t.leadId, packageType: r.packageType, price: packagePrice(r.packageType), startDate: r.startDate } })
     await db.lead.update({
       where: { id: t.leadId },
       data: { status: 'CONVERTED', slot: r.slot, ...(r.regionId ? { regionId: r.regionId } : {}) },

@@ -27,7 +27,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   const q = sp.q?.trim()
   const where: Prisma.LeadWhereInput = {
     ...(f[2] ? { status: { in: f[2] } } : {}),
-    ...(q ? { OR: [{ name: { contains: q, mode: 'insensitive' } }, { phone: { contains: q } }] } : {}),
+    ...(q ? { OR: [{ name: { contains: q } }, { phone: { contains: q } }] } : {}),
   }
   const [leads, counts, regions, selected] = await Promise.all([
     db.lead.findMany({ where, include: leadInclude, orderBy: { updatedAt: 'desc' }, take: 200 }),

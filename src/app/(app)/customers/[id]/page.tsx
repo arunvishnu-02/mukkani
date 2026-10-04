@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { fmtDay, fmtRange, fmtTime } from '@/lib/dates'
-import { LOCATION_STATUS, PACKAGE_STATUS, SOURCE, TRIAL_FLOW, TRIAL_STATUS } from '@/lib/labels'
+import { LOCATION_STATUS, PACKAGE_STATUS, SOURCE, TRIAL_FLOW, TRIAL_STATUS, rupees } from '@/lib/labels'
 import { boxType, leadInclude } from '@/lib/queries'
 import { Avatar, Callout, Card, Chip, StatusChip } from '@/components/ui'
 import { MapPin } from '@/components/MapPin'
@@ -80,6 +80,7 @@ export default async function CustomerProfile({ params }: { params: Promise<{ id
         <div className="space-y-4">
           {pkg && (pkg.status === 'ACTIVE' || pkg.status === 'PAUSED') ? (
             <Card title="Regular box" sub={pkg.packageType} right={<StatusChip map={PACKAGE_STATUS} value={pkg.status} />} className="border-leaf">
+              <Row k="Price" v={`${rupees(pkg.price)}/month`} />
               <Row k="Started" v={fmtDay(pkg.startDate)} />
               <Row k="Delivery slot" v={lead.slot ?? '—'} />
               <Link href="/boxes?tab=regular" className="mt-2 block text-[13px] font-semibold text-sky">Pause or change in Trial / Regular boxes</Link>

@@ -1,4 +1,4 @@
-// Dates are stored as Postgres DATE (UTC midnight in Prisma). "Today" means today in India.
+// Dates are stored as MySQL DATE (UTC midnight in Prisma). "Today" means today in India.
 const TZ = process.env.APP_TIMEZONE ?? 'Asia/Kolkata'
 
 export function todayKey(offsetDays = 0): string {

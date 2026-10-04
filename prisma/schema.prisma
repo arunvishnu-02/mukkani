@@ -1,4 +1,4 @@
-// Mukkani CRM - Prisma schema (PostgreSQL)
+// Mukkani CRM - Prisma schema (MySQL / MariaDB, as on Hostinger)
 // Flow: Lead -> Follow-up -> Trial box -> Trial result -> Monthly package (regular box).
 // Prisma 7: the database URL lives in prisma.config.ts.
 
@@ -8,7 +8,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
 }
 
 enum Role {
@@ -66,7 +66,7 @@ enum LocationStatus {
 }
 
 model User {
-  id           String   @id @default(uuid()) @db.Uuid
+  id           String   @id @default(uuid())
   name         String
   username     String   @unique
   passwordHash String
@@ -83,29 +83,29 @@ model User {
 }
 
 model Region {
-  id      String  @id @default(uuid()) @db.Uuid
+  id      String  @id @default(uuid())
   name    String  @unique
   lat     Float?
   lng     Float?
-  ownerId String? @db.Uuid
+  ownerId String?
   owner   User?   @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   leads   Lead[]
 }
 
 model Lead {
-  id                String         @id @default(uuid()) @db.Uuid
+  id                String         @id @default(uuid())
   name              String
   phone             String
   altPhone          String?
-  address           String?
+  address           String? @db.Text
   source            LeadSource     @default(CALL)
   status            LeadStatus     @default(NEW)
-  notes             String?
-  foodNotes         String?
+  notes             String? @db.Text
+  foodNotes         String? @db.Text
   slot              String?
-  regionId          String?        @db.Uuid
+  regionId          String?       
   region            Region?        @relation(fields: [regionId], references: [id], onDelete: SetNull)
-  ownerId           String?        @db.Uuid
+  ownerId           String?       
   owner             User?          @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   nextFollowUpAt    DateTime?      @db.Date
   locationStatus    LocationStatus @default(MISSING)
@@ -127,26 +127,26 @@ model Lead {
 }
 
 model FollowUp {
-  id        String    @id @default(uuid()) @db.Uuid
-  leadId    String    @db.Uuid
+  id        String    @id @default(uuid())
+  leadId    String   
   lead      Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
   outcome   String
-  note      String?
-  byId      String?   @db.Uuid
+  note      String? @db.Text
+  byId      String?  
   by        User?     @relation(fields: [byId], references: [id], onDelete: SetNull)
   createdAt DateTime  @default(now())
 }
 
 model TrialBox {
-  id           String       @id @default(uuid()) @db.Uuid
-  leadId       String       @db.Uuid
+  id           String       @id @default(uuid())
+  leadId       String      
   lead         Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
   startDate    DateTime     @db.Date
   endDate      DateTime     @db.Date
   status       TrialStatus  @default(PENDING)
   result       TrialResult?
-  notes        String?
-  assignedToId String?      @db.Uuid
+  notes        String? @db.Text
+  assignedToId String?     
   assignedTo   User?        @relation("TrialAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
@@ -155,10 +155,11 @@ model TrialBox {
 }
 
 model Package {
-  id          String        @id @default(uuid()) @db.Uuid
-  leadId      String        @db.Uuid
+  id          String        @id @default(uuid())
+  leadId      String       
   lead        Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
   packageType String
+  price       Int           @default(3430)
   startDate   DateTime      @db.Date
   status      PackageStatus @default(ACTIVE)
   createdAt   DateTime      @default(now())
@@ -168,25 +169,25 @@ model Package {
 }
 
 model LocationRequest {
-  id          String    @id @default(uuid()) @db.Uuid
+  id          String    @id @default(uuid())
   token       String    @unique
-  leadId      String    @db.Uuid
+  leadId      String   
   lead        Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
   channel     String
-  createdById String?   @db.Uuid
+  createdById String?  
   createdAt   DateTime  @default(now())
   expiresAt   DateTime
   sharedAt    DateTime?
 }
 
 model Activity {
-  id        String   @id @default(uuid()) @db.Uuid
-  leadId    String   @db.Uuid
+  id        String   @id @default(uuid())
+  leadId    String  
   lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
   kind      String
-  text      String
-  detail    String?
-  byId      String?  @db.Uuid
+  text      String @db.Text
+  detail    String? @db.Text
+  byId      String? 
   by        User?    @relation(fields: [byId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
 

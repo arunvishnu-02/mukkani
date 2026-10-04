@@ -54,5 +54,9 @@ export const ROLE: Record<Role, [string, Tone]> = {
 export const TRIAL_FLOW: TrialStatus[] = ['PENDING', 'ASSIGNED', 'PREPARING', 'DELIVERED', 'TRIAL_ACTIVE', 'COMPLETED']
 
 // Package names and delivery slots are placeholders until Arun sends the real ones.
-export const PACKAGE_TYPES = ['Monthly · Breakfast', 'Monthly · Lunch', 'Monthly · Lunch + dinner']
+// Packages Mukkani sells, price in rupees per month.
+export const PACKAGES = [{ name: 'Monthly package', price: 3430 }]
+export const PACKAGE_TYPES = PACKAGES.map((p) => p.name)
+export const packagePrice = (name: string) => PACKAGES.find((p) => p.name === name)?.price ?? PACKAGES[0].price
+export const rupees = (n: number) => `₹${n.toLocaleString('en-IN')}`
 export const SLOTS = ['6:30 to 7:00', '7:00 to 7:30', '7:30 to 8:00']

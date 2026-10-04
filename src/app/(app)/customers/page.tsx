@@ -10,7 +10,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   const sp = await searchParams
   const q = sp.q?.trim()
   const all = await db.lead.findMany({
-    where: { ...customerWhere, ...(q ? { OR: [{ name: { contains: q, mode: 'insensitive' } }, { phone: { contains: q } }] } : {}) },
+    where: { ...customerWhere, ...(q ? { OR: [{ name: { contains: q } }, { phone: { contains: q } }] } : {}) },
     include: leadInclude,
     orderBy: { name: 'asc' },
   })

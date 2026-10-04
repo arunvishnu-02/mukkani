@@ -1,6 +1,7 @@
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { kitchenToday } from '@/lib/queries'
+import { rupees } from '@/lib/labels'
 import { Bar, Card, PageHeader, Tile, Tiles, Who } from '@/components/ui'
 
 const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : '—')
@@ -11,7 +12,7 @@ export default async function AdminOverview() {
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
   const [leads, packages, trials, regions, sales, k, newLeads, contacted] = await Promise.all([
     db.lead.count(),
-    db.package.findMany({ select: { startDate: true, status: true, updatedAt: true } }),
+    db.package.findMany({ select: { startDate: true, status: true, updatedAt: true, price: true } }),
     db.trialBox.findMany({ select: { status: true, result: true, createdAt: true, updatedAt: true, lead: { select: { regionId: true, ownerId: true } } } }),
     db.region.findMany({ orderBy: { name: 'asc' }, include: { _count: { select: { leads: true } } } }),
     db.user.findMany({ where: { role: 'SALES' }, include: { _count: { select: { leads: true } } }, orderBy: { name: 'asc' } }),
@@ -22,6 +23,7 @@ export default async function AdminOverview() {
   const closed = trials.filter((t) => t.result)
   const won = closed.filter((t) => t.result === 'CONVERTED')
   const active = packages.filter((p) => p.status === 'ACTIVE').length
+  const monthlyIncome = packages.filter((p) => p.status === 'ACTIVE').reduce((sum, p) => sum + p.price, 0)
   const months = Array.from({ length: 6 }, (_, i) => {
     const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 4 + i, 0, 23, 59))
     const label = new Intl.DateTimeFormat('en-IN', { month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5 + i, 1)))
@@ -43,7 +45,7 @@ export default async function AdminOverview() {
       <Tiles cols={5}>
         <Tile label="Total leads" value={leads} sub={`+${newLeads} this month`} />
         <Tile label="Conversion rate" value={pct(won.length, closed.length)} sub="trial to monthly" tone="leaf" />
-        <Tile label="Monthly customers" value={active} sub="active packages" tone="leaf" />
+        <Tile label="Monthly customers" value={active} sub={`${rupees(monthlyIncome)} a month`} tone="leaf" />
         <Tile label="Active trials" value={trials.filter((t) => t.status !== 'COMPLETED').length} tone="warn" />
         <Tile label="Boxes today" value={k.total} sub={`${k.packages.length} regular · ${k.trials.length} trial`} />
       </Tiles>

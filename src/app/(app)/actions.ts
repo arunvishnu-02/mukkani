@@ -1,5 +1,7 @@
 'use server'
 
+import { PACKAGE_TYPES } from '@/lib/labels'
+
 import bcrypt from 'bcryptjs'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -93,7 +95,7 @@ export async function recordResultAction(form: FormData) {
   if (s(form, 'result') === 'CONVERTED') {
     await recordResult(id, user.id, {
       converted: true,
-      packageType: s(form, 'packageType') ?? 'Monthly',
+      packageType: s(form, 'packageType') ?? PACKAGE_TYPES[0],
       startDate: s(form, 'startDate') ? parseDay(s(form, 'startDate')!) : day(1),
       slot: s(form, 'slot') ?? '',
       regionId: s(form, 'regionId'),

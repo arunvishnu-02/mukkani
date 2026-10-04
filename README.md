@@ -21,12 +21,12 @@ It replaces WhatsApp coordination between Sales and the Kitchen.
 
 ## Stack
 
-Next.js 16 (App Router, server actions), TypeScript, Tailwind CSS 4, Prisma 7, PostgreSQL. Login is username and password with a signed cookie. No paid services.
+Next.js 16 (App Router, server actions), TypeScript, Tailwind CSS 4, Prisma 7, MySQL / MariaDB. Login is username and password with a signed cookie. No paid services beyond hosting.
 Design: Figma file "Mukkani CRM Dashboard".
 
 ## Run it on your computer
 
-You need Node.js 22 and PostgreSQL.
+You need Node.js 22 and MySQL or MariaDB.
 
 ```
 cp .env.example .env            # set DATABASE_URL and SESSION_SECRET
@@ -38,22 +38,27 @@ npm run dev
 
 Demo logins (only with SEED_DEMO=1): admin / admin123, divya / sales123, karthik / sales123, kitchen / kitchen123.
 
-## Put it on a server
+## Put it on Hostinger (Node.js web app)
 
-Any Ubuntu VPS (for example Hostinger KVM 1) with a domain or subdomain pointed at it:
+1. **Database.** In hPanel open Databases > MySQL Databases and create a database and user. Note the database name, user, password and host (often `localhost`; hPanel shows it).
+2. **Web app.** In hPanel add a Node.js web app (Websites > Add website > Node.js app), connect GitHub and pick `arunvishnu-02/mukkani`, branch `main`.
+3. **Build settings.** Framework Next.js, Node version 22, build command `npm run build`, start command `npm start`.
+4. **Environment variables.**
 
-```
-git clone https://github.com/arunvishnu-02/mukkani-crm.git /opt/mukkani-crm
-cd /opt/mukkani-crm
-bash deploy/install.sh crm.yourdomain.com
-```
+   | Name | Value |
+   |---|---|
+   | `DATABASE_URL` | `mysql://USER:PASSWORD@HOST:3306/DATABASE` |
+   | `SESSION_SECRET` | a long random string (32+ characters) |
+   | `APP_URL` | your address, e.g. `https://crm.mukkani.in` |
+   | `ADMIN_PASSWORD` | the password you want for the `admin` login |
+   | `COOKIE_SECURE` | `true` |
 
-The script installs Docker if needed, creates `.env` with random passwords, starts PostgreSQL, the app and Caddy (automatic HTTPS), and prints the admin password.
-HTTPS is required: phones only share GPS location with https sites.
+   If the database password has symbols such as `@`, `#` or `/`, write them URL-encoded in `DATABASE_URL` (for example `@` becomes `%40`).
+5. **Deploy.** On every start the app creates or updates the database tables (`prisma migrate deploy`) and, the first time, the 5 regions and the `admin` user. Log in as `admin`, then add sales and kitchen users in Users + regions.
+6. **HTTPS.** Turn on the free SSL certificate for the domain. Phones only share GPS location with https sites.
 
-- Update: `bash deploy/update.sh`
-- Daily backup: `bash deploy/backup.sh` (add it to cron)
+To update the live app, push to `main` and redeploy in hPanel. Hostinger's automatic database backups cover the data.
 
-## Placeholders to replace
+## Packages, slots and regions
 
-Package names and delivery slots are in `src/lib/labels.ts`. Regions and their map centres are edited by the admin in Users + regions.
+Packages and prices (now: Monthly package, ₹3,430 a month) and delivery slots are in `src/lib/labels.ts`. Regions and their map centres are edited by the admin in Users + regions.
