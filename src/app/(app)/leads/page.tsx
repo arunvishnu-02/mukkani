@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { dayInput, day, fmtDay } from '@/lib/dates'
-import { LEAD_STATUS, LOCATION_STATUS, SOURCE } from '@/lib/labels'
+import { LEAD_STATUS, LOCATION_STATUS, PACKAGE_TYPES, SLOTS } from '@/lib/labels'
 import { leadInclude, regionsList } from '@/lib/queries'
 import { Empty, PageHeader, StatusChip, Tabs, Who } from '@/components/ui'
 import { StatusFields } from '@/components/StatusFields'
@@ -58,13 +58,13 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
             <Empty>No leads here yet.</Empty>
           ) : (
             <table className="w-full">
-              <thead><tr><th className="th">Name</th><th className="th">Region</th><th className="th">Source</th><th className="th">Status</th><th className="th">Next call</th></tr></thead>
+              <thead><tr><th className="th">Name</th><th className="th">Location</th><th className="th">Health issues</th><th className="th">Status</th><th className="th">Next call</th></tr></thead>
               <tbody>
                 {leads.map((l) => (
                   <tr key={l.id} className={l.id === selected?.id ? 'bg-brand-soft/60' : ''}>
                     <td className="td"><Who name={l.name} sub={l.phone} href={`${qs(f[0])}&lead=${l.id}`} /></td>
                     <td className="td">{l.region?.name ?? '—'}</td>
-                    <td className="td">{SOURCE[l.source]}</td>
+                    <td className="td">{l.foodNotes ?? '—'}</td>
                     <td className="td"><StatusChip map={LEAD_STATUS} value={l.status} /></td>
                     <td className="td">{fmtDay(l.nextFollowUpAt)}</td>
                   </tr>
@@ -74,31 +74,22 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
           )}
         </section>
         {panel === 'new' && (
-          <form action={createLead} className="card space-y-3.5 border-brand p-5.5">
+          <form action={createLead} className="card space-y-3.5 border-brand p-5.5 lg:sticky lg:top-4">
             <h2 className="font-display text-lg font-semibold">Add lead</h2>
             <div><label className="label">Name</label><input name="name" className="input" required /></div>
-            <div className="grid grid-cols-2 gap-2.5">
-              <div><label className="label">Phone</label><input name="phone" className="input" inputMode="tel" required /></div>
-              <div><label className="label">Alternate</label><input name="altPhone" className="input" inputMode="tel" /></div>
+            <div><label className="label">Phone number</label><input name="phone" className="input" inputMode="tel" required /></div>
+            <div>
+              <label className="label">Location</label>
+              <select name="regionId" className="input"><option value="">Area not set</option>{regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select>
+              <input name="address" className="input mt-2" placeholder="Address, or send a location link after saving" />
             </div>
-            <div className="grid grid-cols-2 gap-2.5">
-              <div>
-                <label className="label">Source</label>
-                <select name="source" className="input">{Object.entries(SOURCE).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-              </div>
-              <div>
-                <label className="label">Region</label>
-                <select name="regionId" className="input"><option value="">Not set</option>{regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select>
-              </div>
-            </div>
-            <div><label className="label">Address</label><input name="address" className="input" placeholder="Or send a location link after saving" /></div>
-            <div><label className="label">Food notes</label><input name="foodNotes" className="input" /></div>
+            <div><label className="label">Health issues</label><input name="foodNotes" className="input" placeholder="Diabetes, BP, allergy, food to avoid" /></div>
             <div><label className="label">Notes</label><textarea name="notes" rows={2} className="input" /></div>
             <div className="grid grid-cols-2 gap-2.5"><Link href="/leads" className="btn-secondary">Cancel</Link><button className="btn">Save lead</button></div>
           </form>
         )}
         {panel === 'edit' && selected && (
-          <form action={updateLead} className="card space-y-3.5 border-brand p-5.5">
+          <form key={selected.id} action={updateLead} className="card space-y-3.5 border-brand p-5.5 lg:sticky lg:top-4">
             <input type="hidden" name="id" value={selected.id} />
             <div className="flex items-center gap-3">
               <div className="flex-1">
@@ -107,15 +98,21 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
               </div>
               <a href={`tel:${selected.phone}`} className="btn-secondary btn-sm">Call</a>
             </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              <div><label className="label">Name</label><input name="name" className="input" defaultValue={selected.name} required /></div>
+              <div><label className="label">Phone number</label><input name="phone" className="input" inputMode="tel" defaultValue={selected.phone} required /></div>
+            </div>
             <StatusFields
               options={Object.entries(LEAD_STATUS).map(([v, [l]]) => [v, l])}
               value={selected.status}
               start={dayInput(day(1))}
               end={dayInput(day(7))}
+              packageTypes={PACKAGE_TYPES}
+              slots={SLOTS}
             />
             <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className="label">Region</label>
+                <label className="label">Location</label>
                 <select name="regionId" className="input" defaultValue={selected.regionId ?? ''}><option value="">Not set</option>{regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select>
               </div>
               <div><label className="label">Next follow-up</label><input type="date" name="nextFollowUpAt" className="input" defaultValue={dayInput(selected.nextFollowUpAt)} /></div>
@@ -130,11 +127,10 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
               </div>
             </div>
             <div><label className="label">Address</label><input name="address" className="input" defaultValue={selected.address ?? ''} /></div>
-            <div><label className="label">Food notes</label><input name="foodNotes" className="input" defaultValue={selected.foodNotes ?? ''} /></div>
+            <div><label className="label">Health issues</label><input name="foodNotes" className="input" defaultValue={selected.foodNotes ?? ''} /></div>
             <div><label className="label">Notes</label><textarea name="notes" rows={2} className="input" defaultValue={selected.notes ?? ''} /></div>
-            <input type="hidden" name="altPhone" value={selected.altPhone ?? ''} />
             <div className="grid grid-cols-2 gap-2.5"><Link href={qs(f[0])} className="btn-secondary">Close</Link><button className="btn">Save</button></div>
-            {selected.trialBoxes[0] || selected.packages[0] ? (
+            {selected.packages[0] ? (
               <Link href={`/customers/${selected.id}`} className="block text-center text-[13px] font-semibold text-sky">Open customer profile</Link>
             ) : null}
           </form>

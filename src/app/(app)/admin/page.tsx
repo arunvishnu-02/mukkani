@@ -60,7 +60,7 @@ export default async function AdminOverview() {
           </div>
         </Card>
         <Card title="Lead conversion" sub="This month">
-          <div className="space-y-3">{funnel.map(([l, v, t]) => <Bar key={l} label={l} value={v} max={Math.max(1, funnel[0][1])} tone={t} />)}</div>
+          <div className="space-y-3">{funnel.map(([l, v, t]) => <Bar key={l} label={l} value={v} max={Math.max(1, ...funnel.map((x) => x[1]))} tone={t} />)}</div>
         </Card>
       </div>
       <div className="grid items-start gap-4 lg:grid-cols-2">

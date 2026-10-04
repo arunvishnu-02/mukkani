@@ -132,7 +132,7 @@ export function Bar({ label, value, max, tone = 'leaf' }: { label: string; value
     <div className="flex items-center gap-3 text-[13px]">
       <span className="w-40 shrink-0">{label}</span>
       <span className="h-2 flex-1 rounded bg-s2">
-        <span className={`block h-2 rounded ${color}`} style={{ width: `${max ? Math.max(3, (value / max) * 100) : 0}%` }} />
+        <span className={`block h-2 rounded ${color}`} style={{ width: `${max ? Math.min(100, Math.max(3, (value / max) * 100)) : 0}%` }} />
       </span>
       <span className="w-10 text-right font-semibold">{value}</span>
     </div>

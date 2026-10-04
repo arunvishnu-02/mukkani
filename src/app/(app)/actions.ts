@@ -6,9 +6,10 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { db } from '@/lib/db'
 import { requireUser } from '@/lib/auth'
+import { parseCsv } from '@/lib/csv'
 import { day, parseDay } from '@/lib/dates'
-import { createLocationRequest, log, logCall, moveTrial, recordResult, setLeadStatus } from '@/lib/workflow'
-import { LeadSource, LeadStatus, PackageStatus, Role, TrialStatus } from '@/generated/prisma/enums'
+import { createLocationRequest, log, logCall, recordResult, setLeadStatus } from '@/lib/workflow'
+import { LeadStatus, PackageStatus, Role } from '@/generated/prisma/enums'
 
 const s = (f: FormData, k: string) => {
   const v = String(f.get(k) ?? '').trim()
@@ -22,25 +23,21 @@ export async function createLead(form: FormData) {
     .object({
       name: z.string().min(1),
       phone: z.string().min(6),
-      altPhone: z.string().nullable(),
       address: z.string().nullable(),
       regionId: z.string().uuid().nullable(),
-      source: z.enum(LeadSource),
       notes: z.string().nullable(),
       foodNotes: z.string().nullable(),
     })
     .parse({
       name: s(form, 'name'),
       phone: s(form, 'phone'),
-      altPhone: s(form, 'altPhone'),
       address: s(form, 'address'),
       regionId: s(form, 'regionId'),
-      source: s(form, 'source') ?? 'CALL',
       notes: s(form, 'notes'),
       foodNotes: s(form, 'foodNotes'),
     })
   const lead = await db.lead.create({ data: { ...data, ownerId: user.id, nextFollowUpAt: day(0) } })
-  await log(lead.id, 'lead', 'Lead added', `Source: ${data.source.toLowerCase()}`, user.id)
+  await log(lead.id, 'lead', 'Lead added', null, user.id)
   revalidatePath('/leads')
   redirect(`/leads?lead=${lead.id}`)
 }
@@ -54,18 +51,22 @@ export async function updateLead(form: FormData) {
   await db.lead.update({
     where: { id },
     data: {
+      name: z.string().min(1).parse(s(form, 'name')),
+      phone: z.string().min(6).parse(s(form, 'phone')),
       regionId: s(form, 'regionId'),
       notes: s(form, 'notes'),
       foodNotes: s(form, 'foodNotes'),
       address: s(form, 'address'),
-      altPhone: s(form, 'altPhone'),
       nextFollowUpAt: s(form, 'nextFollowUpAt') ? parseDay(s(form, 'nextFollowUpAt')!) : null,
     },
   })
-  await setLeadStatus(id, status, user.id, {
-    start: start ? parseDay(start) : undefined,
-    end: end ? parseDay(end) : undefined,
-  })
+  await setLeadStatus(
+    id,
+    status,
+    user.id,
+    { start: start ? parseDay(start) : undefined, end: end ? parseDay(end) : undefined },
+    { packageType: s(form, 'packageType') ?? 'Monthly', startDate: s(form, 'startDate') ? parseDay(s(form, 'startDate')!) : day(1), slot: s(form, 'slot') },
+  )
   revalidatePath('/', 'layout')
   redirect(back(form, `/leads?lead=${id}`))
 }
@@ -78,13 +79,6 @@ export async function logCallAction(form: FormData) {
   await logCall(id, user.id, outcome, s(form, 'note'), next ? parseDay(next) : null)
   revalidatePath('/', 'layout')
   redirect(back(form, '/follow-ups'))
-}
-
-export async function moveTrialAction(form: FormData) {
-  const user = await requireUser(['SALES'])
-  await moveTrial(z.string().uuid().parse(s(form, 'id')), z.enum(TrialStatus).parse(s(form, 'status')), user.id)
-  revalidatePath('/', 'layout')
-  redirect(back(form, '/boxes'))
 }
 
 export async function recordResultAction(form: FormData) {
@@ -125,6 +119,51 @@ export async function requestLocationAction(form: FormData) {
   redirect(`/leads/${id}/location?channel=${channel}`)
 }
 
+// Customers from a CSV file in the format of the sample file. A phone number already in the CRM is skipped, so the
+// same file can be imported twice without making duplicates.
+export async function importCustomers(form: FormData) {
+  const user = await requireUser(['SALES'])
+  const file = form.get('file')
+  if (!(file instanceof File) || file.size === 0) redirect('/customers?import=1&error=nofile')
+  const [header, ...rows] = parseCsv(await file.text())
+  const col = (name: string) => (header ?? []).findIndex((h) => h.toLowerCase() === name)
+  const at = { name: col('name'), phone: col('phone'), location: col('location'), address: col('address'), health: col('health issues'), notes: col('notes'), pkg: col('package'), slot: col('slot'), start: col('start date'), status: col('status') }
+  if (at.name < 0 || at.phone < 0) redirect('/customers?import=1&error=columns')
+  const digits = (v: string) => v.replace(/\D/g, '')
+  const [regions, existing] = await Promise.all([db.region.findMany(), db.lead.findMany({ select: { phone: true } })])
+  const known = new Set(existing.map((l) => digits(l.phone)))
+  let added = 0, skipped = 0, invalid = 0
+  for (const r of rows) {
+    const get = (i: number) => (i >= 0 && r[i] ? r[i] : null)
+    const name = get(at.name)
+    const phone = get(at.phone)
+    if (!name || !phone || digits(phone).length < 6) { invalid++; continue }
+    if (known.has(digits(phone))) { skipped++; continue }
+    known.add(digits(phone))
+    const location = get(at.location)
+    const region = location ? regions.find((x) => x.name.toLowerCase() === location.toLowerCase()) : undefined
+    // Start date as 2026-10-04, or 04/10/2026 and 04-10-2026 the way Excel saves it.
+    const raw = get(at.start)
+    const dmy = raw?.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/)
+    const iso = dmy ? `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}` : raw
+    const start = iso && /^\d{4}-\d{2}-\d{2}$/.test(iso) && !isNaN(parseDay(iso).getTime()) ? parseDay(iso) : day(0)
+    const packageType = get(at.pkg) ?? 'Monthly'
+    const lead = await db.lead.create({
+      data: {
+        name, phone, status: 'CONVERTED', ownerId: user.id, regionId: region?.id ?? null,
+        // A location that is not one of the regions is kept in the address, so nothing from the file is lost.
+        address: get(at.address) ?? (region ? null : location),
+        foodNotes: get(at.health), notes: get(at.notes), slot: get(at.slot),
+        packages: { create: { packageType, startDate: start, status: get(at.status)?.toLowerCase().startsWith('pause') ? 'PAUSED' : 'ACTIVE' } },
+      },
+    })
+    await log(lead.id, 'package', 'Customer imported from file', packageType, user.id)
+    added++
+  }
+  revalidatePath('/', 'layout')
+  redirect(`/customers?added=${added}&skipped=${skipped}&invalid=${invalid}`)
+}
+
 // Admin
 export async function saveUser(form: FormData) {
   await requireUser(['ADMIN'])
@@ -147,6 +186,16 @@ export async function saveUser(form: FormData) {
   redirect('/admin/users')
 }
 
+export async function deleteUser(form: FormData) {
+  const me = await requireUser(['ADMIN'])
+  const id = z.string().uuid().parse(s(form, 'id'))
+  if (id === me.id) throw new Error('You cannot delete your own login')
+  // Leads, regions and trial boxes of this user stay; they just lose the owner.
+  await db.user.delete({ where: { id } })
+  revalidatePath('/', 'layout')
+  redirect('/admin/users')
+}
+
 export async function saveRegion(form: FormData) {
   await requireUser(['ADMIN'])
   const id = s(form, 'id')
@@ -155,5 +204,13 @@ export async function saveRegion(form: FormData) {
   if (id) await db.region.update({ where: { id }, data })
   else await db.region.create({ data })
   revalidatePath('/admin/users')
+  redirect('/admin/users')
+}
+
+export async function deleteRegion(form: FormData) {
+  await requireUser(['ADMIN'])
+  // Leads in this region stay; their region becomes "not set".
+  await db.region.delete({ where: { id: z.string().uuid().parse(s(form, 'id')) } })
+  revalidatePath('/', 'layout')
   redirect('/admin/users')
 }

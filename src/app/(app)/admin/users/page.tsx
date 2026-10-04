@@ -3,10 +3,11 @@ import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { ROLE } from '@/lib/labels'
 import { Card, Chip, PageHeader, StatusChip, Who } from '@/components/ui'
-import { saveRegion, saveUser } from '../../actions'
+import { ConfirmButton } from '@/components/ConfirmButton'
+import { deleteRegion, deleteUser, saveRegion, saveUser } from '../../actions'
 
 export default async function UsersRegions({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  await requireUser(['ADMIN'])
+  const me = await requireUser(['ADMIN'])
   const sp = await searchParams
   const [users, regions] = await Promise.all([
     db.user.findMany({ orderBy: [{ role: 'asc' }, { name: 'asc' }] }),
@@ -23,7 +24,8 @@ export default async function UsersRegions({ searchParams }: { searchParams: Pro
         <Link href="/admin/users?user=new" className="btn">Add user</Link>
       </PageHeader>
       {showUser && (
-        <form action={saveUser} className="card grid gap-3 border-brand p-5 sm:grid-cols-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-ink/45 p-4">
+        <form key={editUser?.id ?? 'new'} action={saveUser} className="card grid w-full max-w-[720px] gap-3 p-6 sm:grid-cols-3">
           <input type="hidden" name="id" value={editUser?.id ?? ''} />
           <h2 className="font-display text-lg font-semibold sm:col-span-3">{editUser ? `Edit ${editUser.name}` : 'Add user'}</h2>
           <div><label className="label">Name</label><input name="name" className="input" defaultValue={editUser?.name} required /></div>
@@ -34,9 +36,11 @@ export default async function UsersRegions({ searchParams }: { searchParams: Pro
           <div><label className="label">Status</label><select name="active" className="input" defaultValue={editUser?.active === false ? 'off' : 'on'}><option value="on">Active</option><option value="off">Inactive (cannot log in)</option></select></div>
           <div className="flex gap-2.5 sm:col-span-3"><Link href="/admin/users" className="btn-secondary">Cancel</Link><button className="btn">Save user</button></div>
         </form>
+        </div>
       )}
       {showRegion && (
-        <form action={saveRegion} className="card grid gap-3 border-brand p-5 sm:grid-cols-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-ink/45 p-4">
+        <form key={editRegion?.id ?? 'new'} action={saveRegion} className="card grid w-full max-w-[820px] gap-3 p-6 sm:grid-cols-4">
           <input type="hidden" name="id" value={editRegion?.id ?? ''} />
           <h2 className="font-display text-lg font-semibold sm:col-span-4">{editRegion ? `Edit ${editRegion.name}` : 'Add region'}</h2>
           <div><label className="label">Name</label><input name="name" className="input" defaultValue={editRegion?.name} required /></div>
@@ -46,6 +50,7 @@ export default async function UsersRegions({ searchParams }: { searchParams: Pro
           <p className="text-xs text-muted sm:col-span-4">The centre is used to set a customer&apos;s region automatically from their shared pin (nearest centre within 25 km).</p>
           <div className="flex gap-2.5 sm:col-span-4"><Link href="/admin/users" className="btn-secondary">Cancel</Link><button className="btn">Save region</button></div>
         </form>
+        </div>
       )}
       <section className="card overflow-x-auto">
         <h2 className="px-5 py-4 font-display text-lg font-semibold">Users <span className="text-sm font-normal text-muted">{users.length} people</span></h2>
@@ -59,7 +64,17 @@ export default async function UsersRegions({ searchParams }: { searchParams: Pro
                 <td className="td"><StatusChip map={ROLE} value={u.role} /></td>
                 <td className="td">{u.phone ?? '—'}</td>
                 <td className="td">{u.active ? <Chip label="Active" tone="leaf" /> : <Chip label="Inactive" tone="muted" />}</td>
-                <td className="td"><Link href={`/admin/users?user=${u.id}`} className="btn-secondary btn-sm">Edit</Link></td>
+                <td className="td">
+                  <div className="flex justify-end gap-1.5">
+                    <Link href={`/admin/users?user=${u.id}`} className="btn-secondary btn-sm">Edit</Link>
+                    {u.id !== me.id && (
+                      <form action={deleteUser}>
+                        <input type="hidden" name="id" value={u.id} />
+                        <ConfirmButton message={`Delete ${u.name}? Their leads stay, without an owner.`} className="btn-secondary btn-sm text-red">Delete</ConfirmButton>
+                      </form>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -77,7 +92,15 @@ export default async function UsersRegions({ searchParams }: { searchParams: Pro
                   <td className="td">{r._count.leads}</td>
                   <td className="td">{r.owner?.name ?? '—'}</td>
                   <td className="td font-mono text-xs">{r.lat != null ? `${r.lat.toFixed(3)}, ${r.lng?.toFixed(3)}` : 'not set'}</td>
-                  <td className="td"><Link href={`/admin/users?region=${r.id}`} className="btn-secondary btn-sm">Edit</Link></td>
+                  <td className="td">
+                    <div className="flex justify-end gap-1.5">
+                      <Link href={`/admin/users?region=${r.id}`} className="btn-secondary btn-sm">Edit</Link>
+                      <form action={deleteRegion}>
+                        <input type="hidden" name="id" value={r.id} />
+                        <ConfirmButton message={`Delete ${r.name}? Its ${r._count.leads} leads stay, with no region.`} className="btn-secondary btn-sm text-red">Delete</ConfirmButton>
+                      </form>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

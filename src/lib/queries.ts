@@ -14,17 +14,17 @@ export const leadInclude = {
 
 export type LeadRow = Prisma.LeadGetPayload<{ include: typeof leadInclude }>
 
-// A customer is anyone with a trial box or a package. Regular box wins over trial box.
-export function boxType(l: LeadRow): 'Regular box' | 'Trial box' | null {
-  const p = l.packages[0]
-  if (p && (p.status === 'ACTIVE' || p.status === 'PAUSED')) return 'Regular box'
-  const t = l.trialBoxes[0]
-  if (t && t.status !== 'COMPLETED') return 'Trial box'
-  if (t || p) return p ? 'Regular box' : 'Trial box'
-  return null
-}
+// A customer is a converted lead: someone with a monthly package. Everyone else stays under Leads.
+export const customerWhere: Prisma.LeadWhereInput = { packages: { some: {} } }
 
-export const customerWhere: Prisma.LeadWhereInput = { OR: [{ trialBoxes: { some: {} } }, { packages: { some: {} } }] }
+// Calls due today. A lead with no date set is also due today when it is marked Follow-Up Required
+// or has a trial box running, so it is never missed.
+export const dueToday = (today: Date): Prisma.LeadWhereInput => ({
+  OR: [
+    { nextFollowUpAt: today },
+    { nextFollowUpAt: null, OR: [{ status: 'FOLLOW_UP' }, { trialBoxes: { some: { result: null } } }] },
+  ],
+})
 
 // Boxes the kitchen prepares today: active packages that have started, and open trials whose dates cover today.
 export async function kitchenToday() {

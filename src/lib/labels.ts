@@ -1,4 +1,4 @@
-import type { LeadSource, LeadStatus, LocationStatus, PackageStatus, Role, TrialStatus } from '@/generated/prisma/enums'
+import type { LeadSource, LeadStatus, LocationStatus, PackageStatus, Role } from '@/generated/prisma/enums'
 
 export type Tone = 'sky' | 'warn' | 'leaf' | 'muted' | 'red'
 
@@ -11,15 +11,6 @@ export const LEAD_STATUS: Record<LeadStatus, [string, Tone]> = {
   TRIAL_ACTIVE: ['Trial Box Active', 'leaf'],
   CONVERTED: ['Monthly Package Converted', 'leaf'],
   LOST: ['Lost Lead', 'red'],
-}
-
-export const TRIAL_STATUS: Record<TrialStatus, [string, Tone]> = {
-  PENDING: ['Pending', 'warn'],
-  ASSIGNED: ['Assigned', 'sky'],
-  PREPARING: ['Preparing', 'sky'],
-  DELIVERED: ['Delivered', 'leaf'],
-  TRIAL_ACTIVE: ['Trial Active', 'leaf'],
-  COMPLETED: ['Completed', 'muted'],
 }
 
 export const PACKAGE_STATUS: Record<PackageStatus, [string, Tone]> = {
@@ -50,8 +41,6 @@ export const ROLE: Record<Role, [string, Tone]> = {
   SALES: ['Sales', 'sky'],
   KITCHEN: ['Kitchen manager', 'warn'],
 }
-
-export const TRIAL_FLOW: TrialStatus[] = ['PENDING', 'ASSIGNED', 'PREPARING', 'DELIVERED', 'TRIAL_ACTIVE', 'COMPLETED']
 
 // Package names and delivery slots are placeholders until Arun sends the real ones.
 export const PACKAGE_TYPES = ['Monthly · Breakfast', 'Monthly · Lunch', 'Monthly · Lunch + dinner']

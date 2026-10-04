@@ -2,10 +2,10 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { fmtDay, fmtRange, fmtTime } from '@/lib/dates'
-import { LOCATION_STATUS, PACKAGE_STATUS, SOURCE, TRIAL_FLOW, TRIAL_STATUS } from '@/lib/labels'
-import { boxType, leadInclude } from '@/lib/queries'
-import { Avatar, Callout, Card, Chip, StatusChip } from '@/components/ui'
+import { fmtDay, fmtTime } from '@/lib/dates'
+import { LOCATION_STATUS, PACKAGE_STATUS } from '@/lib/labels'
+import { leadInclude } from '@/lib/queries'
+import { Avatar, Callout, Card, StatusChip } from '@/components/ui'
 import { MapPin } from '@/components/MapPin'
 
 function Row({ k, v, auto }: { k: string; v: React.ReactNode; auto?: boolean }) {
@@ -28,11 +28,9 @@ export default async function CustomerProfile({ params }: { params: Promise<{ id
     db.activity.findMany({ where: { leadId: id }, include: { by: { select: { name: true } } }, orderBy: { createdAt: 'desc' }, take: 12 }),
   ])
   if (!lead) notFound()
-  const b = boxType(lead)
   const trial = lead.trialBoxes[0]
   const pkg = lead.packages[0]
   const auto = lead.locationUpdatedAt != null
-  const step = trial ? TRIAL_FLOW.indexOf(trial.status) : -1
   return (
     <>
       <div className="text-[13px] font-medium text-muted"><Link href="/customers" className="hover:underline">Customers</Link> / {lead.name}</div>
@@ -41,7 +39,7 @@ export default async function CustomerProfile({ params }: { params: Promise<{ id
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="font-display text-[28px] font-bold">{lead.name}</h1>
-            {b && <Chip label={b} tone={b === 'Regular box' ? 'leaf' : 'warn'} />}
+            {pkg && <StatusChip map={PACKAGE_STATUS} value={pkg.status} />}
           </div>
           <p className="text-sm text-muted">
             {lead.phone} · {lead.region?.name ?? 'No region'} · customer since {fmtDay(pkg?.startDate ?? trial?.startDate)}
@@ -70,10 +68,8 @@ export default async function CustomerProfile({ params }: { params: Promise<{ id
           </Card>
           <Card title="Customer details">
             <Row k="Phone" v={lead.phone} />
-            <Row k="Alternate" v={lead.altPhone ?? '—'} />
-            <Row k="Source" v={SOURCE[lead.source]} />
             <Row k="Delivery slot" v={lead.slot ?? '—'} />
-            <Row k="Food notes" v={lead.foodNotes ?? '—'} />
+            <Row k="Health issues" v={lead.foodNotes ?? '—'} />
             <Row k="Notes" v={lead.notes ?? '—'} />
           </Card>
         </div>
@@ -82,25 +78,7 @@ export default async function CustomerProfile({ params }: { params: Promise<{ id
             <Card title="Regular box" sub={pkg.packageType} right={<StatusChip map={PACKAGE_STATUS} value={pkg.status} />} className="border-leaf">
               <Row k="Started" v={fmtDay(pkg.startDate)} />
               <Row k="Delivery slot" v={lead.slot ?? '—'} />
-              <Link href="/boxes?tab=regular" className="mt-2 block text-[13px] font-semibold text-sky">Pause or change in Trial / Regular boxes</Link>
-            </Card>
-          ) : trial ? (
-            <Card title="Trial box" sub="7-day trial before a regular box" right={<StatusChip map={TRIAL_STATUS} value={trial.status} />} className="border-tur">
-              <div className="grid grid-cols-6 gap-1">
-                {['Requested', 'Assigned', 'Preparing', 'Delivered', 'Trial active', 'Completed'].map((s, i) => (
-                  <div key={s}>
-                    <div className={`h-1.5 rounded ${i <= step ? 'bg-tur' : 'bg-line'}`} />
-                    <div className={`mt-1.5 text-[10px] ${i === step ? 'font-bold text-warn' : 'font-medium text-muted'}`}>{s}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-3">
-                <Row k="Trial dates" v={fmtRange(trial.startDate, trial.endDate)} />
-                <Row k="Kitchen notes" v={trial.notes ?? '—'} />
-              </div>
-              {trial.status === 'COMPLETED' && !trial.result && (
-                <Link href={`/boxes?result=${trial.id}`} className="btn mt-3 w-full">Record trial result</Link>
-              )}
+              <Link href={`/boxes?tab=${pkg.status === 'PAUSED' ? 'paused' : 'regular'}`} className="mt-2 block text-[13px] font-semibold text-sky">Pause or change in Boxes</Link>
             </Card>
           ) : null}
           <Card title="Activity">

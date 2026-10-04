@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { day, dayInput, fmtDay } from '@/lib/dates'
 import { LEAD_STATUS } from '@/lib/labels'
+import { dueToday } from '@/lib/queries'
 import { Callout, Empty, PageHeader, StatusChip, Tabs, Tile, Tiles, Who } from '@/components/ui'
 import { logCallAction } from '../actions'
 import type { Prisma } from '@/generated/prisma/client'
@@ -21,7 +22,7 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
   const tab = sp.tab === 'overdue' || sp.tab === 'upcoming' ? sp.tab : 'today'
   const today = day(0)
   const views: Record<string, Prisma.LeadWhereInput> = {
-    today: { ...OPEN, nextFollowUpAt: today },
+    today: { ...OPEN, ...dueToday(today) },
     overdue: { ...OPEN, nextFollowUpAt: { lt: today } },
     upcoming: { ...OPEN, nextFollowUpAt: { gt: today, lte: day(7) } },
   }
@@ -37,7 +38,8 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
     }),
     sp.log ? db.lead.findUnique({ where: { id: sp.log } }) : null,
   ])
-  const back = `/follow-ups?tab=${tab}`
+  const here = `/follow-ups?tab=${tab}`
+  const back = sp.from === 'boxes' ? '/boxes' : here
   return (
     <>
       <PageHeader title="Follow-ups" sub="Calls to make, with notes from the last call" />
@@ -67,8 +69,8 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
                     <td className="td"><Who name={l.name} sub={l.region?.name ?? l.phone} href={`/leads?lead=${l.id}`} /></td>
                     <td className="td max-w-72 text-muted">{l.followUps[0]?.note ?? l.notes ?? '—'}</td>
                     <td className="td"><StatusChip map={LEAD_STATUS} value={l.status} /></td>
-                    <td className="td">{fmtDay(l.nextFollowUpAt)}</td>
-                    <td className="td"><Link href={`${back}&log=${l.id}`} className={l.id === selected?.id ? 'btn btn-sm' : 'btn-secondary btn-sm'}>Log call</Link></td>
+                    <td className="td">{l.nextFollowUpAt ? fmtDay(l.nextFollowUpAt) : 'No date set'}</td>
+                    <td className="td"><Link href={`${here}&log=${l.id}`} className={l.id === selected?.id ? 'btn btn-sm' : 'btn-secondary btn-sm'}>Log call</Link></td>
                   </tr>
                 ))}
               </tbody>

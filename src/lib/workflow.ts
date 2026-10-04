@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 import { day } from '@/lib/dates'
 import { nearestRegionId, reverseGeocode } from '@/lib/geo'
 import type { LeadStatus, TrialStatus } from '@/generated/prisma/enums'
-import { LEAD_STATUS, TRIAL_STATUS } from '@/lib/labels'
+import { LEAD_STATUS } from '@/lib/labels'
 
 const OPEN_TRIAL: TrialStatus[] = ['PENDING', 'ASSIGNED', 'PREPARING', 'DELIVERED', 'TRIAL_ACTIVE']
 
@@ -13,11 +13,13 @@ export async function log(leadId: string, kind: string, text: string, detail?: s
 }
 
 // Status change on a lead. "Trial Box Requested" creates the trial order and hands it to the kitchen.
+// "Monthly Package Converted" creates the regular box if the lead has none, so the lead shows under Customers.
 export async function setLeadStatus(
   leadId: string,
   status: LeadStatus,
   byId: string,
   trial?: { start?: Date; end?: Date; notes?: string | null },
+  pkg?: { packageType: string; startDate: Date; slot: string | null },
 ) {
   const lead = await db.lead.findUniqueOrThrow({ where: { id: leadId } })
   if (lead.status !== status) {
@@ -33,18 +35,20 @@ export async function setLeadStatus(
       await db.trialBox.create({
         data: { leadId, startDate: start, endDate: end, notes: trial?.notes ?? lead.foodNotes, assignedToId: kitchen?.id ?? null },
       })
+      // A trial needs a follow-up call: the day after the first box, unless sales already picked a date.
+      if (!lead.nextFollowUpAt) await db.lead.update({ where: { id: leadId }, data: { nextFollowUpAt: new Date(start.getTime() + 86_400_000) } })
       await log(leadId, 'trial', 'Trial box requested', kitchen ? `Assigned to ${kitchen.name}, kitchen notified` : 'Kitchen notified', byId)
     }
   }
-}
-
-export async function moveTrial(trialId: string, status: TrialStatus, byId: string) {
-  const t = await db.trialBox.update({ where: { id: trialId }, data: { status } })
-  await log(t.leadId, 'trial', `Trial box ${TRIAL_STATUS[status][0]}`, null, byId)
-  if (status === 'DELIVERED' || status === 'TRIAL_ACTIVE') {
-    await db.lead.update({ where: { id: t.leadId }, data: { status: 'TRIAL_ACTIVE' } })
+  if (status === 'CONVERTED') {
+    const has = await db.package.findFirst({ where: { leadId, status: { in: ['ACTIVE', 'PAUSED'] } } })
+    if (!has) {
+      const packageType = pkg?.packageType ?? 'Monthly'
+      await db.package.create({ data: { leadId, packageType, startDate: pkg?.startDate ?? day(1) } })
+      if (pkg?.slot) await db.lead.update({ where: { id: leadId }, data: { slot: pkg.slot } })
+      await log(leadId, 'package', 'Converted to monthly package', packageType, byId)
+    }
   }
-  if (status === 'COMPLETED') await log(t.leadId, 'alert', 'Trial completed', 'Record the result', byId)
 }
 
 export async function recordResult(

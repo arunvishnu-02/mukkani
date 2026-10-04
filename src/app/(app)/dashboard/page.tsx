@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { dueToday } from '@/lib/queries'
 import { day, fmtTime, longToday } from '@/lib/dates'
 import { LEAD_STATUS } from '@/lib/labels'
 import { Bar, Callout, Card, Empty, PageHeader, StatusChip, Tile, Tiles, Who, Chip } from '@/components/ui'
@@ -14,7 +15,7 @@ export default async function SalesDashboard() {
     db.lead.count(),
     db.lead.count({ where: { createdAt: { gte: weekAgo } } }),
     db.lead.count({ where: { status: 'NEW' } }),
-    db.lead.count({ where: { nextFollowUpAt: { lte: today }, status: { notIn: ['LOST', 'NOT_INTERESTED', 'CONVERTED'] } } }),
+    db.lead.count({ where: { OR: [{ nextFollowUpAt: { lt: today } }, dueToday(today)], status: { notIn: ['LOST', 'NOT_INTERESTED', 'CONVERTED'] } } }),
     db.lead.count({ where: { nextFollowUpAt: { lt: today }, status: { notIn: ['LOST', 'NOT_INTERESTED', 'CONVERTED'] } } }),
     db.trialBox.count({ where: { status: { not: 'COMPLETED' } } }),
     db.trialBox.count({ where: { status: { not: 'COMPLETED' }, endDate: { lte: day(7) } } }),
@@ -23,7 +24,7 @@ export default async function SalesDashboard() {
     db.trialBox.count({ where: { result: { not: null } } }),
     db.lead.groupBy({ by: ['status'], _count: true }),
     db.lead.findMany({
-      where: { nextFollowUpAt: { lte: today }, status: { notIn: ['LOST', 'NOT_INTERESTED', 'CONVERTED'] } },
+      where: { OR: [{ nextFollowUpAt: { lt: today } }, dueToday(today)], status: { notIn: ['LOST', 'NOT_INTERESTED', 'CONVERTED'] } },
       include: { region: true },
       orderBy: { nextFollowUpAt: 'asc' },
       take: 6,
@@ -67,7 +68,7 @@ export default async function SalesDashboard() {
                       <td className="td"><Who name={l.name} sub={l.phone} href={`/leads?lead=${l.id}`} /></td>
                       <td className="td">{l.region?.name ?? '—'}</td>
                       <td className="td"><StatusChip map={LEAD_STATUS} value={l.status} /></td>
-                      <td className="td">{l.nextFollowUpAt! < today ? <Chip label="Overdue" tone="red" /> : <Chip label="Today" tone="warn" />}</td>
+                      <td className="td">{l.nextFollowUpAt && l.nextFollowUpAt < today ? <Chip label="Overdue" tone="red" /> : <Chip label="Today" tone="warn" />}</td>
                     </tr>
                   ))}
                 </tbody>
