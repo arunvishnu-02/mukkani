@@ -4,22 +4,22 @@ import { ROLE } from '@/lib/labels'
 import { logout } from '@/app/login/actions'
 
 const SALES: NavItem[] = [
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/leads', label: 'Leads' },
-  { href: '/follow-ups', label: 'Follow-ups' },
-  { href: '/customers', label: 'Customers' },
-  { href: '/boxes', label: 'Trial / Regular boxes' },
+  { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+  { href: '/leads', label: 'Leads', icon: 'leads' },
+  { href: '/follow-ups', label: 'Follow-ups', icon: 'phone' },
+  { href: '/customers', label: 'Customers', icon: 'customers' },
+  { href: '/boxes', label: 'Trial / Regular boxes', icon: 'box' },
 ]
 const KITCHEN: NavItem[] = [
-  { href: '/kitchen', label: 'Dashboard' },
-  { href: '/kitchen/boxes', label: 'Boxes' },
-  { href: '/kitchen/monthly', label: 'Monthly customers' },
+  { href: '/kitchen', label: 'Dashboard', icon: 'dashboard' },
+  { href: '/kitchen/boxes', label: 'Boxes', icon: 'box' },
+  { href: '/kitchen/monthly', label: 'Monthly customers', icon: 'calendar' },
 ]
 const ADMIN: NavItem[] = [
-  { href: '/admin', label: 'Overview' },
-  { href: '/admin/users', label: 'Users + regions' },
+  { href: '/admin', label: 'Overview', icon: 'chart' },
+  { href: '/admin/users', label: 'Users + regions', icon: 'settings' },
   ...SALES,
-  { href: '/kitchen', label: 'Kitchen view' },
+  { href: '/kitchen', label: 'Kitchen view', icon: 'kitchen' },
 ]
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {

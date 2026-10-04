@@ -4,8 +4,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
+import { NavIcon, type IconName } from './NavIcon'
 
-export type NavItem = { href: string; label: string }
+export type NavItem = { href: string; label: string; icon: IconName }
 
 export function Sidebar({ section, items, user, logout }: { section: string; items: NavItem[]; user: { name: string; role: string }; logout: () => Promise<void> }) {
   const path = usePathname()
@@ -39,7 +40,7 @@ export function Sidebar({ section, items, user, logout }: { section: string; ite
               onClick={() => setOpen(false)}
               className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm ${on ? 'bg-side-active font-semibold text-brand' : 'font-medium text-side-muted hover:bg-s2 hover:text-ink'}`}
             >
-              <span className={`size-4 rounded border-[1.5px] ${on ? 'border-brand bg-brand' : 'border-side-muted'}`} />
+              <NavIcon name={it.icon} />
               {it.label}
             </Link>
           )
