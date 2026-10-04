@@ -23,7 +23,7 @@ export default async function UsersRegions({ searchParams }: { searchParams: Pro
         <Link href="/admin/users?user=new" className="btn">Add user</Link>
       </PageHeader>
       {showUser && (
-        <form action={saveUser} className="card grid gap-3 border-leaf p-5 sm:grid-cols-3">
+        <form action={saveUser} className="card grid gap-3 border-brand p-5 sm:grid-cols-3">
           <input type="hidden" name="id" value={editUser?.id ?? ''} />
           <h2 className="font-display text-lg font-semibold sm:col-span-3">{editUser ? `Edit ${editUser.name}` : 'Add user'}</h2>
           <div><label className="label">Name</label><input name="name" className="input" defaultValue={editUser?.name} required /></div>
@@ -36,7 +36,7 @@ export default async function UsersRegions({ searchParams }: { searchParams: Pro
         </form>
       )}
       {showRegion && (
-        <form action={saveRegion} className="card grid gap-3 border-leaf p-5 sm:grid-cols-4">
+        <form action={saveRegion} className="card grid gap-3 border-brand p-5 sm:grid-cols-4">
           <input type="hidden" name="id" value={editRegion?.id ?? ''} />
           <h2 className="font-display text-lg font-semibold sm:col-span-4">{editRegion ? `Edit ${editRegion.name}` : 'Add region'}</h2>
           <div><label className="label">Name</label><input name="name" className="input" defaultValue={editRegion?.name} required /></div>

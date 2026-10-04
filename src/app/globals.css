@@ -1,24 +1,28 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #f2f5f1;
+  --color-bg: #f6f4f9;
   --color-surface: #ffffff;
-  --color-s2: #e9efe9;
-  --color-ink: #17221c;
-  --color-muted: #5a6a60;
-  --color-line: #d9e1da;
-  --color-leaf: #1d7448;
-  --color-leaf-soft: #dcefe3;
+  --color-s2: #efeaf5;
+  --color-ink: #1e1428;
+  --color-muted: #625872;
+  --color-line: #e1dbea;
+  --color-leaf: #2b8a35;
+  --color-leaf-soft: #e1f3e2;
   --color-tur: #c98a12;
   --color-warn: #a96b00;
   --color-tur-soft: #f8ead0;
   --color-sky: #2f6d9a;
   --color-sky-soft: #e1ecf5;
+  --color-brand: #5d2a92;
+  --color-brand-dark: #4a2177;
+  --color-brand-soft: #efe7f8;
+  --color-brand-green: #379d3f;
   --color-red: #b4412f;
   --color-red-soft: #f6e0db;
-  --color-side: #132119;
-  --color-side-muted: #8fa597;
-  --color-side-active: #1f3a2a;
+  --color-side: #ffffff;
+  --color-side-muted: #625872;
+  --color-side-active: #efe7f8;
   --font-sans: var(--font-public-sans), system-ui, sans-serif;
   --font-display: var(--font-bricolage), var(--font-public-sans), sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
@@ -30,13 +34,13 @@ body {
 }
 
 .input {
-  @apply w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm outline-none focus:border-leaf focus:ring-2 focus:ring-leaf-soft;
+  @apply w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft;
 }
 .label {
   @apply mb-1.5 block text-xs font-semibold text-muted;
 }
 .btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-lg bg-leaf px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#17603b] disabled:opacity-60;
+  @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60;
 }
 .btn-secondary {
   @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink hover:bg-s2;

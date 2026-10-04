@@ -96,7 +96,7 @@ export function Avatar({ name, size = 28 }: { name: string; size?: number }) {
   const init = name.split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase()
   return (
     <span
-      className="inline-flex shrink-0 items-center justify-center rounded-full bg-leaf-soft font-bold text-leaf"
+      className="inline-flex shrink-0 items-center justify-center rounded-full bg-brand-soft font-bold text-brand"
       style={{ width: size, height: size, fontSize: Math.round(size * 0.38) }}
     >
       {init}

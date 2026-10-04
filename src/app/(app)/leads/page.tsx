@@ -61,7 +61,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
               <thead><tr><th className="th">Name</th><th className="th">Region</th><th className="th">Source</th><th className="th">Status</th><th className="th">Next call</th></tr></thead>
               <tbody>
                 {leads.map((l) => (
-                  <tr key={l.id} className={l.id === selected?.id ? 'bg-leaf-soft/40' : ''}>
+                  <tr key={l.id} className={l.id === selected?.id ? 'bg-brand-soft/60' : ''}>
                     <td className="td"><Who name={l.name} sub={l.phone} href={`${qs(f[0])}&lead=${l.id}`} /></td>
                     <td className="td">{l.region?.name ?? '—'}</td>
                     <td className="td">{SOURCE[l.source]}</td>
@@ -74,7 +74,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
           )}
         </section>
         {panel === 'new' && (
-          <form action={createLead} className="card space-y-3.5 border-leaf p-5.5">
+          <form action={createLead} className="card space-y-3.5 border-brand p-5.5">
             <h2 className="font-display text-lg font-semibold">Add lead</h2>
             <div><label className="label">Name</label><input name="name" className="input" required /></div>
             <div className="grid grid-cols-2 gap-2.5">
@@ -98,7 +98,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
           </form>
         )}
         {panel === 'edit' && selected && (
-          <form action={updateLead} className="card space-y-3.5 border-leaf p-5.5">
+          <form action={updateLead} className="card space-y-3.5 border-brand p-5.5">
             <input type="hidden" name="id" value={selected.id} />
             <div className="flex items-center gap-3">
               <div className="flex-1">

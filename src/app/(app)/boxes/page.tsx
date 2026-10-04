@@ -130,7 +130,7 @@ export default async function BoxesPage({ searchParams }: { searchParams: Promis
               ].map(([v, t, d], i) => (
                 <label key={v} className="cursor-pointer">
                   <input type="radio" name="result" value={v} defaultChecked={i === 0} className="peer sr-only" />
-                  <span className="block rounded-[10px] border border-line p-3.5 peer-checked:border-2 peer-checked:border-leaf peer-checked:bg-leaf-soft">
+                  <span className="block rounded-[10px] border border-line p-3.5 peer-checked:border-2 peer-checked:border-brand peer-checked:bg-brand-soft">
                     <span className="block text-[15px] font-bold">{t}</span>
                     <span className="block text-xs text-muted">{d}</span>
                   </span>

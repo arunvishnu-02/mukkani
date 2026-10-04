@@ -76,7 +76,7 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
           )}
         </section>
         {selected && (
-          <form action={logCallAction} className="card space-y-3.5 border-leaf p-5.5">
+          <form action={logCallAction} className="card space-y-3.5 border-brand p-5.5">
             <input type="hidden" name="id" value={selected.id} />
             <input type="hidden" name="back" value={back} />
             <div className="flex items-center gap-3">
@@ -92,7 +92,7 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
                 {OUTCOMES.map(([v, l], i) => (
                   <label key={v} className="cursor-pointer">
                     <input type="radio" name="outcome" value={v} defaultChecked={i === 0} className="peer sr-only" />
-                    <span className="block rounded-full border border-line px-3 py-1.5 text-[13px] font-semibold peer-checked:border-leaf peer-checked:bg-leaf peer-checked:text-white">{l}</span>
+                    <span className="block rounded-full border border-line px-3 py-1.5 text-[13px] font-semibold peer-checked:border-brand peer-checked:bg-brand peer-checked:text-white">{l}</span>
                   </label>
                 ))}
               </div>

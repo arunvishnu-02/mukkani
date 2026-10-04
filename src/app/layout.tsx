@@ -7,7 +7,7 @@ const sans = Public_Sans({ subsets: ['latin'], variable: '--font-public-sans' })
 const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains', weight: ['500'] })
 
 export const metadata: Metadata = { title: 'Mukkani CRM', description: 'Leads, trial boxes and monthly customers' }
-export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#132119' }
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#5d2a92' }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import type { Metadata } from 'next'
 import { db } from '@/lib/db'
 import { ShareButton } from './ShareButton'
@@ -10,10 +11,7 @@ export default async function CustomerLocationPage({ params }: { params: Promise
   const valid = req && req.expiresAt > new Date()
   return (
     <div className="mx-auto flex min-h-screen max-w-sm flex-col gap-4 bg-surface px-5 py-8">
-      <div className="flex items-center gap-2">
-        <span className="rounded-md bg-tur px-1.5 py-0.5 text-xs font-bold text-side">M</span>
-        <span className="font-bold">Mukkani</span>
-      </div>
+      <Image src="/mukkani-logo.png" alt="Mukkani" width={150} height={72} priority />
       {!valid ? (
         <p className="text-sm text-muted">This link has expired. Please ask Mukkani for a new one.</p>
       ) : (
