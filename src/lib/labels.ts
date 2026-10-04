@@ -42,6 +42,6 @@ export const ROLE: Record<Role, [string, Tone]> = {
   KITCHEN: ['Kitchen manager', 'warn'],
 }
 
-// Package names and delivery slots are placeholders until Arun sends the real ones.
-export const PACKAGE_TYPES = ['Monthly · Breakfast', 'Monthly · Lunch', 'Monthly · Lunch + dinner']
+// Mukkani sells one package. A customer tries a trial box first, then moves to it. Delivery slots are placeholders.
+export const PACKAGE = 'Monthly package'
 export const SLOTS = ['6:30 to 7:00', '7:00 to 7:30', '7:30 to 8:00']

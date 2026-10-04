@@ -79,7 +79,7 @@ async function main() {
     if (status === 'TRIAL_ACTIVE') await db.trialBox.create({ data: { leadId: lead.id, startDate: day(-3), endDate: day(i === 10 ? 0 : 3), status: 'TRIAL_ACTIVE', assignedToId: murugan.id, notes: food } })
     if (status === 'CONVERTED') {
       await db.trialBox.create({ data: { leadId: lead.id, startDate: day(-40 + i), endDate: day(-34 + i), status: 'COMPLETED', result: 'CONVERTED', assignedToId: murugan.id } })
-      await db.package.create({ data: { leadId: lead.id, packageType: ['Monthly · Lunch', 'Monthly · Breakfast', 'Monthly · Lunch + dinner'][i % 3], startDate: day(-33 + i), status: i === 13 ? 'PAUSED' : 'ACTIVE' } })
+      await db.package.create({ data: { leadId: lead.id, packageType: 'Monthly package', startDate: day(-33 + i), status: i === 13 ? 'PAUSED' : 'ACTIVE' } })
     }
     if (pinned) await db.activity.create({ data: { leadId: lead.id, kind: 'location', text: 'Location shared by customer', detail: 'Profile updated automatically' } })
   }

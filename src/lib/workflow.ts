@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 import { day } from '@/lib/dates'
 import { nearestRegionId, reverseGeocode } from '@/lib/geo'
 import type { LeadStatus, TrialStatus } from '@/generated/prisma/enums'
-import { LEAD_STATUS } from '@/lib/labels'
+import { LEAD_STATUS, PACKAGE } from '@/lib/labels'
 
 const OPEN_TRIAL: TrialStatus[] = ['PENDING', 'ASSIGNED', 'PREPARING', 'DELIVERED', 'TRIAL_ACTIVE']
 
@@ -19,7 +19,7 @@ export async function setLeadStatus(
   status: LeadStatus,
   byId: string,
   trial?: { start?: Date; end?: Date; notes?: string | null },
-  pkg?: { packageType: string; startDate: Date; slot: string | null },
+  pkg?: { startDate: Date; slot: string | null },
 ) {
   const lead = await db.lead.findUniqueOrThrow({ where: { id: leadId } })
   if (lead.status !== status) {
@@ -43,10 +43,9 @@ export async function setLeadStatus(
   if (status === 'CONVERTED') {
     const has = await db.package.findFirst({ where: { leadId, status: { in: ['ACTIVE', 'PAUSED'] } } })
     if (!has) {
-      const packageType = pkg?.packageType ?? 'Monthly'
-      await db.package.create({ data: { leadId, packageType, startDate: pkg?.startDate ?? day(1) } })
+      await db.package.create({ data: { leadId, packageType: PACKAGE, startDate: pkg?.startDate ?? day(1) } })
       if (pkg?.slot) await db.lead.update({ where: { id: leadId }, data: { slot: pkg.slot } })
-      await log(leadId, 'package', 'Converted to monthly package', packageType, byId)
+      await log(leadId, 'package', 'Converted to monthly package', null, byId)
     }
   }
 }
@@ -54,19 +53,19 @@ export async function setLeadStatus(
 export async function recordResult(
   trialId: string,
   byId: string,
-  r: { converted: true; packageType: string; startDate: Date; slot: string; regionId: string | null } | { converted: false; next: 'LOST' | 'FOLLOW_UP' },
+  r: { converted: true; startDate: Date; slot: string; regionId: string | null } | { converted: false; next: 'LOST' | 'FOLLOW_UP' },
 ) {
   const t = await db.trialBox.update({
     where: { id: trialId },
     data: { status: 'COMPLETED', result: r.converted ? 'CONVERTED' : 'NOT_CONVERTED' },
   })
   if (r.converted) {
-    await db.package.create({ data: { leadId: t.leadId, packageType: r.packageType, startDate: r.startDate } })
+    await db.package.create({ data: { leadId: t.leadId, packageType: PACKAGE, startDate: r.startDate } })
     await db.lead.update({
       where: { id: t.leadId },
       data: { status: 'CONVERTED', slot: r.slot, ...(r.regionId ? { regionId: r.regionId } : {}) },
     })
-    await log(t.leadId, 'package', 'Converted to monthly package', r.packageType, byId)
+    await log(t.leadId, 'package', 'Converted to monthly package', null, byId)
   } else {
     await db.lead.update({ where: { id: t.leadId }, data: { status: r.next } })
     await log(t.leadId, 'status', 'Trial not converted', r.next === 'LOST' ? 'Marked Lost Lead' : 'Back to follow-up', byId)

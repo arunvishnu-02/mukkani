@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-export function StatusFields({ options, value, start, end, packageTypes, slots }: { options: [string, string][]; value: string; start: string; end: string; packageTypes: string[]; slots: string[] }) {
+export function StatusFields({ options, value, start, end, slots }: { options: [string, string][]; value: string; start: string; end: string; slots: string[] }) {
   const [status, setStatus] = useState(value)
   const trial = status === 'TRIAL_REQUESTED' && value !== 'TRIAL_REQUESTED'
   const monthly = status === 'CONVERTED' && value !== 'CONVERTED'
@@ -30,9 +30,8 @@ export function StatusFields({ options, value, start, end, packageTypes, slots }
         <>
           <div className="rounded-[10px] bg-leaf-soft px-3.5 py-3">
             <div className="text-xs font-bold text-leaf">Automatic when you save</div>
-            <p className="mt-1 text-[13px] leading-[18px]">A monthly package (regular box) is created and this person moves to Customers.</p>
+            <p className="mt-1 text-[13px] leading-[18px]">The monthly package (regular box) is created and this person moves to Customers.</p>
           </div>
-          <div><label className="label" htmlFor="packageType">Package type</label><select id="packageType" name="packageType" className="input">{packageTypes.map((p) => <option key={p}>{p}</option>)}</select></div>
           <div className="grid grid-cols-2 gap-2.5">
             <div><label className="label" htmlFor="startDate">Start date</label><input id="startDate" name="startDate" type="date" className="input" defaultValue={start} /></div>
             <div><label className="label" htmlFor="slot">Delivery slot</label><select id="slot" name="slot" className="input">{slots.map((p) => <option key={p}>{p}</option>)}</select></div>

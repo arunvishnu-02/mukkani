@@ -4,7 +4,7 @@ import { CUSTOMER_COLUMNS } from '@/lib/csv'
 import { db } from '@/lib/db'
 import { fmtDay } from '@/lib/dates'
 import { day, dayInput } from '@/lib/dates'
-import { LOCATION_STATUS, PACKAGE_STATUS, PACKAGE_TYPES, SLOTS } from '@/lib/labels'
+import { LOCATION_STATUS, PACKAGE_STATUS, SLOTS } from '@/lib/labels'
 import { customerWhere, leadInclude, regionsList } from '@/lib/queries'
 import { createCustomer, importCustomers } from '../actions'
 import { Callout, Empty, PageHeader, StatusChip, Tabs, Tile, Tiles, Who } from '@/components/ui'
@@ -36,7 +36,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           <form action={createCustomer} className="card w-full max-w-[560px] space-y-3.5 p-7">
             <div>
               <h2 className="font-display text-lg font-semibold">Add customer</h2>
-              <p className="text-[13px] text-muted">For someone starting a monthly package right away, without a trial.</p>
+              <p className="text-[13px] text-muted">For someone starting the monthly package right away, without a trial.</p>
             </div>
             {sp.error === 'phone' && (
               <Callout tone="red">This phone number is already in the CRM. <Link href={`/leads?lead=${sp.lead}`} className="font-semibold text-sky">Open that person</Link> and set the status to Monthly Package Converted.</Callout>
@@ -52,8 +52,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
             </div>
             <div><label className="label">Health issues</label><input name="foodNotes" className="input" placeholder="Diabetes, BP, allergy, food to avoid" /></div>
             <div><label className="label">Notes</label><textarea name="notes" rows={2} className="input" /></div>
-            <div className="grid grid-cols-3 gap-3">
-              <div><label className="label">Package</label><select name="packageType" className="input">{PACKAGE_TYPES.map((p) => <option key={p}>{p}</option>)}</select></div>
+            <div className="grid grid-cols-2 gap-3">
               <div><label className="label">Start date</label><input type="date" name="startDate" className="input" defaultValue={dayInput(day(0))} /></div>
               <div><label className="label">Delivery slot</label><select name="slot" className="input">{SLOTS.map((p) => <option key={p}>{p}</option>)}</select></div>
             </div>

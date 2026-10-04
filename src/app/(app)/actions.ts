@@ -8,6 +8,7 @@ import { db } from '@/lib/db'
 import { requireUser } from '@/lib/auth'
 import { parseCsv } from '@/lib/csv'
 import { day, parseDay } from '@/lib/dates'
+import { PACKAGE } from '@/lib/labels'
 import { createLocationRequest, log, logCall, recordResult, setLeadStatus } from '@/lib/workflow'
 import { LeadStatus, PackageStatus, Role } from '@/generated/prisma/enums'
 
@@ -65,7 +66,7 @@ export async function updateLead(form: FormData) {
     status,
     user.id,
     { start: start ? parseDay(start) : undefined, end: end ? parseDay(end) : undefined },
-    { packageType: s(form, 'packageType') ?? 'Monthly', startDate: s(form, 'startDate') ? parseDay(s(form, 'startDate')!) : day(1), slot: s(form, 'slot') },
+    { startDate: s(form, 'startDate') ? parseDay(s(form, 'startDate')!) : day(1), slot: s(form, 'slot') },
   )
   revalidatePath('/', 'layout')
   redirect(back(form, `/leads?lead=${id}`))
@@ -87,7 +88,6 @@ export async function recordResultAction(form: FormData) {
   if (s(form, 'result') === 'CONVERTED') {
     await recordResult(id, user.id, {
       converted: true,
-      packageType: s(form, 'packageType') ?? 'Monthly',
       startDate: s(form, 'startDate') ? parseDay(s(form, 'startDate')!) : day(1),
       slot: s(form, 'slot') ?? '',
       regionId: s(form, 'regionId'),
@@ -127,16 +127,15 @@ export async function createCustomer(form: FormData) {
   const digits = (v: string) => v.replace(/\D/g, '')
   const taken = (await db.lead.findMany({ select: { id: true, phone: true } })).find((l) => digits(l.phone) === digits(phone))
   if (taken) redirect(`/customers?new=1&error=phone&lead=${taken.id}`)
-  const packageType = s(form, 'packageType') ?? 'Monthly'
   const lead = await db.lead.create({
     data: {
       name, phone, status: 'CONVERTED', ownerId: user.id,
       regionId: z.string().uuid().nullable().parse(s(form, 'regionId')),
       address: s(form, 'address'), foodNotes: s(form, 'foodNotes'), notes: s(form, 'notes'), slot: s(form, 'slot'),
-      packages: { create: { packageType, startDate: s(form, 'startDate') ? parseDay(s(form, 'startDate')!) : day(0) } },
+      packages: { create: { packageType: PACKAGE, startDate: s(form, 'startDate') ? parseDay(s(form, 'startDate')!) : day(0) } },
     },
   })
-  await log(lead.id, 'package', 'Customer added', packageType, user.id)
+  await log(lead.id, 'package', 'Customer added', PACKAGE, user.id)
   revalidatePath('/', 'layout')
   redirect(`/customers/${lead.id}`)
 }
@@ -149,7 +148,7 @@ export async function importCustomers(form: FormData) {
   if (!(file instanceof File) || file.size === 0) redirect('/customers?import=1&error=nofile')
   const [header, ...rows] = parseCsv(await file.text())
   const col = (name: string) => (header ?? []).findIndex((h) => h.toLowerCase() === name)
-  const at = { name: col('name'), phone: col('phone'), location: col('location'), address: col('address'), health: col('health issues'), notes: col('notes'), pkg: col('package'), slot: col('slot'), start: col('start date'), status: col('status') }
+  const at = { name: col('name'), phone: col('phone'), location: col('location'), address: col('address'), health: col('health issues'), notes: col('notes'), slot: col('slot'), start: col('start date'), status: col('status') }
   if (at.name < 0 || at.phone < 0) redirect('/customers?import=1&error=columns')
   const digits = (v: string) => v.replace(/\D/g, '')
   const [regions, existing] = await Promise.all([db.region.findMany(), db.lead.findMany({ select: { phone: true } })])
@@ -169,17 +168,16 @@ export async function importCustomers(form: FormData) {
     const dmy = raw?.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/)
     const iso = dmy ? `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}` : raw
     const start = iso && /^\d{4}-\d{2}-\d{2}$/.test(iso) && !isNaN(parseDay(iso).getTime()) ? parseDay(iso) : day(0)
-    const packageType = get(at.pkg) ?? 'Monthly'
     const lead = await db.lead.create({
       data: {
         name, phone, status: 'CONVERTED', ownerId: user.id, regionId: region?.id ?? null,
         // A location that is not one of the regions is kept in the address, so nothing from the file is lost.
         address: get(at.address) ?? (region ? null : location),
         foodNotes: get(at.health), notes: get(at.notes), slot: get(at.slot),
-        packages: { create: { packageType, startDate: start, status: get(at.status)?.toLowerCase().startsWith('pause') ? 'PAUSED' : 'ACTIVE' } },
+        packages: { create: { packageType: PACKAGE, startDate: start, status: get(at.status)?.toLowerCase().startsWith('pause') ? 'PAUSED' : 'ACTIVE' } },
       },
     })
-    await log(lead.id, 'package', 'Customer imported from file', packageType, user.id)
+    await log(lead.id, 'package', 'Customer imported from file', PACKAGE, user.id)
     added++
   }
   revalidatePath('/', 'layout')

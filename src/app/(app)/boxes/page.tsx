@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { day, dayInput, fmtDay, fmtRange } from '@/lib/dates'
-import { LOCATION_STATUS, PACKAGE_STATUS, PACKAGE_TYPES, SLOTS } from '@/lib/labels'
+import { LOCATION_STATUS, PACKAGE_STATUS, SLOTS } from '@/lib/labels'
 import { regionsList } from '@/lib/queries'
 import { Callout, Chip, Empty, PageHeader, StatusChip, Tabs, Who } from '@/components/ui'
 import { ConfirmButton } from '@/components/ConfirmButton'
@@ -98,13 +98,12 @@ export default async function BoxesPage({ searchParams }: { searchParams: Promis
               <Empty>{tab === 'paused' ? 'No paused boxes.' : 'No regular boxes yet. Record a converted trial to add one.'}</Empty>
             ) : (
               <table className="w-full">
-                <thead><tr><th className="th">Customer</th><th className="th">Region</th><th className="th">Package</th><th className="th">Slot</th><th className="th">Since</th><th className="th">Status</th><th className="th">Change</th></tr></thead>
+                <thead><tr><th className="th">Customer</th><th className="th">Region</th><th className="th">Slot</th><th className="th">Since</th><th className="th">Status</th><th className="th">Change</th></tr></thead>
                 <tbody>
                   {rows.map((p) => (
                     <tr key={p.id}>
                       <td className="td"><Who name={p.lead.name} sub={p.lead.phone} href={`/customers/${p.leadId}`} /></td>
                       <td className="td">{p.lead.region?.name ?? '—'}</td>
-                      <td className="td">{p.packageType}</td>
                       <td className="td">{p.lead.slot ?? '—'}</td>
                       <td className="td">{fmtDay(p.startDate)}</td>
                       <td className="td"><StatusChip map={PACKAGE_STATUS} value={p.status} /></td>
@@ -136,7 +135,6 @@ export default async function BoxesPage({ searchParams }: { searchParams: Promis
               <p className="text-[13px] text-muted">{resultFor.lead.name} · trial {fmtRange(resultFor.startDate, resultFor.endDate)}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="label">Package type</label><select name="packageType" className="input">{PACKAGE_TYPES.map((p) => <option key={p}>{p}</option>)}</select></div>
               <div><label className="label">Start date</label><input type="date" name="startDate" className="input" defaultValue={dayInput(day(1))} /></div>
               <div><label className="label">Delivery preference</label><select name="slot" className="input">{SLOTS.map((p) => <option key={p}>{p}</option>)}</select></div>
               <div><label className="label">Region</label><select name="regionId" className="input" defaultValue={resultFor.lead.regionId ?? ''}><option value="">Keep current</option>{regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select></div>

@@ -32,4 +32,4 @@ export function toCsv(rows: (string | null | undefined)[][]): string {
   return '﻿' + rows.map((r) => r.map(esc).join(',')).join('\r\n') + '\r\n'
 }
 
-export const CUSTOMER_COLUMNS = ['Name', 'Phone', 'Location', 'Address', 'Health issues', 'Notes', 'Package', 'Slot', 'Start date', 'Status']
+export const CUSTOMER_COLUMNS = ['Name', 'Phone', 'Location', 'Address', 'Health issues', 'Notes', 'Slot', 'Start date', 'Status']

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { dayInput, day, fmtDay } from '@/lib/dates'
-import { LEAD_STATUS, LOCATION_STATUS, PACKAGE_TYPES, SLOTS } from '@/lib/labels'
+import { LEAD_STATUS, LOCATION_STATUS, SLOTS } from '@/lib/labels'
 import { leadInclude, regionsList } from '@/lib/queries'
 import { Empty, PageHeader, StatusChip, Tabs, Who } from '@/components/ui'
 import { StatusFields } from '@/components/StatusFields'
@@ -107,7 +107,6 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
               value={selected.status}
               start={dayInput(day(1))}
               end={dayInput(day(7))}
-              packageTypes={PACKAGE_TYPES}
               slots={SLOTS}
             />
             <div className="grid grid-cols-2 gap-2.5">
