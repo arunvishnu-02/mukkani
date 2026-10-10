@@ -57,3 +57,33 @@ body {
 .td {
   @apply border-t border-line px-4 py-3 text-[13px];
 }
+
+/* Printed A4 sheets: attendance sheet and monthly report */
+.a4 {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto 24px;
+  background: white;
+  box-shadow: 0 2px 16px rgb(30 20 40 / 0.12);
+  overflow: hidden;
+  position: relative;
+}
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  body {
+    background: white;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .a4 {
+    margin: 0;
+    box-shadow: none;
+    break-after: page;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

@@ -1,99 +1,120 @@
+import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { kitchenToday } from '@/lib/queries'
-import { rupees } from '@/lib/labels'
+import { addDays, day, longToday, nowHourIST } from '@/lib/dates'
+import { LEAD_STATUS, rupees, SOURCE } from '@/lib/labels'
+import { dueCalls, waitingPayment } from '@/lib/kitchen'
+import { daySheet, runningPackages } from '@/lib/queries'
+import { figures, pct, period, teamFigures } from '@/lib/report'
+import { appSettings } from '@/lib/settings'
+import { stockToday } from '@/lib/stock'
 import { Bar, Card, PageHeader, Tile, Tiles, Who } from '@/components/ui'
 
-const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : '—')
+function Alert({ n, text, href, tone = 'warn' }: { n: number; text: string; href: string; tone?: 'warn' | 'red' }) {
+  if (!n) return null
+  return (
+    <Link href={href} className="flex items-center gap-3 border-t border-line py-2.5 first:border-t-0 hover:opacity-80">
+      <span className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${tone === 'red' ? 'bg-red' : 'bg-warn'}`}>{n}</span>
+      <span className="flex-1 text-sm">{text}</span>
+      <span className="text-muted">›</span>
+    </Link>
+  )
+}
 
 export default async function AdminOverview() {
   await requireUser(['ADMIN'])
-  const now = new Date()
-  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
-  const [leads, packages, trials, regions, sales, k, newLeads, contacted] = await Promise.all([
-    db.lead.count(),
-    db.package.findMany({ select: { startDate: true, status: true, updatedAt: true, price: true } }),
-    db.trialBox.findMany({ select: { status: true, result: true, createdAt: true, updatedAt: true, lead: { select: { regionId: true, ownerId: true } } } }),
-    db.region.findMany({ orderBy: { name: 'asc' }, include: { _count: { select: { leads: true } } } }),
-    db.user.findMany({ where: { role: 'SALES' }, include: { _count: { select: { leads: true } } }, orderBy: { name: 'asc' } }),
-    kitchenToday(),
-    db.lead.count({ where: { createdAt: { gte: monthStart } } }),
-    db.lead.count({ where: { createdAt: { gte: monthStart }, status: { not: 'NEW' } } }),
+  const today = day(0)
+  const month = period('month', today)
+  const st = await appSettings()
+  const [leadCounts, f, team, sheet, running, trialsWeek, calls, unpaid, stock, altOut, unpaidPkgs] = await Promise.all([
+    db.lead.groupBy({ by: ['status'], _count: true }),
+    figures(month),
+    teamFigures(month),
+    daySheet(today),
+    runningPackages(today),
+    db.trialBox.count({ where: { deliveryDate: { gte: period('week', today).from, lt: period('week', today).to } } }),
+    dueCalls(today),
+    waitingPayment(),
+    stockToday(today, st.fruits, st.lowStockKg),
+    db.altBox.count({ where: { collectedOn: null, givenOn: { lt: addDays(today, -1) } } }),
+    db.package.count({ where: { status: 'ACTIVE', paid: false } }),
   ])
-  const closed = trials.filter((t) => t.result)
-  const won = closed.filter((t) => t.result === 'CONVERTED')
-  const active = packages.filter((p) => p.status === 'ACTIVE').length
-  const monthlyIncome = packages.filter((p) => p.status === 'ACTIVE').reduce((sum, p) => sum + p.price, 0)
-  const months = Array.from({ length: 6 }, (_, i) => {
-    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 4 + i, 0, 23, 59))
-    const label = new Intl.DateTimeFormat('en-IN', { month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5 + i, 1)))
-    const v = packages.filter((p) => p.startDate <= end && (p.status === 'ACTIVE' || p.status === 'PAUSED' || p.updatedAt > end)).length
-    return [label, v] as const
-  })
-  const maxM = Math.max(1, ...months.map((m) => m[1]))
-  const thisMonth = trials.filter((t) => t.createdAt >= monthStart)
-  const funnel: [string, number, 'sky' | 'warn' | 'leaf'][] = [
-    ['Leads', newLeads, 'sky'],
-    ['Contacted', contacted, 'sky'],
-    ['Trial requested', thisMonth.length, 'warn'],
-    ['Trial completed', closed.filter((t) => t.updatedAt >= monthStart).length, 'warn'],
-    ['Converted', won.filter((t) => t.updatedAt >= monthStart).length, 'leaf'],
-  ]
+  const count = (s: string) => leadCounts.find((c) => c.status === s)?._count ?? 0
+  const allLeads = leadCounts.reduce((a, c) => a + c._count, 0)
+  const boxesToday = sheet.rows.filter((r) => !r.absent).length + sheet.trials.length
+  const attendanceDue = nowHourIST() >= 11 ? Math.max(0, sheet.rows.length + sheet.trials.length - sheet.entered) : 0
+  const lowStock = stock.filter((s) => s.low).length
+  const maxReason = Math.max(1, ...f.notInterested.map((r) => r[1]))
   return (
     <>
-      <PageHeader title="Business overview" sub="All regions · all sales executives" />
+      <PageHeader title="Business overview" sub={`${longToday()} · all regions`}>
+        <a href="/api/export/leads" download className="btn-secondary">Download Excel</a>
+        <Link href="/admin/reports" className="btn">Reports</Link>
+      </PageHeader>
       <Tiles cols={5}>
-        <Tile label="Total leads" value={leads} sub={`+${newLeads} this month`} />
-        <Tile label="Conversion rate" value={pct(won.length, closed.length)} sub="trial to monthly" tone="leaf" />
-        <Tile label="Monthly customers" value={active} sub={`${rupees(monthlyIncome)} a month`} tone="leaf" />
-        <Tile label="Active trials" value={trials.filter((t) => t.status !== 'COMPLETED').length} tone="warn" />
-        <Tile label="Boxes today" value={k.total} sub={`${k.packages.length} regular · ${k.trials.length} trial`} />
+        <Tile label="All leads" value={allLeads} sub={`+${f.leads} this month`} />
+        <Tile label="Active monthly" value={running.length} sub={`${f.newMonthly} new · ${f.renewals} renewed`} tone="leaf" />
+        <Tile label="Trials this week" value={trialsWeek} sub={`${f.trialsWon} of ${f.trialsDone} took monthly`} tone="sky" />
+        <Tile label="Boxes today" value={boxesToday} sub={`${sheet.rows.length - sheet.rows.filter((r) => r.absent).length} monthly · ${sheet.trials.length} trial`} tone="brand" />
+        <Tile label="Income this month" value={rupees(f.income)} sub={`profit ${rupees(f.profit)}`} tone="leaf" />
       </Tiles>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card title="Monthly customer growth" sub="Regular box customers at month end">
-          <div className="flex h-48 items-end justify-between gap-3">
-            {months.map(([l, v], i) => (
-              <div key={l} className="flex flex-1 flex-col items-center gap-1.5">
-                <span className="text-xs font-semibold">{v}</span>
-                <span className={`w-full max-w-11 rounded-t-md ${i === 5 ? 'bg-leaf' : 'bg-leaf-soft'}`} style={{ height: `${Math.max(4, (v / maxM) * 140)}px` }} />
-                <span className="text-xs text-muted">{l}</span>
-              </div>
-            ))}
+      <div className="grid items-start gap-4 lg:grid-cols-3">
+        <Card title="Customers by category" sub="All leads today">
+          <div className="space-y-3">
+            {Object.entries(LEAD_STATUS).map(([k, [l, t]]) => <Bar key={k} label={l} value={count(k)} max={Math.max(1, allLeads)} tone={t} />)}
           </div>
+          <p className="mt-4 text-[13px] text-muted">Trial to monthly this month: <b className="text-ink">{pct(f.trialsWon, f.trialsDone)}</b></p>
         </Card>
-        <Card title="Lead conversion" sub="This month">
-          <div className="space-y-3">{funnel.map(([l, v, t]) => <Bar key={l} label={l} value={v} max={Math.max(1, funnel[0][1])} tone={t} />)}</div>
+        <Card title="Income and spend" sub={month.label}>
+          <dl className="space-y-2 text-sm">
+            {[
+              ['Monthly packs', f.monthlyIncome],
+              ['Buttermilk', f.buttermilkIncome],
+              ['Trial boxes', f.trialIncome],
+            ].map(([l, v]) => <div key={l} className="flex justify-between"><dt className="text-muted">{l}</dt><dd className="font-semibold">{rupees(v as number)}</dd></div>)}
+            <div className="flex justify-between border-t border-line pt-2"><dt className="font-semibold">Income</dt><dd className="font-bold text-leaf">{rupees(f.income)}</dd></div>
+            <div className="flex justify-between"><dt className="text-muted">Purchases</dt><dd className="font-semibold">- {rupees(f.purchases)}</dd></div>
+            <div className="flex justify-between"><dt className="text-muted">Expenses</dt><dd className="font-semibold">- {rupees(f.expenses)}</dd></div>
+            <div className="flex justify-between border-t border-line pt-2"><dt className="font-semibold">Profit</dt><dd className={`font-bold ${f.profit < 0 ? 'text-red' : 'text-leaf'}`}>{rupees(f.profit)}</dd></div>
+          </dl>
+        </Card>
+        <Card title="Needs attention" sub="Tap to open">
+          <Alert n={attendanceDue} text="attendance rows not entered today" href="/attendance" tone="red" />
+          <Alert n={calls.length} text="customer calls due (kitchen)" href="/kitchen/calls" />
+          <Alert n={unpaid.length} text="renewals waiting for payment" href="/kitchen/calls" />
+          <Alert n={unpaidPkgs} text="running packs not marked paid" href="/customers?tab=monthly" />
+          <Alert n={lowStock} text={`fruits under ${st.lowStockKg} kg`} href="/kitchen/stock" tone="red" />
+          <Alert n={altOut} text="alternative boxes not collected" href="/kitchen/alt-boxes" />
+          {attendanceDue + calls.length + unpaid.length + unpaidPkgs + lowStock + altOut === 0 && <p className="text-sm text-muted">All clear.</p>}
         </Card>
       </div>
-      <div className="grid items-start gap-4 lg:grid-cols-2">
+      <div className="grid items-start gap-4 lg:grid-cols-[1fr_360px]">
         <section className="card overflow-x-auto">
-          <h2 className="px-5 py-4 font-display text-lg font-semibold">Region-wise sales</h2>
+          <div className="flex items-center justify-between px-5 py-4">
+            <div><h2 className="font-display text-lg font-semibold">Sales team</h2><p className="text-[13px] text-muted">{month.label}</p></div>
+            <Link href="/admin/users" className="btn-secondary btn-sm">Team</Link>
+          </div>
           <table className="w-full">
-            <thead><tr><th className="th">Region</th><th className="th">Leads</th><th className="th">Trials</th><th className="th">Converted</th><th className="th">Rate</th></tr></thead>
+            <thead><tr><th className="th">Name</th><th className="th">Leads added</th><th className="th">Calls</th><th className="th">Trials</th><th className="th">Monthly packs</th><th className="th">Trial to monthly</th></tr></thead>
             <tbody>
-              {regions.map((r) => {
-                const rt = trials.filter((t) => t.lead.regionId === r.id)
-                const rc = rt.filter((t) => t.result)
-                const rw = rc.filter((t) => t.result === 'CONVERTED')
-                return <tr key={r.id}><td className="td">{r.name}</td><td className="td">{r._count.leads}</td><td className="td">{rt.length}</td><td className="td">{rw.length}</td><td className="td">{pct(rw.length, rc.length)}</td></tr>
-              })}
+              {team.map((t) => (
+                <tr key={t.user.id}><td className="td"><Who name={t.user.name} /></td><td className="td">{t.leads}</td><td className="td">{t.calls}</td><td className="td">{t.trials}</td><td className="td font-semibold">{t.monthly}</td><td className="td">{t.rate}</td></tr>
+              ))}
             </tbody>
           </table>
         </section>
-        <section className="card overflow-x-auto">
-          <h2 className="px-5 py-4 font-display text-lg font-semibold">Sales executive performance</h2>
-          <table className="w-full">
-            <thead><tr><th className="th">Executive</th><th className="th">Leads</th><th className="th">Trials</th><th className="th">Converted</th><th className="th">Rate</th></tr></thead>
-            <tbody>
-              {sales.map((u) => {
-                const ut = trials.filter((t) => t.lead.ownerId === u.id)
-                const uc = ut.filter((t) => t.result)
-                const uw = uc.filter((t) => t.result === 'CONVERTED')
-                return <tr key={u.id}><td className="td"><Who name={u.name} /></td><td className="td">{u._count.leads}</td><td className="td">{ut.length}</td><td className="td">{uw.length}</td><td className="td">{pct(uw.length, uc.length)}</td></tr>
-              })}
-            </tbody>
-          </table>
-        </section>
+        <div className="space-y-4">
+          <Card title="Why not interested" sub="This month">
+            {f.notInterested.length === 0 ? <p className="text-sm text-muted">None this month.</p> : (
+              <div className="space-y-3">{f.notInterested.map(([r, n]) => <Bar key={r} label={r} value={n} max={maxReason} tone="muted" />)}</div>
+            )}
+          </Card>
+          <Card title="Where leads came from" sub="This month">
+            {f.sources.length === 0 ? <p className="text-sm text-muted">No new leads this month.</p> : (
+              <div className="space-y-3">{f.sources.map(([s, n]) => <Bar key={s} label={SOURCE[s as keyof typeof SOURCE] ?? s} value={n} max={Math.max(1, f.leads)} tone="sky" />)}</div>
+            )}
+          </Card>
+        </div>
       </div>
     </>
   )
