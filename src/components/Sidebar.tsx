@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { NavIcon, type IconName } from './NavIcon'
 
-export type NavItem = { href: string; label: string; icon: IconName }
+export type NavItem = { href: string; label: string; icon: IconName; group?: string }
 
 export function Sidebar({ section, items, user, logout }: { section: string; items: NavItem[]; user: { name: string; role: string }; logout: () => Promise<void> }) {
   const path = usePathname()
@@ -16,6 +16,7 @@ export function Sidebar({ section, items, user, logout }: { section: string; ite
     .filter((it) => path === it.href || path.startsWith(it.href + '/'))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href
   const isActive = (href: string) => href === match
+  const dense = items.length > 12
   return (
     <>
       <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-surface px-4 py-2.5 md:hidden">
@@ -25,24 +26,27 @@ export function Sidebar({ section, items, user, logout }: { section: string; ite
         <Image src="/mukkani-logo.png" alt="Mukkani" width={96} height={46} priority />
       </div>
       <aside
-        className={`${open ? 'flex' : 'hidden'} fixed inset-y-0 left-0 z-40 w-60 flex-col gap-1 border-r border-line bg-side px-4 py-6 md:sticky md:top-0 md:flex md:h-screen`}
+        className={`${open ? 'flex' : 'hidden'} fixed inset-y-0 left-0 z-40 w-60 flex-col gap-1 border-r border-line bg-side px-4 py-6 overflow-y-auto md:sticky md:top-0 md:flex md:h-screen`}
       >
         <div className="px-2 pb-5">
           <Image src="/mukkani-logo.png" alt="Mukkani" width={150} height={72} priority />
         </div>
         <div className="px-2 pb-1.5 text-[11px] font-semibold tracking-widest text-side-muted uppercase">{section}</div>
-        {items.map((it) => {
+        {items.map((it, i) => {
           const on = isActive(it.href)
+          const head = it.group && it.group !== items[i - 1]?.group
           return (
-            <Link
-              key={it.href}
-              href={it.href}
-              onClick={() => setOpen(false)}
-              className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm ${on ? 'bg-side-active font-semibold text-brand' : 'font-medium text-side-muted hover:bg-s2 hover:text-ink'}`}
-            >
-              <NavIcon name={it.icon} />
-              {it.label}
-            </Link>
+            <div key={it.href}>
+              {head && <div className="px-2 pt-3 pb-1.5 text-[11px] font-semibold tracking-widest text-side-muted uppercase">{it.group}</div>}
+              <Link
+                href={it.href}
+                onClick={() => setOpen(false)}
+                className={`flex items-center gap-2.5 rounded-lg px-3 ${dense ? 'py-1.5' : 'py-2.5'} text-sm ${on ? 'bg-side-active font-semibold text-brand' : 'font-medium text-side-muted hover:bg-s2 hover:text-ink'}`}
+              >
+                <NavIcon name={it.icon} />
+                {it.label}
+              </Link>
+            </div>
           )
         })}
         <div className="flex-1" />

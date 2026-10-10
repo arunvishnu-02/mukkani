@@ -4,20 +4,20 @@ import { db } from '@/lib/db'
 import { dayInput, day, fmtDay } from '@/lib/dates'
 import { LEAD_STATUS, LOCATION_STATUS, SOURCE } from '@/lib/labels'
 import { leadInclude, regionsList } from '@/lib/queries'
-import { Empty, PageHeader, StatusChip, Tabs, Who } from '@/components/ui'
-import { StatusFields } from '@/components/StatusFields'
-import { createLead, updateLead } from '../actions'
+import { appSettings } from '@/lib/settings'
+import { Drawer, Empty, ErrorNote, PageHeader, StatusChip, Tabs, Who } from '@/components/ui'
+import { LeadFields } from '@/components/LeadForm'
+import { BulkBar, RowCheck, SelectAll } from '@/components/Bulk'
+import { createLead, deleteLeads, updateLead } from '../actions'
 import type { Prisma } from '@/generated/prisma/client'
 import type { LeadStatus } from '@/generated/prisma/enums'
 
-const FILTERS: [string, string, LeadStatus[] | null][] = [
+const FILTERS: [string, string, LeadStatus | null][] = [
   ['all', 'All', null],
-  ['new', 'New', ['NEW']],
-  ['contacted', 'Contacted', ['CONTACTED']],
-  ['follow', 'Follow-up', ['FOLLOW_UP']],
-  ['trial', 'Trial', ['TRIAL_REQUESTED', 'TRIAL_ACTIVE']],
-  ['converted', 'Converted', ['CONVERTED']],
-  ['lost', 'Lost', ['LOST', 'NOT_INTERESTED']],
+  ['follow', 'Follow up', 'FOLLOW_UP'],
+  ['trial', 'Trial', 'TRIAL'],
+  ['monthly', 'Monthly pack', 'MONTHLY'],
+  ['no', 'Not interested', 'NOT_INTERESTED'],
 ]
 
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -26,120 +26,101 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   const f = FILTERS.find((x) => x[0] === sp.f) ?? FILTERS[0]
   const q = sp.q?.trim()
   const where: Prisma.LeadWhereInput = {
-    ...(f[2] ? { status: { in: f[2] } } : {}),
+    ...(f[2] ? { status: f[2] } : {}),
     ...(q ? { OR: [{ name: { contains: q } }, { phone: { contains: q } }] } : {}),
   }
-  const [leads, counts, regions, selected] = await Promise.all([
-    db.lead.findMany({ where, include: leadInclude, orderBy: { updatedAt: 'desc' }, take: 200 }),
+  const [leads, counts, regions, selected, st] = await Promise.all([
+    db.lead.findMany({ where, include: leadInclude, orderBy: { updatedAt: 'desc' }, take: 300 }),
     db.lead.groupBy({ by: ['status'], _count: true }),
     regionsList(),
     sp.lead ? db.lead.findUnique({ where: { id: sp.lead }, include: leadInclude }) : null,
+    appSettings(),
   ])
   const c = Object.fromEntries(counts.map((r) => [r.status, r._count])) as Record<string, number>
   const total = Object.values(c).reduce((a, b) => a + b, 0)
-  const qs = (k: string) => `/leads?f=${k}${q ? `&q=${encodeURIComponent(q)}` : ''}`
-  const panel = sp.new ? 'new' : selected ? 'edit' : null
+  const list = `/leads?f=${f[0]}${q ? `&q=${encodeURIComponent(q)}` : ''}`
   return (
     <>
-      <PageHeader title="Leads" sub={`${total} leads`}>
-        <Link href="/leads?new=1" className="btn">Add lead</Link>
+      <PageHeader title="Leads" sub={`${total} leads. Every new lead starts in Follow up with a next call date.`}>
+        <Link href={`${list}&new=1`} className="btn" scroll={false}>Add lead</Link>
       </PageHeader>
+      <ErrorNote error={sp.error} />
       <div className="flex flex-wrap items-center gap-2.5">
-        <Tabs items={FILTERS.map(([k, label, st]) => ({ label: `${label} ${st ? st.reduce((a, s) => a + (c[s] ?? 0), 0) : total}`, href: qs(k), active: f[0] === k }))} />
+        <Tabs items={FILTERS.map(([k, label, status]) => ({ label: `${label} ${status ? (c[status] ?? 0) : total}`, href: `/leads?f=${k}${q ? `&q=${encodeURIComponent(q)}` : ''}`, active: f[0] === k }))} />
         <div className="flex-1" />
         <form action="/leads" className="w-full sm:w-60">
           <input type="hidden" name="f" value={f[0]} />
           <input name="q" defaultValue={q} placeholder="Search name or phone" className="input py-2" />
         </form>
       </div>
-      <div className={`grid items-start gap-4 ${panel ? 'lg:grid-cols-[1fr_380px]' : ''}`}>
-        <section className="card overflow-x-auto">
-          {leads.length === 0 ? (
-            <Empty>No leads here yet.</Empty>
-          ) : (
-            <table className="w-full">
-              <thead><tr><th className="th">Name</th><th className="th">Region</th><th className="th">Source</th><th className="th">Status</th><th className="th">Next call</th></tr></thead>
-              <tbody>
-                {leads.map((l) => (
-                  <tr key={l.id} className={l.id === selected?.id ? 'bg-brand-soft/60' : ''}>
-                    <td className="td"><Who name={l.name} sub={l.phone} href={`${qs(f[0])}&lead=${l.id}`} /></td>
-                    <td className="td">{l.region?.name ?? '—'}</td>
-                    <td className="td">{SOURCE[l.source]}</td>
-                    <td className="td"><StatusChip map={LEAD_STATUS} value={l.status} /></td>
-                    <td className="td">{fmtDay(l.nextFollowUpAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </section>
-        {panel === 'new' && (
-          <form action={createLead} className="card space-y-3.5 border-brand p-5.5">
-            <h2 className="font-display text-lg font-semibold">Add lead</h2>
-            <div><label className="label">Name</label><input name="name" className="input" required /></div>
-            <div className="grid grid-cols-2 gap-2.5">
-              <div><label className="label">Phone</label><input name="phone" className="input" inputMode="tel" required /></div>
-              <div><label className="label">Alternate</label><input name="altPhone" className="input" inputMode="tel" /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-2.5">
-              <div>
-                <label className="label">Source</label>
-                <select name="source" className="input">{Object.entries(SOURCE).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-              </div>
-              <div>
-                <label className="label">Region</label>
-                <select name="regionId" className="input"><option value="">Not set</option>{regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select>
-              </div>
-            </div>
-            <div><label className="label">Address</label><input name="address" className="input" placeholder="Or send a location link after saving" /></div>
-            <div><label className="label">Food notes</label><input name="foodNotes" className="input" /></div>
-            <div><label className="label">Notes</label><textarea name="notes" rows={2} className="input" /></div>
-            <div className="grid grid-cols-2 gap-2.5"><Link href="/leads" className="btn-secondary">Cancel</Link><button className="btn">Save lead</button></div>
-          </form>
+      <section className="card overflow-x-auto">
+        {leads.length === 0 ? (
+          <Empty>No leads here yet.</Empty>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr>
+                <th className="th w-10"><SelectAll formId="bulk-leads" /></th>
+                <th className="th">Name</th><th className="th">Region</th><th className="th">Source</th><th className="th">Category</th><th className="th">Next call</th><th className="th">Location</th>
+              </tr>
+            </thead>
+            <tbody>
+              {leads.map((l) => (
+                <tr key={l.id} className={l.id === selected?.id ? 'bg-brand-soft/60' : ''}>
+                  <td className="td"><RowCheck formId="bulk-leads" id={l.id} /></td>
+                  <td className="td"><Who name={l.name} sub={l.phone} href={`${list}&lead=${l.id}`} /></td>
+                  <td className="td">{l.region?.name ?? '—'}</td>
+                  <td className="td">{SOURCE[l.source]}</td>
+                  <td className="td">
+                    <StatusChip map={LEAD_STATUS} value={l.status} />
+                    {l.status === 'NOT_INTERESTED' && l.notInterestedReason && <div className="mt-0.5 text-[11px] text-muted">{l.notInterestedReason}</div>}
+                  </td>
+                  <td className="td">{l.status === 'FOLLOW_UP' ? fmtDay(l.nextFollowUpAt) : '—'}</td>
+                  <td className="td"><StatusChip map={LOCATION_STATUS} value={l.locationStatus} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
-        {panel === 'edit' && selected && (
-          <form action={updateLead} className="card space-y-3.5 border-brand p-5.5">
+      </section>
+      <BulkBar formId="bulk-leads" action={deleteLeads} confirmText="Delete {n} leads with their calls, trials and packages? This cannot be undone." />
+      {sp.new && (
+        <Drawer title="Add lead" sub="Goes into Follow up with a next call date" close={list}>
+          <form action={createLead} className="space-y-3.5">
+            <LeadFields regions={regions} slots={st.slots} />
+            <div><label className="label">First call date</label><input type="date" name="nextFollowUpAt" className="input" defaultValue={dayInput(day(0))} /></div>
+            <div className="grid grid-cols-2 gap-2.5"><Link href={list} className="btn-secondary">Cancel</Link><button className="btn">Save lead</button></div>
+          </form>
+        </Drawer>
+      )}
+      {selected && (
+        <Drawer title={selected.name} sub={<><StatusChip map={LEAD_STATUS} value={selected.status} /> <span className="ml-1">{selected.phone}</span></>} close={list}>
+          <div className="mb-4 grid grid-cols-3 gap-2">
+            <a href={`tel:${selected.phone}`} className="btn-secondary btn-sm">Call</a>
+            <Link href={`/calls?log=${selected.id}`} className="btn-secondary btn-sm">Log call</Link>
+            <Link href={`/customers/${selected.id}`} className="btn-secondary btn-sm">Profile</Link>
+          </div>
+          <div className="mb-4">
+            <span className="label">Delivery location</span>
+            <div className="flex items-center gap-2.5 rounded-lg bg-s2 px-3 py-2.5 text-[13px]">
+              <StatusChip map={LOCATION_STATUS} value={selected.locationStatus} />
+              <span className="flex-1" />
+              {selected.lat != null && <a className="font-semibold text-sky" target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${selected.lat},${selected.lng}`}>Open in Maps</a>}
+              <Link className="font-semibold text-sky" href={`/leads/${selected.id}/location`}>{selected.locationStatus === 'PIN_SAVED' ? 'New link' : 'Request location'}</Link>
+            </div>
+          </div>
+          <form action={updateLead} className="space-y-3.5">
             <input type="hidden" name="id" value={selected.id} />
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <h2 className="font-display text-lg font-semibold">Update lead</h2>
-                <p className="text-[13px] text-muted">{selected.name} · {selected.phone}</p>
-              </div>
-              <a href={`tel:${selected.phone}`} className="btn-secondary btn-sm">Call</a>
-            </div>
-            <StatusFields
-              options={Object.entries(LEAD_STATUS).map(([v, [l]]) => [v, l])}
-              value={selected.status}
-              start={dayInput(day(1))}
-              end={dayInput(day(7))}
-            />
-            <div className="grid grid-cols-2 gap-2.5">
-              <div>
-                <label className="label">Region</label>
-                <select name="regionId" className="input" defaultValue={selected.regionId ?? ''}><option value="">Not set</option>{regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select>
-              </div>
-              <div><label className="label">Next follow-up</label><input type="date" name="nextFollowUpAt" className="input" defaultValue={dayInput(selected.nextFollowUpAt)} /></div>
-            </div>
-            <div>
-              <span className="label">Delivery location</span>
-              <div className="flex items-center gap-2.5 rounded-lg bg-s2 px-3 py-2.5 text-[13px]">
-                <StatusChip map={LOCATION_STATUS} value={selected.locationStatus} />
-                <span className="flex-1" />
-                {selected.lat != null && <a className="font-semibold text-sky" target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${selected.lat},${selected.lng}`}>Open in Maps</a>}
-                <Link className="font-semibold text-sky" href={`/leads/${selected.id}/location`}>{selected.locationStatus === 'PIN_SAVED' ? 'New link' : 'Request location'}</Link>
-              </div>
-            </div>
-            <div><label className="label">Address</label><input name="address" className="input" defaultValue={selected.address ?? ''} /></div>
-            <div><label className="label">Food notes</label><input name="foodNotes" className="input" defaultValue={selected.foodNotes ?? ''} /></div>
-            <div><label className="label">Notes</label><textarea name="notes" rows={2} className="input" defaultValue={selected.notes ?? ''} /></div>
-            <input type="hidden" name="altPhone" value={selected.altPhone ?? ''} />
-            <div className="grid grid-cols-2 gap-2.5"><Link href={qs(f[0])} className="btn-secondary">Close</Link><button className="btn">Save</button></div>
-            {selected.trialBoxes[0] || selected.packages[0] ? (
-              <Link href={`/customers/${selected.id}`} className="block text-center text-[13px] font-semibold text-sky">Open customer profile</Link>
-            ) : null}
+            <input type="hidden" name="back" value={`${list}&lead=${selected.id}`} />
+            <LeadFields lead={selected} regions={regions} slots={st.slots} />
+            {selected.status === 'FOLLOW_UP' && (
+              <div><label className="label">Next call date</label><input type="date" name="nextFollowUpAt" className="input" defaultValue={dayInput(selected.nextFollowUpAt)} /></div>
+            )}
+            <p className="text-xs text-muted">To book a trial, start a monthly pack or mark Not interested, log a call in the call register.</p>
+            <div className="grid grid-cols-2 gap-2.5"><Link href={list} className="btn-secondary">Close</Link><button className="btn">Save</button></div>
           </form>
-        )}
-      </div>
+        </Drawer>
+      )}
     </>
   )
 }

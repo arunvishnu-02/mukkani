@@ -7,6 +7,7 @@ const TONE: Record<Tone, string> = {
   leaf: 'bg-leaf-soft text-leaf',
   muted: 'bg-s2 text-muted',
   red: 'bg-red-soft text-red',
+  brand: 'bg-brand-soft text-brand',
 }
 const VALUE: Record<Tone | 'ink', string> = {
   sky: 'text-sky',
@@ -14,6 +15,7 @@ const VALUE: Record<Tone | 'ink', string> = {
   leaf: 'text-leaf',
   muted: 'text-muted',
   red: 'text-red',
+  brand: 'text-brand',
   ink: 'text-ink',
 }
 
@@ -127,7 +129,7 @@ export function Callout({ children, tone = 'leaf' }: { children: React.ReactNode
 }
 
 export function Bar({ label, value, max, tone = 'leaf' }: { label: string; value: number; max: number; tone?: Tone }) {
-  const color = { sky: 'bg-sky', warn: 'bg-tur', leaf: 'bg-leaf', muted: 'bg-muted', red: 'bg-red' }[tone]
+  const color = { sky: 'bg-sky', warn: 'bg-tur', leaf: 'bg-leaf', muted: 'bg-muted', red: 'bg-red', brand: 'bg-brand' }[tone]
   return (
     <div className="flex items-center gap-3 text-[13px]">
       <span className="w-40 shrink-0">{label}</span>
@@ -141,4 +143,81 @@ export function Bar({ label, value, max, tone = 'leaf' }: { label: string; value
 
 export function Empty({ children }: { children: React.ReactNode }) {
   return <div className="px-4 py-8 text-center text-sm text-muted">{children}</div>
+}
+
+// Right-hand panel over the page (Figma drawers). Closing is a link back to the list.
+export function Drawer({ title, sub, close, children, wide }: { title: string; sub?: React.ReactNode; close: string; children: React.ReactNode; wide?: boolean }) {
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-ink/45">
+      <Link href={close} className="flex-1" aria-label="Close" scroll={false} />
+      <div className={`h-full w-full ${wide ? 'max-w-[560px]' : 'max-w-[460px]'} overflow-y-auto bg-surface p-6 shadow-xl`}>
+        <div className="mb-4 flex items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <h2 className="font-display text-xl font-semibold">{title}</h2>
+            {sub && <p className="text-[13px] text-muted">{sub}</p>}
+          </div>
+          <Link href={close} scroll={false} className="text-xl leading-none text-muted hover:text-ink" aria-label="Close">×</Link>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// One-tap choice chips backed by radio buttons, so forms work without JavaScript.
+export function Pills({ name, options, value, required, tones }: { name: string; options: [string, string][]; value?: string | null; required?: boolean; tones?: Record<string, Tone> }) {
+  const on: Record<Tone, string> = {
+    leaf: 'peer-checked:border-leaf peer-checked:bg-leaf',
+    red: 'peer-checked:border-red peer-checked:bg-red',
+    warn: 'peer-checked:border-tur peer-checked:bg-tur',
+    sky: 'peer-checked:border-sky peer-checked:bg-sky',
+    muted: 'peer-checked:border-muted peer-checked:bg-muted',
+    brand: 'peer-checked:border-brand peer-checked:bg-brand',
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {options.map(([v, l]) => (
+        <label key={v} className="cursor-pointer">
+          <input type="radio" name={name} value={v} defaultChecked={value === v} required={required} className="peer sr-only" />
+          <span className={`block rounded-md border border-line bg-surface px-2.5 py-1 text-[13px] font-medium whitespace-nowrap peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-brand-soft ${on[tones?.[v] ?? 'brand']}`}>{l}</span>
+        </label>
+      ))}
+    </div>
+  )
+}
+
+export function Progress({ value, max, tone = 'brand' }: { value: number; max: number; tone?: Tone }) {
+  const color = { sky: 'bg-sky', warn: 'bg-tur', leaf: 'bg-leaf', muted: 'bg-muted', red: 'bg-red', brand: 'bg-brand' }[tone]
+  return (
+    <span className="block h-1.5 w-full min-w-14 rounded bg-s2">
+      <span className={`block h-1.5 rounded ${color}`} style={{ width: `${max ? Math.min(100, (value / max) * 100) : 0}%` }} />
+    </span>
+  )
+}
+
+export function WaLink({ href, children = 'WhatsApp', small }: { href: string; children?: React.ReactNode; small?: boolean }) {
+  return (
+    <a href={href} target="_blank" rel="noreferrer" className={`inline-flex items-center justify-center gap-2 rounded-lg bg-leaf font-semibold text-white hover:opacity-90 ${small ? 'px-3 py-1.5 text-[13px]' : 'px-4 py-2.5 text-sm'}`}>
+      {children}
+    </a>
+  )
+}
+
+export function ErrorNote({ error }: { error?: string }) {
+  if (!error) return null
+  return <div className="rounded-[10px] bg-red-soft px-3.5 py-2.5 text-[13px] font-medium text-red">{error}</div>
+}
+
+// Multi-select chips backed by checkboxes.
+export function Checks({ name, options, values }: { name: string; options: string[]; values: string[] }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {options.map((o) => (
+        <label key={o} className="cursor-pointer">
+          <input type="checkbox" name={name} value={o} defaultChecked={values.includes(o)} className="peer sr-only" />
+          <span className="block rounded-full border border-line px-3 py-1 text-[13px] font-medium peer-checked:border-brand peer-checked:bg-brand-soft peer-checked:font-semibold peer-checked:text-brand peer-focus-visible:ring-2 peer-focus-visible:ring-brand-soft">{o}</span>
+        </label>
+      ))}
+    </div>
+  )
 }
