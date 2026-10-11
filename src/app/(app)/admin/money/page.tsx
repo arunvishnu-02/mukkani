@@ -6,6 +6,7 @@ import { MONEY_CATEGORIES, rupees } from '@/lib/labels'
 import { period } from '@/lib/report'
 import { Chip, Drawer, Empty, ErrorNote, PageHeader, Pills, Tabs, Tile, Tiles } from '@/components/ui'
 import { BulkBar, RowCheck, SelectAll } from '@/components/Bulk'
+import { BillPhoto } from '@/components/BillPhoto'
 import { deleteMoneyEntries } from '../actions'
 
 // Purchase and expense entries with the bill photo (admin only).
@@ -29,6 +30,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
   }
   const back = qs({})
   const edit = sp.edit ? entries.find((e) => e.id === sp.edit) ?? (await db.moneyEntry.findUnique({ where: { id: sp.edit } })) : null
+  const bill = edit?.billId ? await db.upload.findUnique({ where: { id: edit.billId }, select: { id: true, mime: true } }) : null
   const open = sp.add === '1' || !!edit
   const self = edit ? qs({ edit: edit.id }) : qs({ add: '1' })
   return (
@@ -95,12 +97,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
               <div><label className="label">Amount (Rs) *</label><input name="amount" type="number" min="1" step="1" required className="input" defaultValue={edit?.amount} /></div>
             </div>
             <div><label className="label">Paid to</label><input name="paidTo" className="input" defaultValue={edit?.paidTo ?? ''} placeholder="Shop or person" /></div>
-            <div>
-              <label className="label">Bill photo{edit?.billId ? ' (pick a new one to replace)' : ''}</label>
-              <input name="bill" type="file" accept="image/*,application/pdf" className="input py-2" />
-              {edit?.billId && <a href={`/api/files/${edit.billId}`} target="_blank" rel="noreferrer" className="mt-1.5 inline-block text-[13px] font-semibold text-brand">View the saved bill</a>}
-              <p className="mt-1 text-xs text-muted">JPG, PNG or PDF up to 5 MB.</p>
-            </div>
+            <BillPhoto saved={bill ? { id: bill.id, isImage: bill.mime.startsWith('image/') } : null} />
             <div className="flex gap-2.5 pt-1"><Link href={back} className="btn-secondary flex-1">Cancel</Link><button className="btn flex-1">Save</button></div>
           </form>
         </Drawer>
