@@ -1,7 +1,6 @@
 import { requireUser } from '@/lib/auth'
 import { getSettings, type SettingKey, type Settings } from '@/lib/settings'
 import { Callout, Card, ErrorNote, PageHeader } from '@/components/ui'
-import { saveSettings } from '../actions'
 
 const TAGS = '{name} customer first name · {endDate} last delivery day · {amount} price · {link} review link · {from} {to} report dates'
 
@@ -34,7 +33,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <PageHeader title="Settings" crumb="Business" sub="Prices, delivery slots, message texts, payment QR and report details" />
       <ErrorNote error={sp.error} />
       {sp.saved && <Callout tone="leaf">Settings saved.</Callout>}
-      <form action={saveSettings} className="grid items-start gap-4 lg:grid-cols-2">
+      <form action="/api/form/settings" method="post" encType="multipart/form-data" className="grid items-start gap-4 lg:grid-cols-2">
         <input type="hidden" name="back" value="/admin/settings" />
         <div className="space-y-4">
           <Card title="Prices" sub="New packs and trials use these. Running packs keep their price.">

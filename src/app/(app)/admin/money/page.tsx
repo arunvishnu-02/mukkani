@@ -6,7 +6,7 @@ import { MONEY_CATEGORIES, rupees } from '@/lib/labels'
 import { period } from '@/lib/report'
 import { Chip, Drawer, Empty, ErrorNote, PageHeader, Pills, Tabs, Tile, Tiles } from '@/components/ui'
 import { BulkBar, RowCheck, SelectAll } from '@/components/Bulk'
-import { deleteMoneyEntries, saveMoneyEntry } from '../actions'
+import { deleteMoneyEntries } from '../actions'
 
 // Purchase and expense entries with the bill photo (admin only).
 export default async function Money({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -79,7 +79,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
       <BulkBar formId="bulk-money" action={deleteMoneyEntries} confirmText="Delete {n} entries and their bill photos? This cannot be undone." />
       {open && (
         <Drawer title={edit ? 'Edit entry' : 'Add purchase or expense'} sub="Take a photo of the bill so it is never lost" close={back}>
-          <form action={saveMoneyEntry} className="space-y-3.5">
+          <form action="/api/form/money" method="post" encType="multipart/form-data" className="space-y-3.5">
             <input type="hidden" name="id" value={edit?.id ?? ''} />
             <input type="hidden" name="back" value={back} />
             <input type="hidden" name="self" value={self} />
