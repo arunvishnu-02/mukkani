@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { db } from '@/lib/db'
 import { requireUser } from '@/lib/auth'
-import { day, fmtWeekday, parseDay } from '@/lib/dates'
+import { addDays, day, fmtWeekday, isSunday, parseDay } from '@/lib/dates'
 import { getSettings } from '@/lib/settings'
 import { fill, firstName, waLink } from '@/lib/whatsapp'
 import { packagePlan } from '@/lib/queries'
@@ -16,6 +16,7 @@ import {
   log,
   logLeadCall,
   saveAttendance,
+  setCustomerStatus,
   startPackage,
   trialFeedback,
   type AttendanceInput,
@@ -154,6 +155,35 @@ export async function setButtermilkAction(form: FormData) {
   await log(p.leadId, 'package', qty ? `Buttermilk: ${qty} bottle${qty > 1 ? 's' : ''}` : 'Buttermilk stopped', null, user.id)
   revalidatePath('/', 'layout')
   redirect(back(form, `/customers/${p.leadId}`))
+}
+
+// Leave told the day before (or earlier), by sales or the kitchen manager. One day or a range;
+// Sundays are skipped. Each day off moves the end date one delivery day forward.
+export async function markLeaveAction(form: FormData) {
+  const user = await requireUser(['SALES', 'KITCHEN'])
+  const leadId = z.string().uuid().parse(s(form, 'leadId'))
+  const self = back(form, `/customers/${leadId}`)
+  const from = date(form, 'from') ?? day(1)
+  const to = date(form, 'to') ?? from
+  if (from < day(0)) redirect(withError(self, new FlowError('Leave can only be marked for today or later. For past days, change the attendance.')))
+  if (to < from) redirect(withError(self, new FlowError('The last day of leave is before the first day')))
+  if (to > addDays(from, 60)) redirect(withError(self, new FlowError('Leave longer than 60 days: pause the customer instead')))
+  for (let d = from; d <= to; d = addDays(d, 1)) if (!isSunday(d)) await setCustomerStatus(leadId, user.id, 'ABSENT', d)
+  revalidatePath('/', 'layout')
+  redirect(self)
+}
+
+// Customer changed their mind: remove a leave day that has not happened yet.
+export async function cancelLeaveAction(form: FormData) {
+  const user = await requireUser(['SALES', 'KITCHEN'])
+  const leadId = z.string().uuid().parse(s(form, 'leadId'))
+  const d = date(form, 'date')
+  if (d && d >= day(0)) {
+    await db.attendance.deleteMany({ where: { leadId, date: d, status: 'ABSENT' } })
+    await log(leadId, 'status', `Leave on ${fmtWeekday(d)} cancelled`, null, user.id)
+  }
+  revalidatePath('/', 'layout')
+  redirect(back(form, `/customers/${leadId}`))
 }
 
 // Daily menu, added by sales the day before.
