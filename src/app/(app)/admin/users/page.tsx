@@ -2,16 +2,20 @@ import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { ROLE } from '@/lib/labels'
-import { Card, Chip, PageHeader, StatusChip, Who } from '@/components/ui'
+import { period, teamFigures } from '@/lib/report'
+import { Card, Chip, ErrorNote, PageHeader, StatusChip, Who } from '@/components/ui'
+import { saveRegion, saveUser } from '../actions'
+import { deleteRegion, deleteUser } from '../../actions'
 import { ConfirmButton } from '@/components/ConfirmButton'
-import { deleteRegion, deleteUser, saveRegion, saveUser } from '../../actions'
 
 export default async function UsersRegions({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const me = await requireUser(['ADMIN'])
   const sp = await searchParams
-  const [users, regions] = await Promise.all([
+  const month = period('month')
+  const [users, regions, team] = await Promise.all([
     db.user.findMany({ orderBy: [{ role: 'asc' }, { name: 'asc' }] }),
     db.region.findMany({ orderBy: { name: 'asc' }, include: { owner: true, _count: { select: { leads: true } } } }),
+    teamFigures(month),
   ])
   const editUser = sp.user === 'new' ? null : users.find((u) => u.id === sp.user)
   const editRegion = sp.region === 'new' ? null : regions.find((r) => r.id === sp.region)
@@ -19,10 +23,11 @@ export default async function UsersRegions({ searchParams }: { searchParams: Pro
   const showRegion = sp.region === 'new' || !!editRegion
   return (
     <>
-      <PageHeader title="Users and regions" sub="Who can log in, what they can do, and the delivery areas">
+      <PageHeader title="Team + regions" crumb="Business" sub="Who can log in, what they can do, and the delivery areas">
         <Link href="/admin/users?region=new" className="btn-secondary">Add region</Link>
         <Link href="/admin/users?user=new" className="btn">Add user</Link>
       </PageHeader>
+      <ErrorNote error={sp.error} />
       {showUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-ink/45 p-4">
         <form key={editUser?.id ?? 'new'} action={saveUser} className="card grid w-full max-w-[720px] gap-3 p-6 sm:grid-cols-3">
@@ -55,7 +60,7 @@ export default async function UsersRegions({ searchParams }: { searchParams: Pro
       <section className="card overflow-x-auto">
         <h2 className="px-5 py-4 font-display text-lg font-semibold">Users <span className="text-sm font-normal text-muted">{users.length} people</span></h2>
         <table className="w-full">
-          <thead><tr><th className="th">Name</th><th className="th">Username</th><th className="th">Role</th><th className="th">Phone</th><th className="th">Status</th><th className="th"></th></tr></thead>
+          <thead><tr><th className="th">Name</th><th className="th">Username</th><th className="th">Role</th><th className="th">Phone</th><th className="th">This month</th><th className="th">Status</th><th className="th"></th></tr></thead>
           <tbody>
             {users.map((u) => (
               <tr key={u.id}>
@@ -63,6 +68,10 @@ export default async function UsersRegions({ searchParams }: { searchParams: Pro
                 <td className="td font-mono text-xs">{u.username}</td>
                 <td className="td"><StatusChip map={ROLE} value={u.role} /></td>
                 <td className="td">{u.phone ?? '—'}</td>
+                <td className="td text-[13px]">{(() => {
+                  const t = team.find((x) => x.user.id === u.id)
+                  return t ? `${t.leads} leads · ${t.calls} calls · ${t.trials} trials · ${t.monthly} monthly` : <span className="text-muted">—</span>
+                })()}</td>
                 <td className="td">{u.active ? <Chip label="Active" tone="leaf" /> : <Chip label="Inactive" tone="muted" />}</td>
                 <td className="td">
                   <div className="flex justify-end gap-1.5">
@@ -109,9 +118,9 @@ export default async function UsersRegions({ searchParams }: { searchParams: Pro
         <Card title="What each role can do">
           <div className="space-y-2.5">
             {[
-              ['ADMIN', 'Everything, including users, regions and reports'],
-              ['SALES', 'Leads, follow-ups, customers, trial and regular boxes, location links'],
-              ['KITCHEN', 'View only: count tiles, today’s boxes, monthly customers. No action buttons.'],
+              ['ADMIN', 'Everything: sales and kitchen screens, reports, purchase + expenses, team, regions and settings'],
+              ['SALES', 'Leads, call register, trials, monthly packs, daily menu, delivery attendance, reminders and monthly reports'],
+              ['KITCHEN', 'Today’s boxes and the 3 AM sheet, customer status, customer calls, alternative boxes, stock and wastage. Cannot delete.'],
             ].map(([r, d]) => (
               <div key={r} className="space-y-1.5 rounded-[10px] bg-s2 p-3">
                 <StatusChip map={ROLE} value={r} />

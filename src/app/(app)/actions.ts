@@ -1,113 +1,208 @@
 'use server'
 
-import bcrypt from 'bcryptjs'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { db } from '@/lib/db'
 import { requireUser } from '@/lib/auth'
-import { parseCsv } from '@/lib/csv'
-import { day, parseDay } from '@/lib/dates'
-import { PACKAGE } from '@/lib/labels'
-import { createLocationRequest, log, logCall, recordResult, setLeadStatus } from '@/lib/workflow'
-import { LeadStatus, PackageStatus, Role } from '@/generated/prisma/enums'
+import { day, fmtWeekday, parseDay } from '@/lib/dates'
+import { getSettings } from '@/lib/settings'
+import { fill, firstName, waLink } from '@/lib/whatsapp'
+import { packagePlan } from '@/lib/queries'
+import {
+  FlowError,
+  bookTrial,
+  createLocationRequest,
+  log,
+  logLeadCall,
+  saveAttendance,
+  startPackage,
+  trialFeedback,
+  type AttendanceInput,
+  type PackageStart,
+} from '@/lib/workflow'
+import { LeadSource, TrialResult } from '@/generated/prisma/enums'
 
 const s = (f: FormData, k: string) => {
   const v = String(f.get(k) ?? '').trim()
   return v === '' ? null : v
 }
+const date = (f: FormData, k: string) => (s(f, k) ? parseDay(s(f, k)!) : null)
 const back = (f: FormData, fallback: string) => s(f, 'back') ?? fallback
+const withError = (url: string, e: unknown) => {
+  if (!(e instanceof FlowError)) throw e
+  return `${url}${url.includes('?') ? '&' : '?'}error=${encodeURIComponent(e.message)}`
+}
 
+// Runs a step; a FlowError goes back to the same screen with the message instead of an error page.
+async function attempt(form: FormData, fallback: string, fn: () => Promise<unknown>, done?: string) {
+  let to = done ?? back(form, fallback)
+  try {
+    await fn()
+  } catch (e) {
+    to = withError(s(form, 'self') ?? back(form, fallback), e)
+  }
+  revalidatePath('/', 'layout')
+  redirect(to)
+}
+
+function packageStart(form: FormData): PackageStart {
+  return {
+    startDate: date(form, 'startDate') ?? undefined,
+    slot: s(form, 'slot'),
+    deliveryTime: s(form, 'deliveryTime'),
+    regionId: s(form, 'regionId'),
+    buttermilkQty: Number(s(form, 'buttermilkQty') ?? 0),
+    paid: form.get('pkgPaid') === 'on',
+  }
+}
+
+const leadFields = (form: FormData) => ({
+  name: z.string().min(1, 'Name is needed').parse(s(form, 'name')),
+  phone: z.string().min(6, 'Phone number is needed').parse(s(form, 'phone')),
+  altPhone: s(form, 'altPhone'),
+  address: s(form, 'address'),
+  regionId: s(form, 'regionId'),
+  source: z.enum(LeadSource).parse(s(form, 'source') ?? 'CALL'),
+  notes: s(form, 'notes'),
+  avoidFoods: s(form, 'avoidFoods'),
+  healthNotes: s(form, 'healthNotes'),
+  dob: date(form, 'dob'),
+  slot: s(form, 'slot'),
+  deliveryTime: s(form, 'deliveryTime'),
+})
+
+// Leads
 export async function createLead(form: FormData) {
   const user = await requireUser(['SALES'])
-  const data = z
-    .object({
-      name: z.string().min(1),
-      phone: z.string().min(6),
-      address: z.string().nullable(),
-      regionId: z.string().uuid().nullable(),
-      notes: z.string().nullable(),
-      foodNotes: z.string().nullable(),
-    })
-    .parse({
-      name: s(form, 'name'),
-      phone: s(form, 'phone'),
-      address: s(form, 'address'),
-      regionId: s(form, 'regionId'),
-      notes: s(form, 'notes'),
-      foodNotes: s(form, 'foodNotes'),
-    })
-  const lead = await db.lead.create({ data: { ...data, ownerId: user.id, nextFollowUpAt: day(0) } })
-  await log(lead.id, 'lead', 'Lead added', null, user.id)
-  revalidatePath('/leads')
+  const data = leadFields(form)
+  const lead = await db.lead.create({ data: { ...data, ownerId: user.id, nextFollowUpAt: date(form, 'nextFollowUpAt') ?? day(0) } })
+  await log(lead.id, 'lead', 'Lead added', `Source: ${data.source.toLowerCase().replace('_', ' ')}`, user.id)
+  revalidatePath('/', 'layout')
   redirect(`/leads?lead=${lead.id}`)
 }
 
 export async function updateLead(form: FormData) {
-  const user = await requireUser(['SALES'])
+  const user = await requireUser(['SALES', 'KITCHEN'])
   const id = z.string().uuid().parse(s(form, 'id'))
-  const status = z.enum(LeadStatus).parse(s(form, 'status'))
-  const start = s(form, 'trialStart')
-  const end = s(form, 'trialEnd')
-  await db.lead.update({
-    where: { id },
-    data: {
-      name: z.string().min(1).parse(s(form, 'name')),
-      phone: z.string().min(6).parse(s(form, 'phone')),
-      regionId: s(form, 'regionId'),
-      notes: s(form, 'notes'),
-      foodNotes: s(form, 'foodNotes'),
-      address: s(form, 'address'),
-      nextFollowUpAt: s(form, 'nextFollowUpAt') ? parseDay(s(form, 'nextFollowUpAt')!) : null,
-    },
-  })
-  await setLeadStatus(
-    id,
-    status,
-    user.id,
-    { start: start ? parseDay(start) : undefined, end: end ? parseDay(end) : undefined },
-    { startDate: s(form, 'startDate') ? parseDay(s(form, 'startDate')!) : day(1), slot: s(form, 'slot') },
-  )
+  const data = leadFields(form)
+  await db.lead.update({ where: { id }, data: { ...data, nextFollowUpAt: date(form, 'nextFollowUpAt') } })
+  await log(id, 'lead', 'Details updated', null, user.id)
   revalidatePath('/', 'layout')
   redirect(back(form, `/leads?lead=${id}`))
 }
 
+export async function deleteLeads(form: FormData) {
+  await requireUser(['SALES'])
+  const ids = form.getAll('ids').map(String)
+  await db.lead.deleteMany({ where: { id: { in: ids } } })
+  revalidatePath('/', 'layout')
+  redirect(back(form, '/leads'))
+}
+
+// Call register
 export async function logCallAction(form: FormData) {
   const user = await requireUser(['SALES'])
   const id = z.string().uuid().parse(s(form, 'id'))
-  const outcome = z.enum(['INTERESTED', 'CALL_BACK', 'TRIAL', 'NOT_INTERESTED']).parse(s(form, 'outcome'))
-  const next = s(form, 'next')
-  await logCall(id, user.id, outcome, s(form, 'note'), next ? parseDay(next) : null)
-  revalidatePath('/', 'layout')
-  redirect(back(form, '/follow-ups'))
+  const outcome = z.enum(['INTERESTED', 'NO_ANSWER', 'CALL_BACK', 'TRIAL', 'MONTHLY', 'NOT_INTERESTED']).parse(s(form, 'outcome'))
+  await attempt(form, '/calls', () =>
+    logLeadCall(id, user.id, outcome, s(form, 'note'), {
+      next: date(form, 'next'),
+      trialDate: date(form, 'trialDate') ?? day(1),
+      slot: s(form, 'trialSlot'),
+      reason: s(form, 'reason'),
+      start: packageStart(form),
+    }),
+  )
 }
 
-export async function recordResultAction(form: FormData) {
+// Trials
+export async function bookTrialAction(form: FormData) {
+  const user = await requireUser(['SALES'])
+  const id = z.string().uuid().parse(s(form, 'leadId'))
+  await attempt(form, '/trials', () => bookTrial(id, user.id, date(form, 'trialDate') ?? day(1), s(form, 'slot')))
+}
+
+export async function trialFeedbackAction(form: FormData) {
   const user = await requireUser(['SALES'])
   const id = z.string().uuid().parse(s(form, 'id'))
-  if (s(form, 'result') === 'CONVERTED') {
-    await recordResult(id, user.id, {
-      converted: true,
-      startDate: s(form, 'startDate') ? parseDay(s(form, 'startDate')!) : day(1),
-      slot: s(form, 'slot') ?? '',
-      regionId: s(form, 'regionId'),
-    })
-  } else {
-    await recordResult(id, user.id, { converted: false, next: s(form, 'next') === 'LOST' ? 'LOST' : 'FOLLOW_UP' })
-  }
-  revalidatePath('/', 'layout')
-  redirect('/boxes')
+  const result = z.enum(TrialResult).parse(s(form, 'result'))
+  await attempt(form, '/trials', () =>
+    trialFeedback(id, user.id, {
+      result,
+      feedback: s(form, 'feedback'),
+      paid: form.get('paid') === 'on',
+      next: date(form, 'next'),
+      reason: s(form, 'reason'),
+      start: packageStart(form),
+    }),
+  )
 }
 
-export async function setPackageStatusAction(form: FormData) {
+export async function startPackageAction(form: FormData) {
   const user = await requireUser(['SALES'])
-  const pkg = await db.package.update({
-    where: { id: z.string().uuid().parse(s(form, 'id')) },
-    data: { status: z.enum(PackageStatus).parse(s(form, 'status')) },
-  })
-  await log(pkg.leadId, 'package', `Package ${pkg.status.toLowerCase()}`, pkg.packageType, user.id)
+  const id = z.string().uuid().parse(s(form, 'leadId'))
+  await attempt(form, `/customers/${id}`, () => startPackage(id, user.id, packageStart(form)))
+}
+
+// Buttermilk add-on: Rs 299 a month per bottle, Mon/Wed/Fri, monthly customers only.
+export async function setButtermilkAction(form: FormData) {
+  const user = await requireUser(['SALES', 'KITCHEN'])
+  const id = z.string().uuid().parse(s(form, 'packageId'))
+  const qty = z.coerce.number().int().min(0).max(5).parse(s(form, 'qty') ?? 0)
+  const p = await db.package.update({ where: { id }, data: { buttermilkQty: qty } })
+  await log(p.leadId, 'package', qty ? `Buttermilk: ${qty} bottle${qty > 1 ? 's' : ''}` : 'Buttermilk stopped', null, user.id)
   revalidatePath('/', 'layout')
-  redirect(back(form, '/boxes?tab=regular'))
+  redirect(back(form, `/customers/${p.leadId}`))
+}
+
+// Daily menu, added by sales the day before.
+export async function saveMenuAction(form: FormData) {
+  const user = await requireUser(['SALES'])
+  const d = date(form, 'date') ?? day(1)
+  const fruits = form.getAll('fruits').map(String)
+  const swaps = form.getAll('swapFruits').map(String)
+  const self = back(form, '/menu')
+  if (fruits.length === 0) redirect(withError(self, new FlowError('Pick at least one fruit')))
+  const data = { fruits: fruits.join(', '), swapFruits: swaps.join(', '), salad: s(form, 'salad'), note: s(form, 'note'), byId: user.id }
+  await db.menu.upsert({ where: { date: d }, create: { date: d, ...data }, update: data })
+  revalidatePath('/', 'layout')
+  redirect(`${self}${self.includes('?') ? '&' : '?'}saved=1`)
+}
+
+// Attendance entered from the paper sheet. One row per customer on the sheet.
+export async function saveAttendanceAction(form: FormData) {
+  const user = await requireUser(['SALES'])
+  const d = date(form, 'date') ?? day(0)
+  const rows: AttendanceInput[] = []
+  for (const leadId of form.getAll('lead').map(String)) {
+    const st = s(form, `st_${leadId}`)
+    if (!st) continue
+    const box = s(form, `alt_${leadId}`)
+    const back = s(form, `back_${leadId}`)
+    rows.push({
+      leadId,
+      status: z.enum(['DELIVERED', 'ABSENT', 'NOT_DELIVERED']).parse(st),
+      buttermilk: form.get(`bm_${leadId}`) === 'on',
+      boxBack: back == null ? null : back === 'yes',
+      altBox: box ? z.coerce.number().int().min(1).max(100).parse(box) : null,
+      remarks: s(form, `rm_${leadId}`),
+    })
+  }
+  await saveAttendance(d, rows, user.id)
+  revalidatePath('/', 'layout')
+  redirect(`${back(form, '/attendance')}&saved=${rows.length}`)
+}
+
+// End-date reminder: record it, then open WhatsApp with the message ready.
+export async function sendReminderAction(form: FormData) {
+  const user = await requireUser(['SALES'])
+  const id = z.string().uuid().parse(s(form, 'packageId'))
+  const [{ pkg, plan }, st] = await Promise.all([packagePlan(id), getSettings()])
+  await db.package.update({ where: { id }, data: { reminderSentAt: new Date() } })
+  await log(pkg.leadId, 'reminder', 'End-date reminder sent on WhatsApp', null, user.id)
+  revalidatePath('/', 'layout')
+  redirect(waLink(pkg.lead.phone, fill(st.msgReminder, { name: firstName(pkg.lead.name), endDate: fmtWeekday(plan.end) })))
 }
 
 export async function requestLocationAction(form: FormData) {
@@ -119,90 +214,20 @@ export async function requestLocationAction(form: FormData) {
   redirect(`/leads/${id}/location?channel=${channel}`)
 }
 
-// A customer added directly: someone who starts a monthly package without going through a lead and a trial.
-export async function createCustomer(form: FormData) {
-  const user = await requireUser(['SALES'])
-  const name = z.string().min(1).parse(s(form, 'name'))
-  const phone = z.string().min(6).parse(s(form, 'phone'))
-  const digits = (v: string) => v.replace(/\D/g, '')
-  const taken = (await db.lead.findMany({ select: { id: true, phone: true } })).find((l) => digits(l.phone) === digits(phone))
-  if (taken) redirect(`/customers?new=1&error=phone&lead=${taken.id}`)
-  const lead = await db.lead.create({
-    data: {
-      name, phone, status: 'CONVERTED', ownerId: user.id,
-      regionId: z.string().uuid().nullable().parse(s(form, 'regionId')),
-      address: s(form, 'address'), foodNotes: s(form, 'foodNotes'), notes: s(form, 'notes'), slot: s(form, 'slot'),
-      packages: { create: { packageType: PACKAGE, startDate: s(form, 'startDate') ? parseDay(s(form, 'startDate')!) : day(0) } },
-    },
-  })
-  await log(lead.id, 'package', 'Customer added', PACKAGE, user.id)
+// Monthly report: the note printed on it can be edited before printing.
+export async function saveReportNoteAction(form: FormData) {
+  await requireUser(['SALES', 'KITCHEN'])
+  const id = z.string().uuid().parse(s(form, 'packageId'))
+  await db.package.update({ where: { id }, data: { reportNote: s(form, 'reportNote') } })
   revalidatePath('/', 'layout')
-  redirect(`/customers/${lead.id}`)
+  redirect(back(form, `/reports?pkg=${id}`))
 }
 
-// Customers from a CSV file in the format of the sample file. A phone number already in the CRM is skipped, so the
-// same file can be imported twice without making duplicates.
-export async function importCustomers(form: FormData) {
-  const user = await requireUser(['SALES'])
-  const file = form.get('file')
-  if (!(file instanceof File) || file.size === 0) redirect('/customers?import=1&error=nofile')
-  const [header, ...rows] = parseCsv(await file.text())
-  const col = (name: string) => (header ?? []).findIndex((h) => h.toLowerCase() === name)
-  const at = { name: col('name'), phone: col('phone'), location: col('location'), address: col('address'), health: col('health issues'), notes: col('notes'), slot: col('slot'), start: col('start date'), status: col('status') }
-  if (at.name < 0 || at.phone < 0) redirect('/customers?import=1&error=columns')
-  const digits = (v: string) => v.replace(/\D/g, '')
-  const [regions, existing] = await Promise.all([db.region.findMany(), db.lead.findMany({ select: { phone: true } })])
-  const known = new Set(existing.map((l) => digits(l.phone)))
-  let added = 0, skipped = 0, invalid = 0
-  for (const r of rows) {
-    const get = (i: number) => (i >= 0 && r[i] ? r[i] : null)
-    const name = get(at.name)
-    const phone = get(at.phone)
-    if (!name || !phone || digits(phone).length < 6) { invalid++; continue }
-    if (known.has(digits(phone))) { skipped++; continue }
-    known.add(digits(phone))
-    const location = get(at.location)
-    const region = location ? regions.find((x) => x.name.toLowerCase() === location.toLowerCase()) : undefined
-    // Start date as 2026-10-04, or 04/10/2026 and 04-10-2026 the way Excel saves it.
-    const raw = get(at.start)
-    const dmy = raw?.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/)
-    const iso = dmy ? `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}` : raw
-    const start = iso && /^\d{4}-\d{2}-\d{2}$/.test(iso) && !isNaN(parseDay(iso).getTime()) ? parseDay(iso) : day(0)
-    const lead = await db.lead.create({
-      data: {
-        name, phone, status: 'CONVERTED', ownerId: user.id, regionId: region?.id ?? null,
-        // A location that is not one of the regions is kept in the address, so nothing from the file is lost.
-        address: get(at.address) ?? (region ? null : location),
-        foodNotes: get(at.health), notes: get(at.notes), slot: get(at.slot),
-        packages: { create: { packageType: PACKAGE, startDate: start, status: get(at.status)?.toLowerCase().startsWith('pause') ? 'PAUSED' : 'ACTIVE' } },
-      },
-    })
-    await log(lead.id, 'package', 'Customer imported from file', PACKAGE, user.id)
-    added++
-  }
-  revalidatePath('/', 'layout')
-  redirect(`/customers?added=${added}&skipped=${skipped}&invalid=${invalid}`)
-}
-
-// Admin
-export async function saveUser(form: FormData) {
+export async function deleteRegion(form: FormData) {
   await requireUser(['ADMIN'])
-  const id = s(form, 'id')
-  const data = {
-    name: z.string().min(1).parse(s(form, 'name')),
-    username: z.string().min(3).parse(s(form, 'username')?.toLowerCase()),
-    role: z.enum(Role).parse(s(form, 'role')),
-    phone: s(form, 'phone'),
-    active: form.get('active') !== 'off',
-  }
-  const password = s(form, 'password')
-  if (id) {
-    await db.user.update({ where: { id }, data: { ...data, ...(password ? { passwordHash: await bcrypt.hash(password, 10) } : {}) } })
-  } else {
-    if (!password || password.length < 6) throw new Error('Password must be at least 6 characters')
-    await db.user.create({ data: { ...data, passwordHash: await bcrypt.hash(password, 10) } })
-  }
-  revalidatePath('/admin/users')
+  // Leads in this region stay; their region becomes "not set".
+  await db.region.delete({ where: { id: z.string().uuid().parse(s(form, 'id')) } })
+  revalidatePath('/', 'layout')
   redirect('/admin/users')
 }
 
@@ -212,25 +237,6 @@ export async function deleteUser(form: FormData) {
   if (id === me.id) throw new Error('You cannot delete your own login')
   // Leads, regions and trial boxes of this user stay; they just lose the owner.
   await db.user.delete({ where: { id } })
-  revalidatePath('/', 'layout')
-  redirect('/admin/users')
-}
-
-export async function saveRegion(form: FormData) {
-  await requireUser(['ADMIN'])
-  const id = s(form, 'id')
-  const num = (k: string) => (s(form, k) ? Number(s(form, k)) : null)
-  const data = { name: z.string().min(1).parse(s(form, 'name')), lat: num('lat'), lng: num('lng'), ownerId: s(form, 'ownerId') }
-  if (id) await db.region.update({ where: { id }, data })
-  else await db.region.create({ data })
-  revalidatePath('/admin/users')
-  redirect('/admin/users')
-}
-
-export async function deleteRegion(form: FormData) {
-  await requireUser(['ADMIN'])
-  // Leads in this region stay; their region becomes "not set".
-  await db.region.delete({ where: { id: z.string().uuid().parse(s(form, 'id')) } })
   revalidatePath('/', 'layout')
   redirect('/admin/users')
 }
