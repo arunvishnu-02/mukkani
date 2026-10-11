@@ -1,6 +1,7 @@
 import { SOURCE } from '@/lib/labels'
 import { dayInput } from '@/lib/dates'
 import type { Lead, Region } from '@/generated/prisma/client'
+import { DateField } from '@/components/DateField'
 
 // Customer details sales collects (plan doc section 1).
 export function LeadFields({ lead, regions, slots }: { lead?: Lead | null; regions: Region[]; slots: string[] }) {
@@ -16,7 +17,7 @@ export function LeadFields({ lead, regions, slots }: { lead?: Lead | null; regio
           <label className="label">Source</label>
           <select name="source" className="input" defaultValue={lead?.source ?? 'WHATSAPP'}>{Object.entries(SOURCE).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
         </div>
-        <div><label className="label">Date of birth</label><input type="date" name="dob" className="input" defaultValue={dayInput(lead?.dob)} /></div>
+        <div><label className="label">Date of birth</label><DateField name="dob" defaultValue={dayInput(lead?.dob)} birthday /></div>
       </div>
       <div><label className="label">Address</label><input name="address" className="input" placeholder="Or send a location link after saving" defaultValue={lead?.address ?? ''} /></div>
       <div className="grid grid-cols-3 gap-2.5">

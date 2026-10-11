@@ -4,6 +4,7 @@ import { day, dayInput, fmtWeekday, nowHourIST, parseDay } from '@/lib/dates'
 import { daySheet, groupByRegion } from '@/lib/queries'
 import { Callout, Chip, Empty, ErrorNote, PageHeader, Pills, Tabs, Tile, Tiles } from '@/components/ui'
 import { saveAttendanceAction } from '../actions'
+import { DateField } from '@/components/DateField'
 
 type Row = {
   key: string
@@ -72,7 +73,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
     <>
       <PageHeader title="Enter today's attendance" crumb="Delivery attendance" sub={`After 11 AM, copy the kitchen manager's paper sheet into the dashboard. ${fmtWeekday(date)}`}>
         <form action="/attendance" className="flex items-center gap-2">
-          <input type="date" name="date" defaultValue={dayInput(date)} className="input py-2" />
+          <DateField name="date" defaultValue={dayInput(date)} compact />
           <button className="btn-secondary btn-sm">Go</button>
         </form>
       </PageHeader>

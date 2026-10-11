@@ -8,6 +8,7 @@ import { Chip, Drawer, Empty, ErrorNote, PageHeader, Pills, Tabs, Tile, Tiles } 
 import { BulkBar, RowCheck, SelectAll } from '@/components/Bulk'
 import { BillPhotos } from '@/components/BillPhotos'
 import { deleteMoneyEntries } from '../actions'
+import { DateField } from '@/components/DateField'
 
 const MAX_BILLS = 6
 
@@ -91,7 +92,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
             <ErrorNote error={sp.error} />
             <div><span className="label">Type</span><Pills name="type" value={edit?.type ?? 'PURCHASE'} options={[['PURCHASE', 'Purchase'], ['EXPENSE', 'Expense']]} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="label">Date *</label><input name="date" type="date" required className="input" defaultValue={dayInput(edit?.date ?? day(0))} max={dayInput(addDays(day(0), 1))} /></div>
+              <div><label className="label">Date *</label><DateField name="date" required defaultValue={dayInput(edit?.date ?? day(0))} max={dayInput(addDays(day(0), 1))} /></div>
               <div><label className="label">Category</label><select name="category" className="input" defaultValue={edit?.category ?? MONEY_CATEGORIES[0]}>{MONEY_CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select></div>
             </div>
             <div><label className="label">Item *</label><input name="item" required className="input" defaultValue={edit?.item} placeholder="For example: Papaya, box covers, electricity bill" /></div>

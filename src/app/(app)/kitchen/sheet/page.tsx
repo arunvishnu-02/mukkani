@@ -4,6 +4,7 @@ import { day, dayInput, fmtWeekday, parseDay } from '@/lib/dates'
 import { ATTENDANCE } from '@/lib/labels'
 import { daySheet, groupByRegion } from '@/lib/queries'
 import { Callout, Chip, Empty, PageHeader, StatusChip, Tabs, Tile, Tiles } from '@/components/ui'
+import { DateField } from '@/components/DateField'
 
 // Print at 3 AM. After delivery, write the attendance on the paper. Sales enters it after 11 AM.
 export default async function KitchenSheet({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -24,7 +25,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
       <div className="flex flex-wrap items-center gap-2.5">
         {groups.length > 0 && <Tabs items={groups.map(([n, rs]) => ({ label: `${n} ${rs.length}`, href: `/kitchen/sheet?${q}&region=${encodeURIComponent(n)}`, active: n === region?.[0] }))} />}
         <div className="flex-1" />
-        <form action="/kitchen/sheet" className="flex items-center gap-2"><input type="date" name="date" defaultValue={dayInput(date)} className="input py-2" /><button className="btn-secondary btn-sm">Go</button></form>
+        <form action="/kitchen/sheet" className="flex items-center gap-2"><DateField name="date" defaultValue={dayInput(date)} compact /><button className="btn-secondary btn-sm">Go</button></form>
       </div>
       <Tiles cols={5}>
         <Tile label="Boxes" value={sheet.boxes} sub={fmtWeekday(date)} />

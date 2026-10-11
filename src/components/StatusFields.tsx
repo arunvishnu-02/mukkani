@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { DateField } from '@/components/DateField'
 
 export function StatusFields({ options, value, start, end, slots }: { options: [string, string][]; value: string; start: string; end: string; slots: string[] }) {
   const [status, setStatus] = useState(value)
@@ -21,8 +22,8 @@ export function StatusFields({ options, value, start, end, slots }: { options: [
             <p className="mt-1 text-[13px] leading-[18px]">A trial order is created, assigned to the kitchen manager and the kitchen is notified. No WhatsApp needed.</p>
           </div>
           <div className="grid grid-cols-2 gap-2.5">
-            <div><label className="label" htmlFor="trialStart">Trial start</label><input id="trialStart" name="trialStart" type="date" className="input" defaultValue={start} /></div>
-            <div><label className="label" htmlFor="trialEnd">Trial end</label><input id="trialEnd" name="trialEnd" type="date" className="input" defaultValue={end} /></div>
+            <div><label className="label" htmlFor="trialStart">Trial start</label><DateField id="trialStart" name="trialStart" defaultValue={start} /></div>
+            <div><label className="label" htmlFor="trialEnd">Trial end</label><DateField id="trialEnd" name="trialEnd" defaultValue={end} /></div>
           </div>
         </>
       )}
@@ -33,7 +34,7 @@ export function StatusFields({ options, value, start, end, slots }: { options: [
             <p className="mt-1 text-[13px] leading-[18px]">The monthly package (regular box) is created and this person moves to Customers.</p>
           </div>
           <div className="grid grid-cols-2 gap-2.5">
-            <div><label className="label" htmlFor="startDate">Start date</label><input id="startDate" name="startDate" type="date" className="input" defaultValue={start} /></div>
+            <div><label className="label" htmlFor="startDate">Start date</label><DateField id="startDate" name="startDate" defaultValue={start} /></div>
             <div><label className="label" htmlFor="slot">Delivery slot</label><select id="slot" name="slot" className="input">{slots.map((p) => <option key={p}>{p}</option>)}</select></div>
           </div>
         </>

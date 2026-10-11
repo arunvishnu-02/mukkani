@@ -11,6 +11,7 @@ import { BulkBar, RowCheck, SelectAll } from '@/components/Bulk'
 import { createLead, deleteLeads, updateLead } from '../actions'
 import type { Prisma } from '@/generated/prisma/client'
 import type { LeadStatus } from '@/generated/prisma/enums'
+import { DateField } from '@/components/DateField'
 
 const FILTERS: [string, string, LeadStatus | null][] = [
   ['all', 'All', null],
@@ -88,7 +89,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
         <Drawer title="Add lead" sub="Goes into Follow up with a next call date" close={list}>
           <form action={createLead} className="space-y-3.5">
             <LeadFields regions={regions} slots={st.slots} />
-            <div><label className="label">First call date</label><input type="date" name="nextFollowUpAt" className="input" defaultValue={dayInput(day(0))} /></div>
+            <div><label className="label">First call date</label><DateField name="nextFollowUpAt" defaultValue={dayInput(day(0))} /></div>
             <div className="grid grid-cols-2 gap-2.5"><Link href={list} className="btn-secondary">Cancel</Link><button className="btn">Save lead</button></div>
           </form>
         </Drawer>
@@ -114,7 +115,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
             <input type="hidden" name="back" value={`${list}&lead=${selected.id}`} />
             <LeadFields lead={selected} regions={regions} slots={st.slots} />
             {selected.status === 'FOLLOW_UP' && (
-              <div><label className="label">Next call date</label><input type="date" name="nextFollowUpAt" className="input" defaultValue={dayInput(selected.nextFollowUpAt)} /></div>
+              <div><label className="label">Next call date</label><DateField name="nextFollowUpAt" defaultValue={dayInput(selected.nextFollowUpAt)} /></div>
             )}
             <p className="text-xs text-muted">To book a trial, start a monthly pack or mark Not interested, log a call in the call register.</p>
             <div className="grid grid-cols-2 gap-2.5"><Link href={list} className="btn-secondary">Close</Link><button className="btn">Save</button></div>

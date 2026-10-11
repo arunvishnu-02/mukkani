@@ -5,6 +5,7 @@ import { appSettings } from '@/lib/settings'
 import { stockToday } from '@/lib/stock'
 import { Callout, Card, Chip, Empty, ErrorNote, PageHeader, Pills, Tabs, Tile, Tiles } from '@/components/ui'
 import { addStockAction, deleteStockAction } from '../actions'
+import { DateField } from '@/components/DateField'
 
 // Record the fruit that comes in and see what is left at the end of each day.
 export default async function StockPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -81,7 +82,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
               <div><span className="label">Type</span><Pills name="kind" value="IN" options={[['IN', 'Came in'], ['USED', 'Used for boxes']]} /></div>
               <div><label className="label">Fruit *</label><select name="fruit" className="input" required>{st.fruits.map((f) => <option key={f}>{f}</option>)}</select></div>
               <div><label className="label">Quantity (kg) *</label><input name="qtyKg" type="number" step="0.1" min="0" required className="input" /></div>
-              <div><label className="label">Date</label><input name="date" type="date" className="input" defaultValue={dayInput(today)} /></div>
+              <div><label className="label">Date</label><DateField name="date" defaultValue={dayInput(today)} /></div>
               <div><label className="label">Note</label><input name="note" className="input" placeholder="For example: from Gandhi Market" /></div>
               <button className="btn w-full">Save</button>
             </form>

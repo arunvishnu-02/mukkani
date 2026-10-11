@@ -5,6 +5,7 @@ import { WASTE_REASONS } from '@/lib/labels'
 import { appSettings } from '@/lib/settings'
 import { Bar, Callout, Card, PageHeader, Pills, Tile, Tiles } from '@/components/ui'
 import { saveWastageAction } from '../actions'
+import { DateField } from '@/components/DateField'
 
 const r1 = (n: number) => Math.round(n * 10) / 10
 
@@ -33,7 +34,7 @@ export default async function WastagePage({ searchParams }: { searchParams: Prom
   return (
     <>
       <PageHeader title="Daily wastage" crumb="Wastage" sub="After cutting fruit each day, write the waste for each fruit and the reason.">
-        <form action="/kitchen/wastage" className="flex items-center gap-2"><input type="date" name="date" defaultValue={dayInput(date)} className="input py-2" /><button className="btn-secondary btn-sm">Go</button></form>
+        <form action="/kitchen/wastage" className="flex items-center gap-2"><DateField name="date" defaultValue={dayInput(date)} compact /><button className="btn-secondary btn-sm">Go</button></form>
       </PageHeader>
       <Tiles cols={4}>
         <Tile label={date.getTime() === day(0).getTime() ? 'Wastage today' : `Wastage ${fmtWeekday(date)}`} value={`${r1(total)} kg`} sub={cut ? `${Math.round((total / cut) * 100)}% of fruit cut` : undefined} tone="red" />

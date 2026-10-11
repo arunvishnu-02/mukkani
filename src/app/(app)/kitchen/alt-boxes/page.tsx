@@ -4,6 +4,7 @@ import { day, dayInput, fmtWeekday } from '@/lib/dates'
 import { Callout, Card, Empty, PageHeader, Tabs, Tile, Tiles, Who } from '@/components/ui'
 import { addAltBoxAction, collectAltBoxAction } from '../actions'
 import type { Prisma } from '@/generated/prisma/client'
+import { DateField } from '@/components/DateField'
 
 // When a customer hasn't given back the empty box, we send an alternative box and note its number.
 export default async function AltBoxes({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -79,7 +80,7 @@ export default async function AltBoxes({ searchParams }: { searchParams: Promise
                 </select>
               </div>
               <div><label className="label">Alternative box number *</label><input name="boxNo" type="number" min={1} max={100} required className="input" /><p className="mt-1 text-xs text-muted">Box numbers 1 to 100</p></div>
-              <div><label className="label">Date given</label><input name="givenOn" type="date" className="input" defaultValue={dayInput(today)} /></div>
+              <div><label className="label">Date given</label><DateField name="givenOn" defaultValue={dayInput(today)} /></div>
               <button className="btn w-full">Save</button>
             </form>
           </Card>

@@ -10,6 +10,7 @@ import { Reveal } from '@/components/Reveal'
 import { PackageFields } from '@/components/PackageFields'
 import { bookTrialAction, trialFeedbackAction } from '../actions'
 import type { TrialStatus } from '@/generated/prisma/enums'
+import { DateField } from '@/components/DateField'
 
 const TABS: [string, string, TrialStatus][] = [
   ['booked', 'Booked', 'BOOKED'],
@@ -96,7 +97,7 @@ export default async function TrialsPage({ searchParams }: { searchParams: Promi
               </select>
             </div>
             <div className="grid grid-cols-2 gap-2.5">
-              <div><label className="label">Delivery date</label><input type="date" name="trialDate" className="input" defaultValue={dayInput(day(1))} /></div>
+              <div><label className="label">Delivery date</label><DateField name="trialDate" defaultValue={dayInput(day(1))} /></div>
               <div>
                 <label className="label">Time slot *</label>
                 <select name="slot" className="input" required defaultValue=""><option value="">Pick a slot</option>{st.slots.map((x) => <option key={x}>{x}</option>)}</select>
@@ -120,7 +121,7 @@ export default async function TrialsPage({ searchParams }: { searchParams: Promi
               <PackageFields start={day(1)} regions={regions} slots={st.slots} regionId={feedbackFor.lead.regionId} slot={feedbackFor.slot} price={st.monthlyPrice} bmPrice={st.buttermilkPrice} />
             </Reveal>
             <Reveal name="result" values={['FOLLOW_UP']}>
-              <div><label className="label">Next call date *</label><input type="date" name="next" className="input" defaultValue={dayInput(day(2))} /></div>
+              <div><label className="label">Next call date *</label><DateField name="next" defaultValue={dayInput(day(2))} /></div>
             </Reveal>
             <Reveal name="result" values={['NOT_INTERESTED']}>
               <div><span className="label">Reason</span><Pills name="reason" options={NOT_INTERESTED_REASONS.map((r) => [r, r])} /></div>

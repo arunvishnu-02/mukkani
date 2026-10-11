@@ -8,6 +8,7 @@ import { BulkBar, RowCheck, SelectAll } from '@/components/Bulk'
 import { deleteLeads } from '@/app/(app)/actions'
 import { setCustomerStatusAction } from '@/app/(app)/kitchen/actions'
 import type { Prisma } from '@/generated/prisma/client'
+import { DateField } from '@/components/DateField'
 
 const TABS: [string, string, Prisma.LeadWhereInput][] = [
   ['monthly', 'Monthly pack', { status: 'MONTHLY' }],
@@ -107,7 +108,7 @@ export async function CustomersView({ base, sp, kitchen }: { base: string; sp: R
               <span className="label">Status *</span>
               <Pills name="status" required value={selected.customerStatus} options={[['ACTIVE', 'Active'], ['ABSENT', 'Absent (one day)'], ['PAUSED', 'Paused'], ['INACTIVE', 'Inactive']]} tones={{ ACTIVE: 'leaf', ABSENT: 'warn', PAUSED: 'sky', INACTIVE: 'red' }} />
             </div>
-            <div><label className="label">Date (Absent: the day off · Paused: back on)</label><input type="date" name="date" className="input" defaultValue={dayInput(selected.pausedUntil ?? day(1))} /></div>
+            <div><label className="label">Date (Absent: the day off · Paused: back on)</label><DateField name="date" defaultValue={dayInput(selected.pausedUntil ?? day(1))} /></div>
             <ul className="list-disc space-y-1 pl-5 text-[13px] text-muted">
               <li>Absent: off for that one day. The end date moves one delivery day forward.</li>
               <li>Paused: off until the date. Leave the date empty to pause until further notice.</li>

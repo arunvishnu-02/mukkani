@@ -1,5 +1,6 @@
 import { dayInput } from '@/lib/dates'
 import type { Region } from '@/generated/prisma/client'
+import { DateField } from '@/components/DateField'
 
 // Fields to start a monthly pack: start date, slot (required, no default), delivery time, region, buttermilk.
 export function PackageFields({ start, regions, slots, regionId, slot, price, bmPrice }: { start: Date; regions: Region[]; slots: string[]; regionId?: string | null; slot?: string | null; price: number; bmPrice: number }) {
@@ -7,7 +8,7 @@ export function PackageFields({ start, regions, slots, regionId, slot, price, bm
     <>
       <div className="text-xs font-bold tracking-wide text-muted uppercase">Monthly pack · Rs {price.toLocaleString('en-IN')} for 26 delivery days</div>
       <div className="grid grid-cols-2 gap-2.5">
-        <div><label className="label">Start date</label><input type="date" name="startDate" className="input" defaultValue={dayInput(start)} /></div>
+        <div><label className="label">Start date</label><DateField name="startDate" defaultValue={dayInput(start)} /></div>
         <div>
           <label className="label">Time slot *</label>
           <select name="slot" className="input" defaultValue={slot ?? ''}><option value="">Pick a slot</option>{slots.map((x) => <option key={x}>{x}</option>)}</select>

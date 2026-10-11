@@ -10,6 +10,7 @@ import { Reveal } from '@/components/Reveal'
 import { PackageFields } from '@/components/PackageFields'
 import { logCallAction } from '../actions'
 import type { Prisma } from '@/generated/prisma/client'
+import { DateField } from '@/components/DateField'
 
 const OPEN: Prisma.LeadWhereInput = { status: 'FOLLOW_UP' }
 
@@ -111,12 +112,12 @@ export default async function CallRegister({ searchParams }: { searchParams: Pro
             </div>
             <div><label className="label">What the customer said</label><textarea name="note" rows={3} className="input" /></div>
             <Reveal name="outcome" values={['INTERESTED', 'NO_ANSWER', 'CALL_BACK']}>
-              <div><label className="label">Next call date *</label><input type="date" name="next" className="input" defaultValue={dayInput(day(2))} /></div>
+              <div><label className="label">Next call date *</label><DateField name="next" defaultValue={dayInput(day(2))} /></div>
             </Reveal>
             <Reveal name="outcome" values={['TRIAL']}>
               <div className="text-xs font-bold tracking-wide text-muted uppercase">Trial box · Rs {st.trialPrice} including the box</div>
               <div className="grid grid-cols-2 gap-2.5">
-                <div><label className="label">Delivery date</label><input type="date" name="trialDate" className="input" defaultValue={dayInput(day(1))} /></div>
+                <div><label className="label">Delivery date</label><DateField name="trialDate" defaultValue={dayInput(day(1))} /></div>
                 <div>
                   <label className="label">Time slot *</label>
                   <select name="trialSlot" className="input" defaultValue=""><option value="">Pick a slot</option>{st.slots.map((x) => <option key={x}>{x}</option>)}</select>
