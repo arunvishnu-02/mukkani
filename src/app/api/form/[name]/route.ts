@@ -1,9 +1,10 @@
 import { saveMoneyEntry, saveSettings } from '@/app/(app)/admin/actions'
+import { importLeads } from '@/app/(app)/actions'
 
 // Forms that carry a photo post here as an ordinary browser form, not as a server action:
 // on the live host the page did not move on after a server action with a file, so the entry
 // looked unsaved. The same functions do the work; this only turns their redirect into a 303.
-const FORMS: Record<string, (form: FormData) => Promise<void>> = { money: saveMoneyEntry, settings: saveSettings }
+const FORMS: Record<string, (form: FormData) => Promise<void>> = { money: saveMoneyEntry, settings: saveSettings, 'leads-import': importLeads }
 
 export async function POST(req: Request, ctx: RouteContext<'/api/form/[name]'>) {
   const { name } = await ctx.params

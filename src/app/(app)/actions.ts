@@ -7,6 +7,8 @@ import { db } from '@/lib/db'
 import { requireUser } from '@/lib/auth'
 import { day, fmtWeekday, isDay, parseDay } from '@/lib/dates'
 import { getSettings } from '@/lib/settings'
+import { LEAD_IMPORT_COLUMNS, parseCsv, sheetDate } from '@/lib/csv'
+import { SOURCE } from '@/lib/labels'
 import { fill, firstName, waLink } from '@/lib/whatsapp'
 import { packagePlan } from '@/lib/queries'
 import {
@@ -80,6 +82,62 @@ export async function createLead(form: FormData) {
   await log(lead.id, 'lead', 'Lead added', `Source: ${data.source.toLowerCase().replace('_', ' ')}`, user.id)
   revalidatePath('/', 'layout')
   redirect(`/leads?lead=${lead.id}`)
+}
+
+const digits = (v: string) => v.replace(/\D/g, '').replace(/^(91|0)(?=\d{10}$)/, '')
+
+// Leads > Import: a CSV file with the columns of the sample file. A row is skipped when it has no name
+// or phone, or when its phone number is already a lead.
+export async function importLeads(form: FormData) {
+  const user = await requireUser(['SALES'])
+  const self = '/leads?f=all&import=1'
+  const stop = (msg: string): never => redirect(`${self}&error=${encodeURIComponent(msg)}`)
+  const file = form.get('file')
+  if (!(file instanceof File) || file.size === 0) return stop('Pick the CSV file to import')
+  if (file.size > 2 * 1024 * 1024) return stop('The file is larger than 2 MB')
+  const rows = parseCsv(await file.text())
+  const head = (rows[0] ?? []).map((h) => h.toLowerCase())
+  const col = (name: (typeof LEAD_IMPORT_COLUMNS)[number]) => head.indexOf(name.toLowerCase())
+  if (col('Name') < 0 || col('Phone') < 0) return stop('The first row must have the column headings Name and Phone. Download the sample file to see the format.')
+  if (rows.length > 2001) return stop('Import up to 2,000 leads at a time')
+
+  const [regions, existing] = await Promise.all([db.region.findMany(), db.lead.findMany({ select: { phone: true } })])
+  const seen = new Set(existing.map((l) => digits(l.phone)))
+  const sources = new Map<string, LeadSource>(Object.entries(SOURCE).flatMap(([k, label]) => [[k.toLowerCase(), k as LeadSource], [label.toLowerCase(), k as LeadSource]]))
+  const data = []
+  let missing = 0
+  let duplicate = 0
+  for (const r of rows.slice(1)) {
+    const get = (name: (typeof LEAD_IMPORT_COLUMNS)[number]) => (col(name) >= 0 ? (r[col(name)] ?? '').trim() : '') || null
+    const name = get('Name')
+    const phone = get('Phone')
+    if (!name || !phone || digits(phone).length < 6) { missing++; continue }
+    if (seen.has(digits(phone))) { duplicate++; continue }
+    seen.add(digits(phone))
+    const dob = sheetDate(get('Date of birth') ?? '')
+    const next = sheetDate(get('Next call date') ?? '')
+    data.push({
+      name,
+      phone,
+      altPhone: get('Alternate phone'),
+      source: sources.get((get('Source') ?? '').toLowerCase()) ?? ('OTHER' as LeadSource),
+      regionId: regions.find((x) => x.name.toLowerCase() === (get('Region') ?? '').toLowerCase())?.id ?? null,
+      address: get('Address'),
+      dob: dob ? parseDay(dob) : null,
+      slot: get('Time slot'),
+      avoidFoods: get('Foods to avoid'),
+      healthNotes: get('Health issues'),
+      notes: get('Notes'),
+      nextFollowUpAt: next ? parseDay(next) : day(0),
+      ownerId: user.id,
+    })
+  }
+  if (data.length) {
+    const made = await db.lead.createManyAndReturn({ data, select: { id: true } })
+    await db.activity.createMany({ data: made.map((l) => ({ leadId: l.id, kind: 'lead', text: 'Lead added', detail: 'Imported from a file', byId: user.id })) })
+  }
+  revalidatePath('/', 'layout')
+  redirect(`/leads?f=all&imported=${data.length}&duplicate=${duplicate}&missing=${missing}`)
 }
 
 export async function updateLead(form: FormData) {

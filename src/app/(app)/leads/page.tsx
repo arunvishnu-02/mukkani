@@ -12,6 +12,7 @@ import { createLead, deleteLeads, updateLead } from '../actions'
 import type { Prisma } from '@/generated/prisma/client'
 import type { LeadStatus } from '@/generated/prisma/enums'
 import { DateField } from '@/components/DateField'
+import { LEAD_IMPORT_COLUMNS } from '@/lib/csv'
 
 const FILTERS: [string, string, LeadStatus | null][] = [
   ['all', 'All', null],
@@ -43,9 +44,17 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader title="Leads" sub={`${total} leads. Every new lead starts in Follow up with a next call date.`}>
+        <Link href={`${list}&import=1`} className="btn-secondary" scroll={false}>Import</Link>
         <Link href={`${list}&new=1`} className="btn" scroll={false}>Add lead</Link>
       </PageHeader>
       <ErrorNote error={sp.error} />
+      {sp.imported != null && (
+        <div className="rounded-[10px] bg-leaf-soft px-3.5 py-2.5 text-[13px] font-medium text-leaf">
+          {Number(sp.imported)} leads imported.
+          {Number(sp.duplicate) > 0 && ` ${Number(sp.duplicate)} skipped: the phone number is already a lead.`}
+          {Number(sp.missing) > 0 && ` ${Number(sp.missing)} skipped: no name or phone.`}
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2.5">
         <Tabs items={FILTERS.map(([k, label, status]) => ({ label: `${label} ${status ? (c[status] ?? 0) : total}`, href: `/leads?f=${k}${q ? `&q=${encodeURIComponent(q)}` : ''}`, active: f[0] === k }))} />
         <div className="flex-1" />
@@ -85,6 +94,30 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
         )}
       </section>
       <BulkBar formId="bulk-leads" action={deleteLeads} confirmText="Delete {n} leads with their calls, trials and packages? This cannot be undone." />
+      {sp.import && (
+        <Drawer title="Import leads" sub="Add many leads at once from an Excel or Google Sheets file saved as CSV" close={list}>
+          <form action="/api/form/leads-import" method="post" encType="multipart/form-data" className="space-y-4">
+            <div className="rounded-[10px] bg-s2 px-3.5 py-3 text-[13px] leading-[19px]">
+              <div className="font-semibold">1. Download the sample file</div>
+              <p className="mt-0.5 text-muted">It has the column headings and three example rows. Replace the examples with your leads and save it as CSV.</p>
+              <a href="/api/sample/leads" className="btn-secondary btn-sm mt-2.5">Download sample file</a>
+            </div>
+            <div>
+              <label className="label" htmlFor="import-file">2. Pick your file *</label>
+              <input id="import-file" name="file" type="file" accept=".csv,text/csv" required className="input py-2" />
+              <p className="mt-1 text-xs text-muted">CSV, up to 2,000 leads.</p>
+            </div>
+            <ul className="list-disc space-y-1 pl-4 text-xs text-muted">
+              <li>Name and Phone are needed. Every other column can be left empty.</li>
+              <li>Columns: {LEAD_IMPORT_COLUMNS.join(', ')}.</li>
+              <li>Source: {Object.values(SOURCE).join(', ')}. Region: the name exactly as in Team + regions.</li>
+              <li>Dates as 2026-10-15 or 15/10/2026. Without a next call date, the first call is today.</li>
+              <li>A phone number that is already a lead is skipped, so importing the same file twice adds nothing.</li>
+            </ul>
+            <div className="grid grid-cols-2 gap-2.5"><Link href={list} className="btn-secondary">Cancel</Link><button className="btn">Import leads</button></div>
+          </form>
+        </Drawer>
+      )}
       {sp.new && (
         <Drawer title="Add lead" sub="Goes into Follow up with a next call date" close={list}>
           <form action={createLead} className="space-y-3.5">
