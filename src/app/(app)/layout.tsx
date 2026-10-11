@@ -16,6 +16,7 @@ const SALES: NavItem[] = [
 ]
 const KITCHEN: NavItem[] = [
   { href: '/kitchen/boxes', label: "Today's boxes", icon: 'box' },
+  { href: '/menu', label: 'Daily menu', icon: 'menu' },
   { href: '/kitchen/sheet', label: 'Delivery attendance', icon: 'attendance' },
   { href: '/kitchen/customers', label: 'Customers', icon: 'customers' },
   { href: '/kitchen/calls', label: 'Customer calls', icon: 'phone' },
@@ -32,7 +33,7 @@ const NAV: Record<string, NavItem[]> = {
     { href: '/admin', label: 'Overview', icon: 'chart' },
     { href: '/calendar', label: 'Calendar', icon: 'calendar' },
     ...SALES.map((x) => ({ ...x, group: 'Sales' })),
-    ...[...KITCHEN.filter((x) => x.href !== '/kitchen/customers'), REPORTS].map((x) => ({ ...x, group: 'Kitchen' })),
+    ...[...KITCHEN.filter((x) => x.href !== '/kitchen/customers' && x.href !== '/menu'), REPORTS].map((x) => ({ ...x, group: 'Kitchen' })),
     { href: '/admin/reports', label: 'Reports', icon: 'chart', group: 'Business' },
     { href: '/admin/money', label: 'Purchase + expenses', icon: 'money', group: 'Business' },
     { href: '/admin/users', label: 'Team + regions', icon: 'team', group: 'Business' },
