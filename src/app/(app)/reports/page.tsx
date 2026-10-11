@@ -6,6 +6,7 @@ import { PACKAGE_STATUS } from '@/lib/labels'
 import { packagePlan, planFor, runningPackages } from '@/lib/queries'
 import { getSettings } from '@/lib/settings'
 import { fill, firstName, waLink } from '@/lib/whatsapp'
+import { PackageCalendar } from '@/components/PackageCalendar'
 import { Drawer, Empty, PageHeader, Progress, StatusChip, Tabs, Tile, Tiles, WaLink, Who } from '@/components/ui'
 import { saveReportNoteAction } from '../actions'
 
@@ -72,7 +73,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         )}
       </section>
       {selected && (
-        <Drawer title="Edit monthly report" sub={`${selected.pkg.lead.name} · month ${selected.pkg.number} · ${fmtDay(selected.pkg.startDate)} to ${fmtDay(selected.plan.end)}`} close={list}>
+        <Drawer title="Edit monthly report" sub={`${selected.pkg.lead.name} · month ${selected.pkg.number} · ${fmtDay(selected.pkg.startDate)} to ${fmtDay(selected.plan.end)}`} close={list} wide>
+          <div className="mb-4"><PackageCalendar plan={selected.plan} today={today} /></div>
           <form action={saveReportNoteAction} className="space-y-3.5">
             <input type="hidden" name="packageId" value={selected.pkg.id} />
             <input type="hidden" name="back" value={list} />
