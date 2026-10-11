@@ -1,13 +1,12 @@
 import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
 
-// Approximate centres. Admin can correct them in Users + regions.
+// The delivery regions from the plan. Approximate centres; admin can correct them in Team + regions.
 const REGIONS: [string, number, number][] = [
-  ['Trichy', 10.805, 78.6856],
   ['Srirangam', 10.862, 78.693],
-  ['Thillai Nagar', 10.827, 78.683],
-  ['K.K. Nagar', 10.77, 78.71],
-  ['Woraiyur', 10.828, 78.67],
+  ['Junction', 10.796, 78.685],
+  ['Mannachanallur', 10.905, 78.705],
+  ['Andavan College', 10.855, 78.71],
 ]
 
 // Runs when the server starts, so a fresh database (e.g. on Hostinger) gets the regions and a first admin

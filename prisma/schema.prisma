@@ -1,5 +1,5 @@
 // Mukkani CRM - Prisma schema (MySQL / MariaDB, as on Hostinger)
-// Flow: Lead -> Follow-up -> Trial box -> Trial result -> Monthly package (regular box).
+// Flow (plan doc, 10 Oct): Lead (Follow up) -> Trial box (one delivery) -> Monthly pack (26 delivery days, Mon-Sat).
 // Prisma 7: the database URL lives in prisma.config.ts.
 
 generator client {
@@ -18,43 +18,43 @@ enum Role {
 }
 
 enum LeadSource {
-  CALL
   WHATSAPP
-  REFERRAL
-  WEBSITE
-  FACEBOOK
-  INSTAGRAM
-  WALK_IN
+  INSTA_DM
+  INSTA_COMMENT
+  GBM
+  CALL
+  OTHER
 }
 
+// The 4 customer categories.
 enum LeadStatus {
-  NEW
-  CONTACTED
   FOLLOW_UP
+  TRIAL
+  MONTHLY
   NOT_INTERESTED
-  TRIAL_REQUESTED
-  TRIAL_ACTIVE
-  CONVERTED
-  LOST
+}
+
+// Set by the kitchen manager. Absent (one day off) is an attendance row, not a status.
+enum CustomerStatus {
+  ACTIVE
+  PAUSED
+  INACTIVE
 }
 
 enum TrialStatus {
-  PENDING
-  ASSIGNED
-  PREPARING
+  BOOKED
   DELIVERED
-  TRIAL_ACTIVE
-  COMPLETED
+  DONE
 }
 
 enum TrialResult {
-  CONVERTED
-  NOT_CONVERTED
+  MONTHLY
+  FOLLOW_UP
+  NOT_INTERESTED
 }
 
 enum PackageStatus {
   ACTIVE
-  PAUSED
   COMPLETED
   CANCELLED
 }
@@ -63,6 +63,17 @@ enum LocationStatus {
   MISSING
   LINK_SENT
   PIN_SAVED
+}
+
+enum AttendanceStatus {
+  DELIVERED
+  ABSENT
+  NOT_DELIVERED
+}
+
+enum MoneyType {
+  PURCHASE
+  EXPENSE
 }
 
 model User {
@@ -77,7 +88,6 @@ model User {
 
   leads        Lead[]       @relation("LeadOwner")
   regions      Region[]
-  trialBoxes   TrialBox[]   @relation("TrialAssignee")
   activities   Activity[]
   followUps    FollowUp[]
 }
@@ -93,88 +103,235 @@ model Region {
 }
 
 model Lead {
-  id                String         @id @default(uuid())
-  name              String
-  phone             String
-  altPhone          String?
-  address           String? @db.Text
-  source            LeadSource     @default(CALL)
-  status            LeadStatus     @default(NEW)
-  notes             String? @db.Text
-  foodNotes         String? @db.Text
-  slot              String?
-  regionId          String?       
-  region            Region?        @relation(fields: [regionId], references: [id], onDelete: SetNull)
-  ownerId           String?       
-  owner             User?          @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  nextFollowUpAt    DateTime?      @db.Date
-  locationStatus    LocationStatus @default(MISSING)
-  lat               Float?
-  lng               Float?
-  accuracyM         Int?
-  locationUpdatedAt DateTime?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  id                  String         @id @default(uuid())
+  name                String
+  phone               String
+  altPhone            String?
+  address             String? @db.Text
+  source              LeadSource     @default(CALL)
+  status              LeadStatus     @default(FOLLOW_UP)
+  notInterestedReason String?
+  notes               String? @db.Text
+  avoidFoods          String? @db.Text
+  healthNotes         String? @db.Text
+  dob                 DateTime?      @db.Date
+  slot                String?
+  deliveryTime        String?
+  customerStatus      CustomerStatus @default(ACTIVE)
+  pausedUntil         DateTime?      @db.Date
+  regionId            String?
+  region              Region?        @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  ownerId             String?
+  owner               User?          @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  nextFollowUpAt      DateTime?      @db.Date
+  locationStatus      LocationStatus @default(MISSING)
+  lat                 Float?
+  lng                 Float?
+  accuracyM           Int?
+  locationUpdatedAt   DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 
   followUps        FollowUp[]
   trialBoxes       TrialBox[]
   packages         Package[]
   locationRequests LocationRequest[]
   activities       Activity[]
+  attendance       Attendance[]
+  altBoxes         AltBox[]
+  calls            CustomerCall[]
 
   @@index([status])
   @@index([nextFollowUpAt])
 }
 
+// Call register for leads (sales).
 model FollowUp {
   id        String    @id @default(uuid())
-  leadId    String   
+  leadId    String
   lead      Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
   outcome   String
   note      String? @db.Text
-  byId      String?  
+  byId      String?
   by        User?     @relation(fields: [byId], references: [id], onDelete: SetNull)
   createdAt DateTime  @default(now())
 }
 
+// One trial per customer, delivered on one date. Rs 200 including the box.
 model TrialBox {
   id           String       @id @default(uuid())
-  leadId       String      
+  leadId       String
   lead         Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  startDate    DateTime     @db.Date
-  endDate      DateTime     @db.Date
-  status       TrialStatus  @default(PENDING)
+  deliveryDate DateTime     @db.Date
+  slot         String?
+  price        Int          @default(200)
+  paid         Boolean      @default(false)
+  boxNo        Int?
+  boxReturned  Boolean?
+  status       TrialStatus  @default(BOOKED)
   result       TrialResult?
+  feedback     String? @db.Text
   notes        String? @db.Text
-  assignedToId String?     
-  assignedTo   User?        @relation("TrialAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
   @@index([status])
+  @@index([deliveryDate])
 }
 
+// One monthly package = 26 delivery days (Mon-Sat). number is the month count for this customer (1, 2, 3...).
 model Package {
-  id          String        @id @default(uuid())
-  leadId      String       
-  lead        Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  packageType String
-  price       Int           @default(3430)
-  startDate   DateTime      @db.Date
-  status      PackageStatus @default(ACTIVE)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id             String        @id @default(uuid())
+  leadId         String
+  lead           Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  number         Int           @default(1)
+  packageType    String        @default("Monthly package")
+  price          Int           @default(3430)
+  startDate      DateTime      @db.Date
+  status         PackageStatus @default(ACTIVE)
+  paid           Boolean       @default(false)
+  paidAt         DateTime?
+  buttermilkQty  Int           @default(0)
+  buttermilkPrice Int          @default(299)
+  reminderSentAt DateTime?
+  reportNote     String? @db.Text
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  calls CustomerCall[]
 
   @@index([status])
+}
+
+// One row per customer per date, entered by sales after 11 AM from the paper sheet.
+model Attendance {
+  id          String           @id @default(uuid())
+  date        DateTime         @db.Date
+  leadId      String
+  lead        Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  status      AttendanceStatus
+  buttermilk  Boolean          @default(false)
+  boxBack     Boolean?
+  remarks     String?
+  byId        String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([leadId, date])
+  @@index([date])
+}
+
+// Alternative box sent when the empty box was not given back. Box numbers 1 to 100.
+model AltBox {
+  id          String    @id @default(uuid())
+  leadId      String
+  lead        Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  boxNo       Int
+  givenOn     DateTime  @db.Date
+  collectedOn DateTime? @db.Date
+  createdAt   DateTime  @default(now())
+
+  @@index([collectedOn])
+}
+
+// Kitchen manager calls to monthly customers on delivery day 1, 5, 15, 26 (first month) or 15, 26 (later).
+model CustomerCall {
+  id        String   @id @default(uuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  packageId String
+  package   Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  dayNo     Int
+  outcome   String
+  renewal   String?
+  reason    String?
+  note      String?  @db.Text
+  byId      String?
+  createdAt DateTime @default(now())
+
+  @@unique([packageId, dayNo])
+}
+
+// Tomorrow's menu, added by sales the day before. Lists are comma separated.
+model Menu {
+  id         String   @id @default(uuid())
+  date       DateTime @unique @db.Date
+  fruits     String   @db.Text
+  salad      String?
+  swapFruits String   @db.Text
+  note       String?  @db.Text
+  byId       String?
+  updatedAt  DateTime @updatedAt
+}
+
+// Fruit coming in (qty > 0, kind IN) and fruit used for boxes (kind USED), in kg.
+model StockEntry {
+  id        String   @id @default(uuid())
+  date      DateTime @db.Date
+  fruit     String
+  kind      String
+  qtyKg     Float
+  note      String?
+  byId      String?
+  createdAt DateTime @default(now())
+
+  @@index([date])
+}
+
+model Wastage {
+  id        String   @id @default(uuid())
+  date      DateTime @db.Date
+  fruit     String
+  cutKg     Float    @default(0)
+  wasteKg   Float
+  reason    String
+  byId      String?
+  createdAt DateTime @default(now())
+
+  @@unique([date, fruit])
+}
+
+// Purchase and expense entries, admin only. billId points to the uploaded bill photo.
+model MoneyEntry {
+  id        String    @id @default(uuid())
+  date      DateTime  @db.Date
+  type      MoneyType
+  item      String
+  category  String
+  quantity  String?
+  amount    Int
+  paidTo    String?
+  billId    String?
+  byId      String?
+  createdAt DateTime  @default(now())
+
+  @@index([date])
+}
+
+// Uploaded files (bill photos, payment QR) kept in the database so redeploys never lose them.
+model Upload {
+  id        String   @id @default(uuid())
+  kind      String
+  name      String
+  mime      String
+  size      Int
+  data      Bytes    @db.LongBlob
+  createdAt DateTime @default(now())
+}
+
+// Admin settings: prices, slots, fruits, message texts, report details.
+model Setting {
+  key   String @id
+  value String @db.Text
 }
 
 model LocationRequest {
   id          String    @id @default(uuid())
   token       String    @unique
-  leadId      String   
+  leadId      String
   lead        Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
   channel     String
-  createdById String?  
+  createdById String?
   createdAt   DateTime  @default(now())
   expiresAt   DateTime
   sharedAt    DateTime?
@@ -182,12 +339,12 @@ model LocationRequest {
 
 model Activity {
   id        String   @id @default(uuid())
-  leadId    String  
+  leadId    String
   lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
   kind      String
   text      String @db.Text
   detail    String? @db.Text
-  byId      String? 
+  byId      String?
   by        User?    @relation(fields: [byId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
 

@@ -1,91 +1,214 @@
 import 'server-only'
 import { randomBytes } from 'node:crypto'
 import { db } from '@/lib/db'
-import { day } from '@/lib/dates'
+import { addDays, day, deliveryDayFrom, fmtWeekday } from '@/lib/dates'
 import { nearestRegionId, reverseGeocode } from '@/lib/geo'
-import type { LeadStatus, TrialStatus } from '@/generated/prisma/enums'
-import { LEAD_STATUS, TRIAL_STATUS, packagePrice } from '@/lib/labels'
+import { packagePlan } from '@/lib/queries'
+import { appSettings } from '@/lib/settings'
+import { LEAD_CALL, NEEDS_NEXT_CALL } from '@/lib/labels'
+import type { AttendanceStatus, TrialResult } from '@/generated/prisma/enums'
 
-const OPEN_TRIAL: TrialStatus[] = ['PENDING', 'ASSIGNED', 'PREPARING', 'DELIVERED', 'TRIAL_ACTIVE']
+export class FlowError extends Error {}
 
 export async function log(leadId: string, kind: string, text: string, detail?: string | null, byId?: string | null) {
   await db.activity.create({ data: { leadId, kind, text, detail: detail ?? null, byId: byId ?? null } })
 }
 
-// Status change on a lead. "Trial Box Requested" creates the trial order and hands it to the kitchen.
-export async function setLeadStatus(
+const callLabel = (v: string) => LEAD_CALL.find((x) => x[0] === v)?.[1] ?? v
+
+// Sales call register: one result per call (plan doc section 4).
+export async function logLeadCall(
   leadId: string,
-  status: LeadStatus,
   byId: string,
-  trial?: { start?: Date; end?: Date; notes?: string | null },
+  outcome: string,
+  note: string | null,
+  opts: { next?: Date | null; trialDate?: Date; slot?: string | null; reason?: string | null; start?: PackageStart },
 ) {
-  const lead = await db.lead.findUniqueOrThrow({ where: { id: leadId } })
-  if (lead.status !== status) {
-    await db.lead.update({ where: { id: leadId }, data: { status } })
-    await log(leadId, 'status', `Status set to ${LEAD_STATUS[status][0]}`, null, byId)
+  if (NEEDS_NEXT_CALL.includes(outcome) && !opts.next) throw new FlowError('Pick the next call date')
+  // The step runs before the call is recorded, so a missing slot leaves nothing half done.
+  if (NEEDS_NEXT_CALL.includes(outcome)) {
+    const lead = await db.lead.findUniqueOrThrow({ where: { id: leadId } })
+    await db.lead.update({
+      where: { id: leadId },
+      data: { nextFollowUpAt: opts.next, ...(lead.status === 'NOT_INTERESTED' ? { status: 'FOLLOW_UP', notInterestedReason: null } : {}) },
+    })
+  } else if (outcome === 'TRIAL') {
+    await bookTrial(leadId, byId, opts.trialDate ?? day(1), opts.slot ?? null)
+  } else if (outcome === 'MONTHLY') {
+    await startPackage(leadId, byId, opts.start ?? {})
+  } else if (outcome === 'NOT_INTERESTED') {
+    await markNotInterested(leadId, byId, opts.reason ?? null)
   }
-  if (status === 'TRIAL_REQUESTED') {
-    const open = await db.trialBox.findFirst({ where: { leadId, status: { in: OPEN_TRIAL } } })
-    if (!open) {
-      const kitchen = await db.user.findFirst({ where: { role: 'KITCHEN', active: true }, orderBy: { createdAt: 'asc' } })
-      const start = trial?.start ?? day(1)
-      const end = trial?.end ?? new Date(start.getTime() + 6 * 86_400_000)
-      await db.trialBox.create({
-        data: { leadId, startDate: start, endDate: end, notes: trial?.notes ?? lead.foodNotes, assignedToId: kitchen?.id ?? null },
-      })
-      await log(leadId, 'trial', 'Trial box requested', kitchen ? `Assigned to ${kitchen.name}, kitchen notified` : 'Kitchen notified', byId)
+  await db.followUp.create({ data: { leadId, outcome: callLabel(outcome), note, byId } })
+  await log(leadId, 'call', `Call: ${callLabel(outcome)}`, note, byId)
+}
+
+export async function markNotInterested(leadId: string, byId: string, reason: string | null) {
+  await db.lead.update({ where: { id: leadId }, data: { status: 'NOT_INTERESTED', notInterestedReason: reason, nextFollowUpAt: null } })
+  await log(leadId, 'status', 'Moved to Not interested', reason, byId)
+}
+
+// One trial per customer, ever. Delivery date defaults to tomorrow; the time slot is required.
+export async function bookTrial(leadId: string, byId: string, date: Date, slot: string | null) {
+  if (!slot) throw new FlowError('Pick a delivery time slot for the trial')
+  if (await db.trialBox.findFirst({ where: { leadId } })) throw new FlowError('This customer has already had a trial box')
+  const s = await appSettings()
+  await db.trialBox.create({ data: { leadId, deliveryDate: date, slot, price: s.trialPrice } })
+  await db.lead.update({ where: { id: leadId }, data: { status: 'TRIAL', slot, nextFollowUpAt: null } })
+  await log(leadId, 'trial', 'Trial box booked', `${fmtWeekday(date)} · ${slot}`, byId)
+}
+
+// Trial feedback call after 10 AM on the trial day: Monthly pack, Follow up or Not interested.
+export async function trialFeedback(
+  trialId: string,
+  byId: string,
+  r: { result: TrialResult; feedback: string | null; paid: boolean; next?: Date | null; reason?: string | null; start?: PackageStart },
+) {
+  const t = await db.trialBox.findUniqueOrThrow({ where: { id: trialId } })
+  // The next step runs first so a missing slot or date leaves the trial open.
+  if (r.result === 'MONTHLY') await startPackage(t.leadId, byId, { ...r.start, slot: r.start?.slot ?? t.slot })
+  else if (r.result === 'NOT_INTERESTED') await markNotInterested(t.leadId, byId, r.reason ?? null)
+  else {
+    if (!r.next) throw new FlowError('Pick the next call date')
+    await db.lead.update({ where: { id: t.leadId }, data: { status: 'FOLLOW_UP', nextFollowUpAt: r.next } })
+  }
+  await db.trialBox.update({ where: { id: trialId }, data: { status: 'DONE', result: r.result, feedback: r.feedback, paid: r.paid } })
+  await log(t.leadId, 'trial', 'Trial feedback recorded', r.feedback, byId)
+}
+
+export type PackageStart = {
+  startDate?: Date
+  slot?: string | null
+  deliveryTime?: string | null
+  regionId?: string | null
+  buttermilkQty?: number
+  paid?: boolean
+}
+
+// Starts a monthly package (26 delivery days). The kitchen manager takes over the calls from here.
+export async function startPackage(leadId: string, byId: string, p: PackageStart) {
+  const s = await appSettings()
+  const last = await db.package.findFirst({ where: { leadId }, orderBy: { number: 'desc' } })
+  const startDate = deliveryDayFrom(p.startDate ?? day(1))
+  const lead = await db.lead.findUniqueOrThrow({ where: { id: leadId } })
+  if (!(p.slot ?? lead.slot)) throw new FlowError('Pick a delivery time slot')
+  const pkg = await db.package.create({
+    data: {
+      leadId,
+      number: (last?.number ?? 0) + 1,
+      price: s.monthlyPrice,
+      startDate,
+      buttermilkQty: p.buttermilkQty ?? last?.buttermilkQty ?? 0,
+      buttermilkPrice: s.buttermilkPrice,
+      paid: p.paid ?? false,
+      paidAt: p.paid ? new Date() : null,
+    },
+  })
+  await db.lead.update({
+    where: { id: leadId },
+    data: {
+      status: 'MONTHLY',
+      customerStatus: 'ACTIVE',
+      pausedUntil: null,
+      notInterestedReason: null,
+      nextFollowUpAt: null,
+      ...(p.slot ? { slot: p.slot } : {}),
+      ...(p.deliveryTime ? { deliveryTime: p.deliveryTime } : {}),
+      ...(p.regionId ? { regionId: p.regionId } : {}),
+    },
+  })
+  await log(leadId, 'package', `Monthly pack ${pkg.number} starts ${fmtWeekday(startDate)}`, `Rs ${pkg.price}`, byId)
+  return pkg
+}
+
+// Kitchen manager sets Active, Absent (one day), Paused (until a date) or Inactive (stopped for good).
+export async function setCustomerStatus(leadId: string, byId: string, status: string, date: Date | null) {
+  if (status === 'ABSENT') {
+    const d = date ?? day(1)
+    await db.attendance.upsert({
+      where: { leadId_date: { leadId, date: d } },
+      create: { leadId, date: d, status: 'ABSENT', byId },
+      update: { status: 'ABSENT', byId },
+    })
+    await db.lead.update({ where: { id: leadId }, data: { customerStatus: 'ACTIVE', pausedUntil: null } })
+    await log(leadId, 'status', `Absent on ${fmtWeekday(d)}`, 'End date moves forward', byId)
+  } else if (status === 'PAUSED') {
+    await db.lead.update({ where: { id: leadId }, data: { customerStatus: 'PAUSED', pausedUntil: date } })
+    await log(leadId, 'status', 'Paused', date ? `Until ${fmtWeekday(date)}` : 'Until further notice', byId)
+  } else if (status === 'INACTIVE') {
+    await db.lead.update({ where: { id: leadId }, data: { customerStatus: 'INACTIVE', pausedUntil: null } })
+    await db.package.updateMany({ where: { leadId, status: 'ACTIVE' }, data: { status: 'CANCELLED' } })
+    await log(leadId, 'status', 'Inactive', 'Stopped for good', byId)
+  } else {
+    await db.lead.update({ where: { id: leadId }, data: { customerStatus: 'ACTIVE', pausedUntil: null } })
+    await log(leadId, 'status', 'Active', null, byId)
+  }
+}
+
+export type AttendanceInput = {
+  leadId: string
+  status: AttendanceStatus
+  buttermilk: boolean
+  boxBack: boolean | null
+  altBox: number | null
+  remarks: string | null
+}
+
+// Sales enters the day's attendance from the paper sheet after 11 AM.
+export async function saveAttendance(date: Date, rows: AttendanceInput[], byId: string) {
+  for (const r of rows) {
+    const data = { status: r.status, buttermilk: r.buttermilk, boxBack: r.boxBack, remarks: r.remarks, byId }
+    await db.attendance.upsert({ where: { leadId_date: { leadId: r.leadId, date } }, create: { leadId: r.leadId, date, ...data }, update: data })
+    const alt = await db.altBox.findFirst({ where: { leadId: r.leadId, givenOn: date } })
+    if (r.altBox && !alt) await db.altBox.create({ data: { leadId: r.leadId, boxNo: r.altBox, givenOn: date } })
+    else if (r.altBox && alt && alt.boxNo !== r.altBox) await db.altBox.update({ where: { id: alt.id }, data: { boxNo: r.altBox } })
+    else if (!r.altBox && alt) await db.altBox.delete({ where: { id: alt.id } })
+    const trial = await db.trialBox.findFirst({ where: { leadId: r.leadId, deliveryDate: date } })
+    if (trial && trial.status === 'BOOKED' && r.status === 'DELIVERED') await db.trialBox.update({ where: { id: trial.id }, data: { status: 'DELIVERED' } })
+  }
+  await completeFinished(rows.map((r) => r.leadId))
+}
+
+// A package with 26 delivered days is complete; its monthly report is ready.
+export async function completeFinished(leadIds: string[]) {
+  const pkgs = await db.package.findMany({ where: { leadId: { in: leadIds }, status: 'ACTIVE' } })
+  for (const p of pkgs) {
+    const { plan } = await packagePlan(p.id)
+    if (plan.done) {
+      await db.package.update({ where: { id: p.id }, data: { status: 'COMPLETED' } })
+      await log(p.leadId, 'package', `Monthly pack ${p.number} completed`, 'Monthly report is ready', null)
     }
   }
 }
 
-export async function moveTrial(trialId: string, status: TrialStatus, byId: string) {
-  const t = await db.trialBox.update({ where: { id: trialId }, data: { status } })
-  await log(t.leadId, 'trial', `Trial box ${TRIAL_STATUS[status][0]}`, null, byId)
-  if (status === 'DELIVERED' || status === 'TRIAL_ACTIVE') {
-    await db.lead.update({ where: { id: t.leadId }, data: { status: 'TRIAL_ACTIVE' } })
-  }
-  if (status === 'COMPLETED') await log(t.leadId, 'alert', 'Trial completed', 'Record the result', byId)
-}
-
-export async function recordResult(
-  trialId: string,
+// Kitchen manager calls monthly customers on delivery day 1, 5, 15, 26 (first month) or 15, 26.
+export async function logCustomerCall(
+  packageId: string,
+  dayNo: number,
   byId: string,
-  r: { converted: true; packageType: string; startDate: Date; slot: string; regionId: string | null } | { converted: false; next: 'LOST' | 'FOLLOW_UP' },
+  c: { outcome: string; note: string | null; renewal: string | null; reason: string | null },
 ) {
-  const t = await db.trialBox.update({
-    where: { id: trialId },
-    data: { status: 'COMPLETED', result: r.converted ? 'CONVERTED' : 'NOT_CONVERTED' },
+  const pkg = await db.package.findUniqueOrThrow({ where: { id: packageId } })
+  const data = { outcome: c.outcome, note: c.note, renewal: c.renewal, reason: c.reason, byId }
+  await db.customerCall.upsert({
+    where: { packageId_dayNo: { packageId, dayNo } },
+    create: { packageId, dayNo, leadId: pkg.leadId, ...data },
+    update: data,
   })
-  if (r.converted) {
-    await db.package.create({ data: { leadId: t.leadId, packageType: r.packageType, price: packagePrice(r.packageType), startDate: r.startDate } })
-    await db.lead.update({
-      where: { id: t.leadId },
-      data: { status: 'CONVERTED', slot: r.slot, ...(r.regionId ? { regionId: r.regionId } : {}) },
-    })
-    await log(t.leadId, 'package', 'Converted to monthly package', r.packageType, byId)
-  } else {
-    await db.lead.update({ where: { id: t.leadId }, data: { status: r.next } })
-    await log(t.leadId, 'status', 'Trial not converted', r.next === 'LOST' ? 'Marked Lost Lead' : 'Back to follow-up', byId)
-  }
+  await log(pkg.leadId, 'call', `Day ${dayNo} call: ${c.outcome.toLowerCase().replace('_', ' ')}`, c.note, byId)
+  if (c.renewal === 'NO') await markNotInterested(pkg.leadId, byId, c.reason)
 }
 
-export async function logCall(
-  leadId: string,
-  byId: string,
-  outcome: 'INTERESTED' | 'CALL_BACK' | 'TRIAL' | 'NOT_INTERESTED',
-  note: string | null,
-  next: Date | null,
-) {
-  const label = { INTERESTED: 'Interested', CALL_BACK: 'Call back later', TRIAL: 'Trial Box Requested', NOT_INTERESTED: 'Not interested' }[outcome]
-  await db.followUp.create({ data: { leadId, outcome: label, note, byId } })
-  await db.lead.update({ where: { id: leadId }, data: { nextFollowUpAt: outcome === 'NOT_INTERESTED' ? null : next } })
-  await log(leadId, 'call', `Call logged: ${label}`, note, byId)
-  const status: LeadStatus = { INTERESTED: 'FOLLOW_UP', CALL_BACK: 'FOLLOW_UP', TRIAL: 'TRIAL_REQUESTED', NOT_INTERESTED: 'NOT_INTERESTED' }[outcome] as LeadStatus
-  const lead = await db.lead.findUniqueOrThrow({ where: { id: leadId } })
-  // Calls do not move a lead backwards once it has a trial or a package.
-  if (['TRIAL_ACTIVE', 'CONVERTED'].includes(lead.status) && status !== 'TRIAL_REQUESTED') return
-  if (lead.status === 'NEW' && status === 'FOLLOW_UP') return setLeadStatus(leadId, 'CONTACTED', byId)
-  await setLeadStatus(leadId, status, byId)
+// Payment screenshot received: start the next package right after the current one ends.
+export async function markRenewalPaid(packageId: string, byId: string) {
+  const { pkg, plan } = await packagePlan(packageId)
+  const next = await db.package.findFirst({ where: { leadId: pkg.leadId, number: pkg.number + 1 } })
+  if (next) {
+    if (!next.paid) await db.package.update({ where: { id: next.id }, data: { paid: true, paidAt: new Date() } })
+    return next
+  }
+  const start = deliveryDayFrom(addDays(plan.end ?? plan.originalEnd, 1))
+  return startPackage(pkg.leadId, byId, { startDate: start, paid: true })
 }
 
 export async function createLocationRequest(leadId: string, channel: string, byId: string) {

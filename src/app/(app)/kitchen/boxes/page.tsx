@@ -1,63 +1,72 @@
+import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
-import { fmtRange } from '@/lib/dates'
-import { LOCATION_STATUS } from '@/lib/labels'
-import { kitchenToday } from '@/lib/queries'
-import { Chip, Empty, PageHeader, StatusChip, Tabs, Who } from '@/components/ui'
-import { KitchenTiles } from '../KitchenTiles'
+import { day, dayInput, fmtWeekday, isSunday, parseDay } from '@/lib/dates'
+import { daySheet, groupByRegion } from '@/lib/queries'
+import { Chip, Empty, PageHeader, Tabs, Tile, Tiles } from '@/components/ui'
 
-// One simple list of today's boxes. Each row says Trial box or Regular box. View only.
+// Today's boxes, region by region, with what goes in each (swap, buttermilk, alternative box).
 export default async function KitchenBoxes({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   await requireUser(['KITCHEN'])
   const sp = await searchParams
-  const type = sp.type === 'trial' || sp.type === 'regular' ? sp.type : 'all'
-  const k = await kitchenToday()
-  const rows = [
-    ...k.trials.map((t) => ({ id: t.id, lead: t.lead, kind: 'Trial box' as const, dates: fmtRange(t.startDate, t.endDate), notes: t.notes ?? t.lead.foodNotes })),
-    ...k.packages.map((p) => ({ id: p.id, lead: p.lead, kind: 'Regular box' as const, dates: 'Monthly', notes: p.lead.foodNotes })),
-  ]
-    .filter((r) => type === 'all' || (type === 'trial') === (r.kind === 'Trial box'))
-    .sort((a, b) => a.lead.name.localeCompare(b.lead.name))
+  const tomorrow = isSunday(day(1)) ? day(2) : day(1)
+  const date = sp.date ? parseDay(sp.date) : day(0)
+  const sheet = await daySheet(date)
+  const going = sheet.rows.filter((r) => !r.absent)
+  const regions = groupByRegion(going, (r) => r.lead.region?.name)
   return (
     <>
-      <PageHeader title="Today's boxes" sub="Every box to prepare, trial and regular">
-        <Chip label="View only" tone="sky" />
+      <PageHeader title={date.getTime() === day(0).getTime() ? "Today's boxes" : `Boxes for ${fmtWeekday(date)}`} sub="Every box going out, by region and delivery time">
+        <Tabs items={[{ label: 'Today', href: '/kitchen/boxes', active: date.getTime() === day(0).getTime() }, { label: fmtWeekday(tomorrow), href: `/kitchen/boxes?date=${dayInput(tomorrow)}`, active: date.getTime() === tomorrow.getTime() }]} />
       </PageHeader>
-      <KitchenTiles k={k} />
-      <Tabs
-        items={[
-          { label: `All ${k.total}`, href: '/kitchen/boxes', active: type === 'all' },
-          { label: `Trial ${k.trials.length}`, href: '/kitchen/boxes?type=trial', active: type === 'trial' },
-          { label: `Regular ${k.packages.length}`, href: '/kitchen/boxes?type=regular', active: type === 'regular' },
-        ]}
-      />
-      <section className="card overflow-x-auto">
-        {rows.length === 0 ? (
-          <Empty>No boxes today.</Empty>
-        ) : (
+      <Tiles cols={5}>
+        <Tile big label="Boxes" value={sheet.boxes} />
+        <Tile big label="Monthly" value={sheet.monthly} tone="leaf" />
+        <Tile big label="Trial" value={sheet.trials.length} tone="sky" />
+        <Tile big label="Swaps" value={sheet.swapCount} tone="warn" />
+        <Tile big label="Absent" value={sheet.rows.length - going.length} sub="not packed" tone="muted" />
+      </Tiles>
+      {sheet.trials.length > 0 && (
+        <section className="card overflow-x-auto">
+          <div className="px-5 py-4"><h2 className="font-display text-lg font-semibold">Trial boxes · {sheet.trials.length}</h2></div>
           <table className="w-full">
-            <thead><tr><th className="th">Customer</th><th className="th">Region</th><th className="th">Box</th><th className="th">Dates</th><th className="th">Slot</th><th className="th">Food notes</th><th className="th">Location</th></tr></thead>
+            <thead><tr><th className="th">Customer</th><th className="th">Region</th><th className="th">Slot</th><th className="th">Swap</th><th className="th">Notes</th></tr></thead>
             <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td className="td"><Who name={r.lead.name} sub={r.lead.phone} /></td>
-                  <td className="td">{r.lead.region?.name ?? '—'}</td>
-                  <td className="td"><Chip label={r.kind} tone={r.kind === 'Trial box' ? 'warn' : 'leaf'} /></td>
-                  <td className="td">{r.dates}</td>
-                  <td className="td">{r.lead.slot ?? '—'}</td>
-                  <td className="td">{r.notes ?? '—'}</td>
-                  <td className="td">
-                    {r.lead.lat != null ? (
-                      <a target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${r.lead.lat},${r.lead.lng}`}><StatusChip map={LOCATION_STATUS} value={r.lead.locationStatus} /></a>
-                    ) : (
-                      <StatusChip map={LOCATION_STATUS} value={r.lead.locationStatus} />
-                    )}
-                  </td>
+              {sheet.trials.map(({ trial, swap }) => (
+                <tr key={trial.id}>
+                  <td className="td font-semibold"><Link href={`/customers/${trial.leadId}`} className="hover:underline">{trial.lead.name}</Link></td>
+                  <td className="td">{trial.lead.region?.name ?? '—'}</td>
+                  <td className="td">{trial.slot ?? '—'}</td>
+                  <td className="td">{swap?.swapTo ? <Chip label={`${swap.avoids.join(', ')} → ${swap.swapTo}`} tone="warn" /> : '—'}</td>
+                  <td className="td text-muted">{[trial.lead.avoidFoods, trial.lead.healthNotes].filter(Boolean).join(' · ') || '—'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        )}
-      </section>
+        </section>
+      )}
+      {regions.length === 0 && <section className="card"><Empty>No monthly boxes on this day.</Empty></section>}
+      {regions.map(([name, rows]) => (
+        <section key={name} className="card overflow-x-auto">
+          <div className="px-5 py-4"><h2 className="font-display text-lg font-semibold">{name} · {rows.length}</h2></div>
+          <table className="w-full">
+            <thead><tr><th className="th">#</th><th className="th">Customer</th><th className="th">Time</th><th className="th">Day</th><th className="th">Swap</th><th className="th">BM</th><th className="th">Alt box</th><th className="th">Address</th></tr></thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={r.pkg.id} className={r.altBox ? 'bg-sky-soft' : ''}>
+                  <td className="td">{i + 1}</td>
+                  <td className="td font-semibold"><Link href={`/customers/${r.lead.id}`} className="hover:underline">{r.lead.name}</Link>{r.isNew && <span className="ml-1.5"><Chip label="New" tone="leaf" /></span>}</td>
+                  <td className="td">{r.lead.deliveryTime ?? r.lead.slot ?? '—'}</td>
+                  <td className="td">{r.dayNo}/26</td>
+                  <td className="td">{r.swap?.swapTo ? <Chip label={`${r.swap.avoids.join(', ')} → ${r.swap.swapTo}`} tone="warn" /> : '—'}</td>
+                  <td className="td">{r.bm || '—'}</td>
+                  <td className="td">{r.altBox ?? '—'}</td>
+                  <td className="td max-w-64 truncate text-muted">{r.lead.address ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      ))}
     </>
   )
 }

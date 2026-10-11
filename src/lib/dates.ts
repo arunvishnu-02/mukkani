@@ -39,3 +39,22 @@ export function fmtTime(d: Date): string {
 export function longToday(): string {
   return new Intl.DateTimeFormat('en-IN', { weekday: 'long', day: 'numeric', month: 'short', timeZone: TZ }).format(new Date())
 }
+
+export const addDays = (d: Date, n: number) => new Date(d.getTime() + n * 86_400_000)
+export const isSunday = (d: Date) => d.getUTCDay() === 0
+export const keyOf = (d: Date) => d.toISOString().slice(0, 10)
+
+// "Fri, 9 Oct"
+export function fmtWeekday(d: Date | null | undefined): string {
+  if (!d) return '—'
+  return new Intl.DateTimeFormat('en-IN', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(d)
+}
+
+// Next delivery day (Monday to Saturday) on or after d.
+export function deliveryDayFrom(d: Date): Date {
+  return isSunday(d) ? addDays(d, 1) : d
+}
+
+export function nowHourIST(): number {
+  return Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hour12: false, timeZone: TZ }).format(new Date()))
+}
