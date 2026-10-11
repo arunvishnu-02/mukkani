@@ -25,8 +25,7 @@ export default async function AdminOverview() {
   await requireUser(['ADMIN'])
   const today = day(0)
   const month = period('month', today)
-  const st = await appSettings()
-  const [leadCounts, f, team, sheet, running, trialsWeek, calls, unpaid, stock, altOut, unpaidPkgs] = await Promise.all([
+  const [leadCounts, f, team, sheet, running, trialsWeek, calls, unpaid, stock, altOut, unpaidPkgs, st] = await Promise.all([
     db.lead.groupBy({ by: ['status'], _count: true }),
     figures(month),
     teamFigures(month),
@@ -35,9 +34,10 @@ export default async function AdminOverview() {
     db.trialBox.count({ where: { deliveryDate: { gte: period('week', today).from, lt: period('week', today).to } } }),
     dueCalls(today),
     waitingPayment(),
-    stockToday(today, st.fruits, st.lowStockKg),
+    appSettings().then((st) => stockToday(today, st.fruits, st.lowStockKg)),
     db.altBox.count({ where: { collectedOn: null, givenOn: { lt: addDays(today, -1) } } }),
     db.package.count({ where: { status: 'ACTIVE', paid: false } }),
+    appSettings(),
   ])
   const count = (s: string) => leadCounts.find((c) => c.status === s)?._count ?? 0
   const allLeads = leadCounts.reduce((a, c) => a + c._count, 0)

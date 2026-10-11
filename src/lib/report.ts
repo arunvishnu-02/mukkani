@@ -1,4 +1,5 @@
 import 'server-only'
+import { cache } from 'react'
 import { db } from '@/lib/db'
 import { addDays, day } from '@/lib/dates'
 
@@ -19,8 +20,13 @@ export function period(kind: string | undefined, today = day(0)): Period & { kin
 export const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : '–')
 
 // Money received: a monthly pack counts on the day it was marked paid, a trial on its delivery date.
-export async function figures({ from, to }: { from: Date; to: Date }) {
-  const range = { gte: from, lt: to }
+export function figures({ from, to }: { from: Date; to: Date }) {
+  return figuresFor(from.getTime(), to.getTime())
+}
+
+// Loaded once per page: the overview asks for the same period twice (totals and per salesperson).
+const figuresFor = cache(async (fromAt: number, toAt: number) => {
+  const range = { gte: new Date(fromAt), lt: new Date(toAt) }
   const [leads, trials, trialsDone, packages, paidPkgs, paidTrials, money, delivered, notInterested, waste] = await Promise.all([
     db.lead.findMany({ where: { createdAt: range }, select: { source: true, ownerId: true } }),
     db.trialBox.findMany({ where: { createdAt: range }, select: { lead: { select: { ownerId: true } } } }),
@@ -68,7 +74,7 @@ export async function figures({ from, to }: { from: Date; to: Date }) {
     cutKg: Math.round(waste.reduce((a, w) => a + w.cutKg, 0) * 10) / 10,
     ownerOf: { leads, trials, packages },
   }
-}
+})
 
 // Per salesperson: leads added, calls made, trials booked, monthly packs started in the period.
 export async function teamFigures({ from, to }: { from: Date; to: Date }) {

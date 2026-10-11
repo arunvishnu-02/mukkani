@@ -36,7 +36,7 @@ export default async function CallRegister({ searchParams }: { searchParams: Pro
       orderBy: { nextFollowUpAt: 'asc' },
     }),
     db.trialBox.findMany({
-      where: tab === 'upcoming' ? { id: '' } : { status: { not: 'DONE' }, deliveryDate: tab === 'today' ? { lte: feedbackFrom, gte: today } : { lt: today } },
+      where: tab === 'upcoming' ? { id: { in: [] } } : { status: { not: 'DONE' }, deliveryDate: tab === 'today' ? { lte: feedbackFrom, gte: today } : { lt: today } },
       include: { lead: { include: { region: true } } },
       orderBy: { deliveryDate: 'asc' },
     }),

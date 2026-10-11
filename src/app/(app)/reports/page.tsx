@@ -19,7 +19,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     db.package.findMany({ where: { status: 'COMPLETED' }, include: { lead: { include: { region: true } } }, orderBy: { updatedAt: 'desc' }, take: 200 }),
     runningPackages(today),
     getSettings(),
-    sp.pkg ? packagePlan(sp.pkg) : null,
+    sp.pkg ? packagePlan(sp.pkg).catch(() => null) : null,
   ])
   const att = await db.attendance.findMany({ where: { leadId: { in: done.map((p) => p.leadId) } }, select: { leadId: true, date: true, status: true } })
   const endOf = new Map(done.map((p) => [p.id, planFor(p, att.filter((a) => a.leadId === p.leadId), today).end]))

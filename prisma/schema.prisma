@@ -4,6 +4,8 @@
 
 generator client {
   provider = "prisma-client"
+  // One SQL query per read instead of one per included relation: fewer trips to the database.
+  previewFeatures = ["relationJoins"]
   output   = "../src/generated/prisma"
 }
 

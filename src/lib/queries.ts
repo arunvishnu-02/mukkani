@@ -1,4 +1,5 @@
 import 'server-only'
+import { cache } from 'react'
 import { db } from '@/lib/db'
 import { day, isSunday } from '@/lib/dates'
 import { matchSwaps, splitList, type Swap } from '@/lib/menu'
@@ -26,9 +27,15 @@ export type PkgWithLead = Prisma.PackageGetPayload<{ include: typeof pkgInclude 
 export type Running = { pkg: PkgWithLead; plan: PackagePlan }
 
 // The plan of every running package (one per customer: the oldest active one).
-export async function runningPackages(today = day(0), where: Prisma.PackageWhereInput = {}): Promise<Running[]> {
+// Loaded once per page however many parts of the page ask for it.
+export function runningPackages(today = day(0)): Promise<Running[]> {
+  return runningAt(today.getTime())
+}
+
+const runningAt = cache(async (at: number): Promise<Running[]> => {
+  const today = new Date(at)
   const pkgs = await db.package.findMany({
-    where: { status: 'ACTIVE', ...where },
+    where: { status: 'ACTIVE' },
     include: pkgInclude,
     orderBy: [{ lead: { deliveryTime: 'asc' } }, { lead: { name: 'asc' } }],
   })
@@ -45,7 +52,7 @@ export async function runningPackages(today = day(0), where: Prisma.PackageWhere
   const byLead = new Map<string, typeof att>()
   for (const a of att) byLead.set(a.leadId, [...(byLead.get(a.leadId) ?? []), a])
   return list.map((pkg) => ({ pkg, plan: planFor(pkg, byLead.get(pkg.leadId) ?? [], today) }))
-}
+})
 
 export function planFor(
   pkg: { startDate: Date; status: string; lead: { customerStatus: string; pausedUntil: Date | null } },
@@ -82,14 +89,15 @@ export type SheetRow = {
 // Everyone on the attendance sheet for a date: monthly customers due that day plus trial boxes.
 export async function daySheet(date: Date) {
   const today = day(0)
-  const running = await runningPackages(today, { startDate: { lte: date } })
-  const [menu, attendance, altBoxes, trials, paused] = await Promise.all([
+  const [all, menu, attendance, altBoxes, trials, paused] = await Promise.all([
+    runningPackages(today),
     db.menu.findUnique({ where: { date } }),
     db.attendance.findMany({ where: { date } }),
     db.altBox.findMany({ where: { givenOn: date } }),
     db.trialBox.findMany({ where: { deliveryDate: date }, include: { lead: { include: { region: true } } }, orderBy: { lead: { deliveryTime: 'asc' } } }),
     db.lead.findMany({ where: { customerStatus: 'PAUSED', packages: { some: { status: 'ACTIVE' } } }, include: { region: true }, orderBy: { name: 'asc' } }),
   ])
+  const running = all.filter((r) => r.pkg.startDate <= date)
   const att = new Map(attendance.map((a) => [a.leadId, a]))
   const alt = new Map(altBoxes.map((a) => [a.leadId, a.boxNo]))
   const due = isSunday(date)
