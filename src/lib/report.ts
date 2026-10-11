@@ -30,7 +30,7 @@ const figuresFor = cache(async (fromAt: number, toAt: number) => {
   const [leads, trials, trialsDone, packages, paidPkgs, paidTrials, money, delivered, notInterested, waste] = await Promise.all([
     db.lead.findMany({ where: { createdAt: range }, select: { source: true, ownerId: true } }),
     db.trialBox.findMany({ where: { createdAt: range }, select: { lead: { select: { ownerId: true } } } }),
-    db.trialBox.findMany({ where: { status: 'DONE', updatedAt: range }, select: { result: true } }),
+    db.trialBox.findMany({ where: { status: 'DONE', updatedAt: range }, select: { result: true, lead: { select: { ownerId: true } } } }),
     db.package.findMany({ where: { createdAt: range }, select: { number: true, lead: { select: { ownerId: true } } } }),
     db.package.findMany({ where: { paid: true, paidAt: range }, select: { price: true, buttermilkQty: true, buttermilkPrice: true } }),
     db.trialBox.findMany({ where: { paid: true, deliveryDate: range }, select: { price: true } }),
@@ -72,11 +72,13 @@ const figuresFor = cache(async (fromAt: number, toAt: number) => {
     notInterested: [...reasons.entries()].sort((a, b) => b[1] - a[1]),
     wasteKg: Math.round(waste.reduce((a, w) => a + w.wasteKg, 0) * 10) / 10,
     cutKg: Math.round(waste.reduce((a, w) => a + w.cutKg, 0) * 10) / 10,
-    ownerOf: { leads, trials, packages },
+    ownerOf: { leads, trials, trialsDone, packages },
   }
 })
 
-// Per salesperson: leads added, calls made, trials booked, monthly packs started in the period.
+// Per salesperson: leads added, calls made, trials booked, trial results and monthly packs started in the period.
+// "Trial to monthly" is out of the trials that got a result, so it can never pass 100%. A pack started
+// without a trial counts in Monthly packs but not in that rate.
 export async function teamFigures({ from, to }: { from: Date; to: Date }) {
   const range = { gte: from, lt: to }
   const [users, calls, f] = await Promise.all([
@@ -87,13 +89,17 @@ export async function teamFigures({ from, to }: { from: Date; to: Date }) {
   return users.map((u) => {
     const trials = f.ownerOf.trials.filter((t) => t.lead.ownerId === u.id).length
     const monthly = f.ownerOf.packages.filter((p) => p.number === 1 && p.lead.ownerId === u.id).length
+    const results = f.ownerOf.trialsDone.filter((t) => t.lead.ownerId === u.id)
+    const won = results.filter((t) => t.result === 'MONTHLY').length
     return {
       user: u,
       leads: f.ownerOf.leads.filter((l) => l.ownerId === u.id).length,
       calls: calls.find((c) => c.byId === u.id)?._count ?? 0,
       trials,
+      trialResults: results.length,
+      trialsWon: won,
       monthly,
-      rate: pct(monthly, trials),
+      rate: pct(won, results.length),
     }
   })
 }

@@ -95,10 +95,10 @@ export default async function AdminOverview() {
             <Link href="/admin/users" className="btn-secondary btn-sm">Team</Link>
           </div>
           <table className="w-full">
-            <thead><tr><th className="th">Name</th><th className="th">Leads added</th><th className="th">Calls</th><th className="th">Trials</th><th className="th">Monthly packs</th><th className="th">Trial to monthly</th></tr></thead>
+            <thead><tr><th className="th">Name</th><th className="th">Leads added</th><th className="th">Calls</th><th className="th">Trials</th><th className="th">Monthly packs</th><th className="th">Trials that became monthly</th></tr></thead>
             <tbody>
               {team.map((t) => (
-                <tr key={t.user.id}><td className="td"><Who name={t.user.name} /></td><td className="td">{t.leads}</td><td className="td">{t.calls}</td><td className="td">{t.trials}</td><td className="td font-semibold">{t.monthly}</td><td className="td">{t.rate}</td></tr>
+                <tr key={t.user.id}><td className="td"><Who name={t.user.name} /></td><td className="td">{t.leads}</td><td className="td">{t.calls}</td><td className="td">{t.trials}</td><td className="td font-semibold">{t.monthly}</td><td className="td">{t.trialResults ? `${t.rate} · ${t.trialsWon} of ${t.trialResults}` : <span className="text-muted">no results yet</span>}</td></tr>
               ))}
             </tbody>
           </table>
