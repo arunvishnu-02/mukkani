@@ -9,7 +9,7 @@ It replaces WhatsApp coordination between Sales and the Kitchen.
 | Role | Can do |
 |---|---|
 | Admin | Everything, from one menu grouped into Sales, Kitchen and Business: overview, reports and Excel (CSV) downloads, purchase + expenses with bill photos, team + regions, settings |
-| Sales | Leads, call register, trials and feedback calls, customers and monthly packs, daily menu, delivery attendance (after 11 AM), end-date reminders, monthly reports |
+| Sales | Leads, call register, trials and feedback calls, customers and monthly packs, daily menu, delivery attendance (after 9 AM), end-date reminders, monthly reports |
 | Kitchen manager | Today's boxes and the 3 AM attendance sheet (A4 per region), customer status (Active, Absent, Paused, Inactive), day 1/5/15/26 customer calls and renewals, alternative boxes, stock and wastage. Cannot delete. |
 
 ## What happens automatically

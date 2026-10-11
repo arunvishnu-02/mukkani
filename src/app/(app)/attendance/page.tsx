@@ -21,7 +21,7 @@ type Row = {
   region: string | null
 }
 
-// After 11 AM, sales copies the kitchen manager's paper sheet into the dashboard. Compulsory every day.
+// After 9 AM, sales copies the kitchen manager's paper sheet into the dashboard. Compulsory every day.
 export default async function AttendancePage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   await requireUser(['SALES'])
   const sp = await searchParams
@@ -71,7 +71,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
   const notDel = list.filter((r) => r.status === 'NOT_DELIVERED').length
   return (
     <>
-      <PageHeader title="Enter today's attendance" crumb="Delivery attendance" sub={`After 11 AM, copy the kitchen manager's paper sheet into the dashboard. ${fmtWeekday(date)}`}>
+      <PageHeader title="Enter today's attendance" crumb="Delivery attendance" sub={`After 9 AM, copy the kitchen manager's paper sheet into the dashboard. ${fmtWeekday(date)}`}>
         <form action="/attendance" className="flex items-center gap-2">
           <DateField name="date" defaultValue={dayInput(date)} compact />
           <button className="btn-secondary btn-sm">Go</button>
@@ -79,8 +79,8 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
       </PageHeader>
       <ErrorNote error={sp.error} />
       {sp.saved && <Callout>Saved {sp.saved} rows. End dates and the kitchen screens are updated.</Callout>}
-      {date.getTime() === day(0).getTime() && nowHourIST() < 11 && !sp.saved && (
-        <Callout tone="warn">Attendance is entered after 11 AM, once the kitchen manager has written it on the paper sheet.</Callout>
+      {date.getTime() === day(0).getTime() && nowHourIST() < 9 && !sp.saved && (
+        <Callout tone="warn">Attendance is entered after 9 AM, once the kitchen manager has written it on the paper sheet.</Callout>
       )}
       {groups.length > 1 && <Tabs items={groups.map(([name, rs]) => ({ label: `${name} ${rs.length}`, href: `/attendance?date=${dayInput(date)}&region=${encodeURIComponent(name)}`, active: name === region?.[0] }))} />}
       <Tiles cols={5}>

@@ -6,7 +6,7 @@ import { daySheet, groupByRegion } from '@/lib/queries'
 import { Callout, Chip, Empty, PageHeader, StatusChip, Tabs, Tile, Tiles } from '@/components/ui'
 import { DateField } from '@/components/DateField'
 
-// Print at 3 AM. After delivery, write the attendance on the paper. Sales enters it after 11 AM.
+// Print at 3 AM. After delivery, write the attendance on the paper. Sales enters it after 9 AM.
 export default async function KitchenSheet({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   await requireUser(['KITCHEN'])
   const sp = await searchParams
@@ -19,7 +19,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
   const q = `date=${dayInput(date)}`
   return (
     <>
-      <PageHeader title={date.getTime() === day(0).getTime() ? "Today's attendance sheet" : `Attendance sheet ${fmtWeekday(date)}`} crumb="Delivery attendance" sub="Print at 3 AM. After delivery, write the attendance on the paper. Sales enters it in the dashboard after 11 AM.">
+      <PageHeader title={date.getTime() === day(0).getTime() ? "Today's attendance sheet" : `Attendance sheet ${fmtWeekday(date)}`} crumb="Delivery attendance" sub="Print at 3 AM. After delivery, write the attendance on the paper. Sales enters it in the dashboard after 9 AM.">
         <a href={`/print/sheet?${q}`} target="_blank" rel="noreferrer" className="btn">Print all regions</a>
       </PageHeader>
       <div className="flex flex-wrap items-center gap-2.5">
@@ -32,7 +32,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
         <Tile label="Need a swap" value={sheet.swapCount} sub={sheet.menu ? "from yesterday's menu" : 'no menu added'} tone="warn" />
         <Tile label="Alternative boxes" value={sheet.altBoxes} sub="blue rows on the sheet" tone="sky" />
         <Tile label="Buttermilk" value={sheet.buttermilk} sub="Mon, Wed, Fri" tone="leaf" />
-        <Tile label="Entered by sales" value={`${sheet.entered} of ${sheet.rows.length + sheet.trials.length}`} sub="after 11 AM" tone="brand" />
+        <Tile label="Entered by sales" value={`${sheet.entered} of ${sheet.rows.length + sheet.trials.length}`} sub="after 9 AM" tone="brand" />
       </Tiles>
       <section className="card overflow-x-auto">
         <div className="flex flex-wrap items-center gap-3 px-5 py-4">
@@ -58,7 +58,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
                   <td className="td">{r.lead.deliveryTime ?? r.lead.slot ?? '—'}</td>
                   <td className="td">{r.bm ? <Chip label={`BM ${r.bm}`} tone="leaf" /> : ''}</td>
                   <td className="td">{r.altBox ?? '—'}</td>
-                  <td className="td">{r.attendance ? <StatusChip map={ATTENDANCE} value={r.attendance.status} /> : <Chip label="After 11 AM" tone="muted" />}</td>
+                  <td className="td">{r.attendance ? <StatusChip map={ATTENDANCE} value={r.attendance.status} /> : <Chip label="After 9 AM" tone="muted" />}</td>
                 </tr>
               ))}
             </tbody>

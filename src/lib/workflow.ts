@@ -154,7 +154,7 @@ export type AttendanceInput = {
   remarks: string | null
 }
 
-// Sales enters the day's attendance from the paper sheet after 11 AM.
+// Sales enters the day's attendance from the paper sheet after 9 AM.
 export async function saveAttendance(date: Date, rows: AttendanceInput[], byId: string) {
   for (const r of rows) {
     const data = { status: r.status, buttermilk: r.buttermilk, boxBack: r.boxBack, remarks: r.remarks, byId }

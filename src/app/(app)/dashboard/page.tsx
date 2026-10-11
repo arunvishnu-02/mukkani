@@ -56,7 +56,7 @@ export default async function SalesDashboard() {
           <Todo done={callsToday + overdue === 0} title="Follow-up calls" sub={`${callsToday} due today, ${overdue} overdue`} href="/calls" cta="Call register" />
           <Todo done={feedback === 0} title="Trial feedback calls" sub={`${feedback} waiting for a result`} href="/trials?tab=waiting" cta="Trials" />
           <Todo done={!!menuTomorrow} title={`Add the menu for ${fmtWeekday(tomorrow)}`} sub={menuTomorrow ? `${menuTomorrow.fruits}` : 'The kitchen prints the sheet at 3 AM'} href="/menu" cta={menuTomorrow ? 'View' : 'Add menu'} />
-          <Todo done={total > 0 && sheet.entered >= total} title="Enter today's attendance" sub={`${sheet.entered} of ${total} entered. After 11 AM, from the paper sheet.`} href="/attendance" cta="Enter" />
+          <Todo done={total > 0 && sheet.entered >= total} title="Enter today's attendance" sub={`${sheet.entered} of ${total} entered. After 9 AM, from the paper sheet.`} href="/attendance" cta="Enter" />
           <Todo done={reminders === 0} title="End-date reminders" sub={`${reminders} to send on WhatsApp`} href="/reminders" cta="Reminders" />
         </Card>
         <div className="space-y-4">

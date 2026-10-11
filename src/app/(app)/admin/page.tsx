@@ -42,7 +42,7 @@ export default async function AdminOverview() {
   const count = (s: string) => leadCounts.find((c) => c.status === s)?._count ?? 0
   const allLeads = leadCounts.reduce((a, c) => a + c._count, 0)
   const boxesToday = sheet.rows.filter((r) => !r.absent).length + sheet.trials.length
-  const attendanceDue = nowHourIST() >= 11 ? Math.max(0, sheet.rows.length + sheet.trials.length - sheet.entered) : 0
+  const attendanceDue = nowHourIST() >= 9 ? Math.max(0, sheet.rows.length + sheet.trials.length - sheet.entered) : 0
   const lowStock = stock.filter((s) => s.low).length
   const maxReason = Math.max(1, ...f.notInterested.map((r) => r[1]))
   return (
