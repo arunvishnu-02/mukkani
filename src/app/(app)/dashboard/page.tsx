@@ -41,7 +41,9 @@ export default async function SalesDashboard() {
   const reminders = running.filter((r) => r.plan.end && r.plan.end >= today && r.plan.end <= day(3) && !r.pkg.reminderSentAt).length
   return (
     <>
-      <PageHeader title={`Good ${nowHourIST() < 12 ? 'morning' : 'afternoon'}, ${firstName(user.name)}`} sub={longToday()} />
+      <PageHeader title={`Good ${nowHourIST() < 12 ? 'morning' : 'afternoon'}, ${firstName(user.name)}`} sub={longToday()}>
+        <Link href="/leads?f=all&new=1" className="btn">Add lead</Link>
+      </PageHeader>
       <Tiles cols={5}>
         <Tile label="Calls today" value={callsToday} sub={overdue ? `${overdue} overdue` : 'none overdue'} tone="warn" />
         <Tile label="Trial feedback calls" value={feedback} sub="after 10 AM on the trial day" tone="sky" />

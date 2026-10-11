@@ -24,7 +24,8 @@ export default async function KitchenDashboard() {
   return (
     <>
       <PageHeader title="Today's kitchen" sub={`${longToday()} · boxes to prepare`}>
-        <a href="/print/sheet" target="_blank" rel="noreferrer" className="btn">Print attendance sheet</a>
+        <a href="/print/sheet" target="_blank" rel="noreferrer" className="btn-secondary">Print attendance sheet</a>
+        <Link href="/kitchen/boxes" className="btn">Today's boxes</Link>
       </PageHeader>
       <Tiles cols={6}>
         <Tile big label="Boxes today" value={sheet.boxes} sub="production count" />
