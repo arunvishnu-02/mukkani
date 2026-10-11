@@ -43,6 +43,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
   const monthly = sheet.rows.filter((r) => !r.absent)
   const grouped = new Map(groupByRegion(monthly, (r) => r.lead.region?.name))
   for (const t of sheet.trials) if (!grouped.has(t.trial.lead.region?.name ?? 'No region')) grouped.set(t.trial.lead.region?.name ?? 'No region', [])
+  for (const r of sheet.rows) if (r.absent && !grouped.has(r.lead.region?.name ?? 'No region')) grouped.set(r.lead.region?.name ?? 'No region', [])
   const regions = [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0])).filter(([name]) => !sp.region || name === sp.region)
   if (regions.length === 0) return <div className="a4 flex items-center justify-center text-muted">No deliveries on {fmtDay(date)}.</div>
   return (
@@ -62,6 +63,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
         }))
         const trials = sheet.trials.filter((t) => (t.trial.lead.region?.name ?? 'No region') === region)
         const leave = sheet.paused.filter((p) => (p.region?.name ?? 'No region') === region)
+        const absent = sheet.rows.filter((r) => r.absent && (r.lead.region?.name ?? 'No region') === region)
         const swaps = rows.filter((r) => r.swap?.swapTo).length + trials.filter((t) => t.swap?.swapTo).length
         const bm = rows.reduce((a, r) => a + r.bm, 0)
         const pages: Line[][] = []
@@ -112,8 +114,11 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
                   ))}
                 </div>
                 <div className="rounded-xl bg-s2 px-3.5 py-3">
-                  <div className="mb-1.5 text-xs font-bold">On long leave · not packed</div>
-                  {leave.length === 0 ? <div className="text-muted">Nobody on leave</div> : leave.map((l) => (
+                  <div className="mb-1.5 text-xs font-bold">On leave · not packed</div>
+                  {absent.map((r) => (
+                    <div key={r.pkg.id} className="flex"><span className="flex-1">{r.lead.name}</span><span className="text-muted">absent today</span></div>
+                  ))}
+                  {leave.length + absent.length === 0 ? <div className="text-muted">Nobody on leave</div> : leave.map((l) => (
                     <div key={l.id} className="flex"><span className="flex-1">{l.name}</span><span className="text-muted">{l.pausedUntil ? `till ${fmtDay(l.pausedUntil)}` : 'paused'}</span></div>
                   ))}
                 </div>

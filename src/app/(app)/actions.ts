@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { db } from '@/lib/db'
 import { requireUser } from '@/lib/auth'
-import { day, fmtWeekday, isDay, parseDay } from '@/lib/dates'
+import { addDays, day, fmtDay, fmtWeekday, isDay, isSunday, parseDay } from '@/lib/dates'
 import { getSettings } from '@/lib/settings'
 import { LEAD_IMPORT_COLUMNS, parseCsv, sheetDate } from '@/lib/csv'
 import { SOURCE } from '@/lib/labels'
@@ -14,9 +14,11 @@ import { packagePlan } from '@/lib/queries'
 import {
   FlowError,
   bookTrial,
+  cancelLeave,
   createLocationRequest,
   log,
   logLeadCall,
+  markLeave,
   saveAttendance,
   startPackage,
   trialFeedback,
@@ -229,6 +231,41 @@ export async function saveMenuAction(form: FormData) {
 }
 
 // Attendance entered from the paper sheet. One row per customer on the sheet.
+// Leave told in advance: Absent on each delivery day from `from` to `to` (Sundays skipped).
+export async function markLeaveAction(form: FormData) {
+  const user = await requireUser(['SALES', 'KITCHEN'])
+  const fallback = user.role === 'KITCHEN' ? '/kitchen/sheet' : '/attendance'
+  let to = back(form, fallback)
+  try {
+    const leadId = z.string().uuid({ message: 'Pick the customer' }).safeParse(s(form, 'leadId'))
+    if (!leadId.success) throw new FlowError('Pick the customer')
+    const from = date(form, 'from')
+    const until = date(form, 'to') ?? from
+    if (!from || !until) throw new FlowError('Pick the leave date')
+    if (from < day(0)) throw new FlowError('Leave can be marked for today or a later day. For a past day, enter Absent in Delivery attendance.')
+    if (until < from) throw new FlowError('The Until date is before the leave date')
+    if (until > addDays(from, 13)) throw new FlowError('Up to 14 days here. For a longer break, set the customer to Paused in Customers.')
+    const dates: Date[] = []
+    for (let d = from; d <= until; d = addDays(d, 1)) if (!isSunday(d)) dates.push(d)
+    const name = await markLeave(leadId.data, dates, user.id)
+    const days = dates.length === 1 ? fmtDay(dates[0]) : `${dates.length} days from ${fmtDay(dates[0])}`
+    to = `${to}${to.includes('?') ? '&' : '?'}leave=${encodeURIComponent(`${name} is on leave ${days}. They are off the attendance sheet.`)}`
+  } catch (e) {
+    to = withError(s(form, 'self') ?? back(form, fallback), e)
+  }
+  revalidatePath('/', 'layout')
+  redirect(to)
+}
+
+export async function cancelLeaveAction(form: FormData) {
+  const user = await requireUser(['SALES', 'KITCHEN'])
+  const leadId = z.string().uuid().parse(s(form, 'leadId'))
+  const d = date(form, 'date')
+  if (d && d >= day(0)) await cancelLeave(leadId, d, user.id)
+  revalidatePath('/', 'layout')
+  redirect(back(form, user.role === 'KITCHEN' ? '/kitchen/sheet' : '/attendance'))
+}
+
 export async function saveAttendanceAction(form: FormData) {
   const user = await requireUser(['SALES'])
   const d = date(form, 'date') ?? day(0)

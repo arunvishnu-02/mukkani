@@ -1,7 +1,7 @@
 import 'server-only'
 import { randomBytes } from 'node:crypto'
 import { db } from '@/lib/db'
-import { addDays, day, deliveryDayFrom, fmtWeekday } from '@/lib/dates'
+import { addDays, day, deliveryDayFrom, fmtDay, fmtWeekday } from '@/lib/dates'
 import { nearestRegionId, reverseGeocode } from '@/lib/geo'
 import { packagePlan } from '@/lib/queries'
 import { appSettings } from '@/lib/settings'
@@ -152,6 +152,27 @@ export type AttendanceInput = {
   boxBack: boolean | null
   altBox: number | null
   remarks: string | null
+}
+
+// A customer tells us in advance that they will not take the box on some days. Each day is saved as
+// Absent, which takes them off that day's sheet and adds the day to the end of the pack.
+export async function markLeave(leadId: string, dates: Date[], byId: string) {
+  const lead = await db.lead.findUnique({ where: { id: leadId }, include: { packages: { where: { status: 'ACTIVE' }, take: 1 } } })
+  if (!lead || lead.packages.length === 0) throw new FlowError('Pick a customer with a running monthly pack')
+  if (dates.length === 0) throw new FlowError('Those days are all Sundays, when there is no delivery')
+  const taken = await db.attendance.findMany({ where: { leadId, date: { in: dates }, status: { not: 'ABSENT' } } })
+  if (taken.length) throw new FlowError(`Attendance is already entered for ${fmtDay(taken[0].date)}. Change it in Delivery attendance.`)
+  for (const date of dates) {
+    const data = { status: 'ABSENT' as const, buttermilk: false, remarks: 'Leave informed', byId }
+    await db.attendance.upsert({ where: { leadId_date: { leadId, date } }, create: { leadId, date, ...data }, update: data })
+  }
+  await log(leadId, 'leave', `Leave marked for ${dates.length === 1 ? fmtDay(dates[0]) : `${fmtDay(dates[0])} to ${fmtDay(dates[dates.length - 1])}`}`, null, byId)
+  return lead.name
+}
+
+export async function cancelLeave(leadId: string, date: Date, byId: string) {
+  const gone = await db.attendance.deleteMany({ where: { leadId, date, status: 'ABSENT' } })
+  if (gone.count) await log(leadId, 'leave', `Leave cancelled for ${fmtDay(date)}`, null, byId)
 }
 
 // Sales enters the day's attendance from the paper sheet after 9 AM.

@@ -1,9 +1,10 @@
 import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
-import { day, dayInput, fmtWeekday, parseDay } from '@/lib/dates'
+import { day, dayInput, fmtWeekday, isSunday, parseDay } from '@/lib/dates'
 import { ATTENDANCE } from '@/lib/labels'
-import { daySheet, groupByRegion } from '@/lib/queries'
-import { Callout, Chip, Empty, PageHeader, StatusChip, Tabs, Tile, Tiles } from '@/components/ui'
+import { daySheet, groupByRegion, runningPackages } from '@/lib/queries'
+import { Callout, Chip, Empty, ErrorNote, PageHeader, StatusChip, Tabs, Tile, Tiles } from '@/components/ui'
+import { CancelLeave, LeaveDrawer } from '@/components/Leave'
 import { DateField } from '@/components/DateField'
 
 // Print at 3 AM. After delivery, write the attendance on the paper. Sales enters it after 9 AM.
@@ -11,17 +12,23 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
   await requireUser(['KITCHEN'])
   const sp = await searchParams
   const date = sp.date ? parseDay(sp.date) : day(0)
-  const sheet = await daySheet(date)
+  const [sheet, running] = await Promise.all([daySheet(date), runningPackages(day(0))])
   const rows = sheet.rows.filter((r) => !r.absent)
+  const onLeave = sheet.rows.filter((r) => r.absent)
   const groups = groupByRegion(rows, (r) => r.lead.region?.name)
   const region = groups.find(([n]) => n === sp.region) ?? groups[0]
   const list = region?.[1] ?? []
   const q = `date=${dayInput(date)}`
+  const self = `/kitchen/sheet?${q}${region ? `&region=${encodeURIComponent(region[0])}` : ''}`
+  const tomorrow = isSunday(day(1)) ? day(2) : day(1)
   return (
     <>
       <PageHeader title={date.getTime() === day(0).getTime() ? "Today's attendance sheet" : `Attendance sheet ${fmtWeekday(date)}`} crumb="Delivery attendance" sub="Print at 3 AM. After delivery, write the attendance on the paper. Sales enters it in the dashboard after 9 AM.">
+        <Link href={`${self}&leave=1`} scroll={false} className="btn-secondary">Mark leave</Link>
         <a href={`/print/sheet?${q}`} target="_blank" rel="noreferrer" className="btn">Print all regions</a>
       </PageHeader>
+      <ErrorNote error={sp.error} />
+      {sp.leave && sp.leave !== '1' && <Callout>{sp.leave}</Callout>}
       <div className="flex flex-wrap items-center gap-2.5">
         {groups.length > 0 && <Tabs items={groups.map(([n, rs]) => ({ label: `${n} ${rs.length}`, href: `/kitchen/sheet?${q}&region=${encodeURIComponent(n)}`, active: n === region?.[0] }))} />}
         <div className="flex-1" />
@@ -65,7 +72,37 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
           </table>
         )}
       </section>
+      {(onLeave.length > 0 || sheet.paused.length > 0) && (
+        <section className="card overflow-x-auto">
+          <div className="px-5 py-4">
+            <h2 className="font-display text-lg font-semibold">On leave · not packed · {onLeave.length + sheet.paused.length}</h2>
+            <p className="text-[13px] text-muted">Not on the sheet for {fmtWeekday(date)}. The day is added to the end of their pack.</p>
+          </div>
+          <table className="w-full">
+            <thead><tr><th className="th">Customer</th><th className="th">Region</th><th className="th">Leave</th><th className="th"></th></tr></thead>
+            <tbody>
+              {onLeave.map((r) => (
+                <tr key={r.pkg.id}>
+                  <td className="td"><Link href={`/customers/${r.lead.id}`} className="font-semibold hover:underline">{r.lead.name}</Link></td>
+                  <td className="td">{r.lead.region?.name ?? '—'}</td>
+                  <td className="td"><Chip label="Absent this day" tone="warn" /></td>
+                  <td className="td"><div className="flex justify-end">{date >= day(0) && <CancelLeave leadId={r.lead.id} date={dayInput(date)} back={self} />}</div></td>
+                </tr>
+              ))}
+              {sheet.paused.map((l) => (
+                <tr key={l.id}>
+                  <td className="td"><Link href={`/customers/${l.id}`} className="font-semibold hover:underline">{l.name}</Link></td>
+                  <td className="td">{l.region?.name ?? '—'}</td>
+                  <td className="td"><Chip label={l.pausedUntil ? `Paused till ${fmtWeekday(l.pausedUntil)}` : 'Paused'} tone="muted" /></td>
+                  <td className="td"></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
       <Callout tone="sky">Blue = alternative box today. Orange tag = fruit swap from the menu. Trial boxes and customers on leave are printed at the bottom of the sheet.</Callout>
+      {sp.leave === '1' && <LeaveDrawer customers={running.map((r) => ({ id: r.pkg.lead.id, name: r.pkg.lead.name, phone: r.pkg.lead.phone, region: r.pkg.lead.region?.name ?? null }))} date={dayInput(date > day(0) ? date : tomorrow)} close={self} self={`${self}&leave=1`} />}
     </>
   )
 }
