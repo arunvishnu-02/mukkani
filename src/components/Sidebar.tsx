@@ -31,6 +31,10 @@ export function Sidebar({ section, items, user, logout }: { section: string; ite
         <div className="px-2 pb-5">
           <Image src="/mukkani-logo.png" alt="Mukkani" width={150} height={72} priority />
         </div>
+        <form action="/search" role="search" className="relative mb-3">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-side-muted"><circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5" /><path d="m10.5 10.5 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+          <input name="q" type="search" aria-label="Search every person" placeholder="Search name or phone" className={`input py-2 text-[13px] ${path === '/search' ? 'border-brand' : ''}`} style={{ paddingLeft: 32 }} />
+        </form>
         <div className="px-2 pb-1.5 text-[11px] font-semibold tracking-widest text-side-muted uppercase">{section}</div>
         {items.map((it, i) => {
           const on = isActive(it.href)
