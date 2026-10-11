@@ -25,11 +25,19 @@ function done(path: string): never {
 const MAX_UPLOAD = 5 * 1024 * 1024
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'application/pdf']
 
+const MAX_BILLS = 6
+
+const picked = (file: FormDataEntryValue | null): file is File => file instanceof File && file.size > 0
+
+function checkUpload(file: File, self: string) {
+  if (file.size > MAX_UPLOAD) fail(self, `${file.name} is larger than 5 MB`)
+  if (!IMAGE_TYPES.includes(file.type)) fail(self, 'Upload a photo (JPG, PNG) or a PDF')
+}
+
 // Saves an uploaded photo in the database. Returns null when no file was picked.
 async function saveUpload(file: FormDataEntryValue | null, kind: string, self: string) {
-  if (!(file instanceof File) || file.size === 0) return null
-  if (file.size > MAX_UPLOAD) fail(self, 'The photo is larger than 5 MB')
-  if (!IMAGE_TYPES.includes(file.type)) fail(self, 'Upload a photo (JPG, PNG) or a PDF')
+  if (!picked(file)) return null
+  checkUpload(file, self)
   const up = await db.upload.create({
     data: { kind, name: file.name.slice(0, 180), mime: file.type, size: file.size, data: new Uint8Array(await file.arrayBuffer()) },
   })
@@ -104,7 +112,15 @@ export async function saveMoneyEntry(form: FormData) {
   const amount = Number(s(form, 'amount'))
   if (!item) fail(self, 'Enter what was bought or paid for')
   if (!(amount > 0)) fail(self, 'Enter the amount')
-  const billId = await saveUpload(form.get('bill'), 'bill', self)
+  const old = id ? await db.moneyEntry.findUniqueOrThrow({ where: { id } }) : null
+  const remove = form.getAll('removeBill').map(String).filter((x) => old?.billIds.includes(x))
+  const keep = (old?.billIds ?? []).filter((x) => !remove.includes(x))
+  const files = form.getAll('bill').filter(picked)
+  if (keep.length + files.length > MAX_BILLS) fail(self, `An entry can have up to ${MAX_BILLS} bill photos`)
+  for (const f of files) checkUpload(f, self)
+  const added: string[] = []
+  for (const f of files) added.push((await saveUpload(f, 'bill', self))!)
+  const billIds = [...keep, ...added]
   const data = {
     date: s(form, 'date') ? parseDay(s(form, 'date')!) : day(0),
     type: s(form, 'type') === 'EXPENSE' ? ('EXPENSE' as const) : ('PURCHASE' as const),
@@ -115,11 +131,10 @@ export async function saveMoneyEntry(form: FormData) {
     paidTo: s(form, 'paidTo'),
   }
   if (id) {
-    const old = await db.moneyEntry.findUniqueOrThrow({ where: { id } })
-    await db.moneyEntry.update({ where: { id }, data: { ...data, ...(billId ? { billId } : {}) } })
-    if (billId && old.billId) await db.upload.deleteMany({ where: { id: old.billId } })
+    await db.moneyEntry.update({ where: { id }, data: { ...data, billIds } })
+    if (remove.length) await db.upload.deleteMany({ where: { id: { in: remove }, kind: 'bill' } })
   } else {
-    await db.moneyEntry.create({ data: { ...data, billId, byId: user.id } })
+    await db.moneyEntry.create({ data: { ...data, billIds, byId: user.id } })
   }
   done(back(form, '/admin/money'))
 }
@@ -127,9 +142,9 @@ export async function saveMoneyEntry(form: FormData) {
 export async function deleteMoneyEntries(form: FormData) {
   await requireUser(['ADMIN'])
   const ids = form.getAll('ids').map(String).filter(Boolean)
-  const rows = await db.moneyEntry.findMany({ where: { id: { in: ids } }, select: { billId: true } })
+  const rows = await db.moneyEntry.findMany({ where: { id: { in: ids } }, select: { billIds: true } })
   await db.moneyEntry.deleteMany({ where: { id: { in: ids } } })
-  const bills = rows.map((r) => r.billId).filter((x): x is string => !!x)
+  const bills = rows.flatMap((r) => r.billIds)
   if (bills.length) await db.upload.deleteMany({ where: { id: { in: bills } } })
   done(back(form, '/admin/money'))
 }

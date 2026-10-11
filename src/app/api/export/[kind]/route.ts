@@ -48,7 +48,7 @@ export async function GET(req: Request, ctx: RouteContext<'/api/export/[kind]'>)
   } else if (kind === 'money') {
     const money = await db.moneyEntry.findMany({ where: { date: range }, orderBy: { date: 'asc' } })
     head = ['Date', 'Type', 'Item', 'Category', 'Quantity', 'Amount', 'Paid to', 'Bill photo']
-    rows = money.map((m) => [d(m.date), m.type === 'PURCHASE' ? 'Purchase' : 'Expense', m.item, m.category, m.quantity, m.amount, m.paidTo, m.billId ? 'Yes' : 'No'])
+    rows = money.map((m) => [d(m.date), m.type === 'PURCHASE' ? 'Purchase' : 'Expense', m.item, m.category, m.quantity, m.amount, m.paidTo, m.billIds.length ? 'Yes' : 'No'])
   } else if (kind === 'wastage') {
     const w = await db.wastage.findMany({ where: { date: range }, orderBy: [{ date: 'asc' }, { fruit: 'asc' }] })
     head = ['Date', 'Fruit', 'Cut (kg)', 'Waste (kg)', 'Reason']

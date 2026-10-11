@@ -6,8 +6,10 @@ import { MONEY_CATEGORIES, rupees } from '@/lib/labels'
 import { period } from '@/lib/report'
 import { Chip, Drawer, Empty, ErrorNote, PageHeader, Pills, Tabs, Tile, Tiles } from '@/components/ui'
 import { BulkBar, RowCheck, SelectAll } from '@/components/Bulk'
-import { BillPhoto } from '@/components/BillPhoto'
+import { BillPhotos } from '@/components/BillPhotos'
 import { deleteMoneyEntries } from '../actions'
+
+const MAX_BILLS = 6
 
 // Purchase and expense entries with the bill photo (admin only).
 export default async function Money({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -30,7 +32,8 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
   }
   const back = qs({})
   const edit = sp.edit ? entries.find((e) => e.id === sp.edit) ?? (await db.moneyEntry.findUnique({ where: { id: sp.edit } })) : null
-  const bill = edit?.billId ? await db.upload.findUnique({ where: { id: edit.billId }, select: { id: true, mime: true } }) : null
+  const mimes = edit?.billIds.length ? await db.upload.findMany({ where: { id: { in: edit.billIds } }, select: { id: true, mime: true } }) : []
+  const bills = (edit?.billIds ?? []).map((id) => ({ id, isImage: mimes.find((m) => m.id === id)?.mime.startsWith('image/') ?? true }))
   const open = sp.add === '1' || !!edit
   const self = edit ? qs({ edit: edit.id }) : qs({ add: '1' })
   return (
@@ -44,7 +47,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
         <Tile label="Purchases" value={rupees(sum('PURCHASE'))} sub={p.label} />
         <Tile label="Expenses" value={rupees(sum('EXPENSE'))} sub={p.label} />
         <Tile label="Total spent" value={rupees(sum('PURCHASE') + sum('EXPENSE'))} tone="red" />
-        <Tile label="Entries" value={all.length} sub={`${entries.filter((e) => !e.billId).length} without a bill photo`} tone="warn" />
+        <Tile label="Entries" value={all.length} sub={`${entries.filter((e) => e.billIds.length === 0).length} without a bill photo`} tone="warn" />
       </Tiles>
       <section className="card overflow-x-auto">
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
@@ -70,7 +73,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
                   <td className="td">{e.quantity ?? '—'}</td>
                   <td className="td">{e.paidTo ?? '—'}</td>
                   <td className="td text-right font-semibold">{rupees(e.amount)}</td>
-                  <td className="td">{e.billId ? <a href={`/api/files/${e.billId}`} target="_blank" rel="noreferrer" className="font-semibold text-brand">View</a> : <span className="text-muted">—</span>}</td>
+                  <td className="td">{e.billIds.length === 0 ? <span className="text-muted">—</span> : <span className="flex gap-2">{e.billIds.map((b, i) => <a key={b} href={`/api/files/${b}`} target="_blank" rel="noreferrer" className="font-semibold text-brand">{e.billIds.length === 1 ? 'View' : i + 1}</a>)}</span>}</td>
                   <td className="td"><Link href={qs({ edit: e.id })} className="btn-secondary btn-sm">Edit</Link></td>
                 </tr>
               ))}
@@ -80,7 +83,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
       </section>
       <BulkBar formId="bulk-money" action={deleteMoneyEntries} confirmText="Delete {n} entries and their bill photos? This cannot be undone." />
       {open && (
-        <Drawer title={edit ? 'Edit entry' : 'Add purchase or expense'} sub="Take a photo of the bill so it is never lost" close={back}>
+        <Drawer title={edit ? 'Edit entry' : 'Add purchase or expense'} sub="Take photos of the bill so it is never lost" close={back}>
           <form action="/api/form/money" method="post" encType="multipart/form-data" className="space-y-3.5">
             <input type="hidden" name="id" value={edit?.id ?? ''} />
             <input type="hidden" name="back" value={back} />
@@ -97,7 +100,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
               <div><label className="label">Amount (Rs) *</label><input name="amount" type="number" min="1" step="1" required className="input" defaultValue={edit?.amount} /></div>
             </div>
             <div><label className="label">Paid to</label><input name="paidTo" className="input" defaultValue={edit?.paidTo ?? ''} placeholder="Shop or person" /></div>
-            <BillPhoto saved={bill ? { id: bill.id, isImage: bill.mime.startsWith('image/') } : null} />
+            <BillPhotos saved={bills} max={MAX_BILLS} />
             <div className="flex gap-2.5 pt-1"><Link href={back} className="btn-secondary flex-1">Cancel</Link><button className="btn flex-1">Save</button></div>
           </form>
         </Drawer>
