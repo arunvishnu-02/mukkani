@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { db } from '@/lib/db'
 import { requireUser } from '@/lib/auth'
-import { day, parseDay } from '@/lib/dates'
+import { day, isDay, parseDay } from '@/lib/dates'
 import { log, logCustomerCall, markRenewalPaid, setCustomerStatus } from '@/lib/workflow'
 import { WASTE_REASONS } from '@/lib/labels'
 
@@ -13,7 +13,7 @@ const s = (f: FormData, k: string) => {
   const v = String(f.get(k) ?? '').trim()
   return v === '' ? null : v
 }
-const date = (f: FormData, k: string) => (s(f, k) ? parseDay(s(f, k)!) : null)
+const date = (f: FormData, k: string) => (isDay(s(f, k)) ? parseDay(s(f, k)!) : null)
 const back = (f: FormData, fallback: string) => s(f, 'back') ?? fallback
 const kg = (v: string | null) => (v == null ? null : z.coerce.number().min(0).max(10000).parse(v))
 

@@ -10,8 +10,14 @@ export function day(offsetDays = 0): Date {
   return new Date(`${todayKey(offsetDays)}T00:00:00Z`)
 }
 
+// True for a real calendar date written as YYYY-MM-DD.
+export function isDay(s: string | null | undefined): s is string {
+  return !!s && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(new Date(`${s}T00:00:00Z`).getTime())
+}
+
+// Anything that is not a date (a mistyped address, a broken form value) reads as today instead of crashing the page.
 export function parseDay(s: string): Date {
-  return new Date(`${s}T00:00:00Z`)
+  return isDay(s) ? new Date(`${s}T00:00:00Z`) : day(0)
 }
 
 export function dayInput(d: Date | null | undefined): string {

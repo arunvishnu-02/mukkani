@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { db } from '@/lib/db'
 import { requireUser } from '@/lib/auth'
-import { day, fmtWeekday, parseDay } from '@/lib/dates'
+import { day, fmtWeekday, isDay, parseDay } from '@/lib/dates'
 import { getSettings } from '@/lib/settings'
 import { fill, firstName, waLink } from '@/lib/whatsapp'
 import { packagePlan } from '@/lib/queries'
@@ -27,7 +27,7 @@ const s = (f: FormData, k: string) => {
   const v = String(f.get(k) ?? '').trim()
   return v === '' ? null : v
 }
-const date = (f: FormData, k: string) => (s(f, k) ? parseDay(s(f, k)!) : null)
+const date = (f: FormData, k: string) => (isDay(s(f, k)) ? parseDay(s(f, k)!) : null)
 const back = (f: FormData, fallback: string) => s(f, 'back') ?? fallback
 const withError = (url: string, e: unknown) => {
   if (!(e instanceof FlowError)) throw e
