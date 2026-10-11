@@ -12,6 +12,8 @@ const REGIONS: [string, number, number][] = [
 // Runs when the server starts, so a fresh database (e.g. on Hostinger) gets the regions and a first admin
 // without anyone running a seed command. It only creates what is missing and never changes existing data.
 export async function bootstrap() {
+  // Open a few database connections now, so the first person to click after this process starts does not wait for them.
+  await Promise.all([1, 2, 3, 4].map(() => db.$queryRaw`SELECT 1`)).catch(() => {})
   if ((await db.region.count()) === 0) await db.region.createMany({ data: REGIONS.map(([name, lat, lng]) => ({ name, lat, lng })) })
   const pw = process.env.ADMIN_PASSWORD
   if (pw && (await db.user.count({ where: { role: 'ADMIN' } })) === 0) {
