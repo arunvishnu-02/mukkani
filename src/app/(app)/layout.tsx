@@ -27,16 +27,18 @@ const KITCHEN: NavItem[] = [
   { href: '/kitchen/staff', label: 'Staff tracking', icon: 'idcard' },
 ]
 const REPORTS: NavItem = { href: '/reports', label: 'Monthly reports', icon: 'report' }
+const ALL_REPORTS: NavItem = { href: '/report', label: 'All reports', icon: 'chart' }
 
 const NAV: Record<string, NavItem[]> = {
-  SALES: [{ href: '/dashboard', label: 'Dashboard', icon: 'dashboard' }, { href: '/calendar', label: 'Calendar', icon: 'calendar' }, ...SALES, REPORTS],
-  KITCHEN: [{ href: '/kitchen', label: 'Dashboard', icon: 'dashboard' }, { href: '/calendar', label: 'Calendar', icon: 'calendar' }, ...KITCHEN, REPORTS],
+  SALES: [{ href: '/dashboard', label: 'Dashboard', icon: 'dashboard' }, { href: '/calendar', label: 'Calendar', icon: 'calendar' }, ...SALES, REPORTS, ALL_REPORTS],
+  KITCHEN: [{ href: '/kitchen', label: 'Dashboard', icon: 'dashboard' }, { href: '/calendar', label: 'Calendar', icon: 'calendar' }, ...KITCHEN, REPORTS, ALL_REPORTS],
   ADMIN: [
     { href: '/admin', label: 'Overview', icon: 'chart' },
     { href: '/calendar', label: 'Calendar', icon: 'calendar' },
     ...SALES.map((x) => ({ ...x, group: 'Sales' })),
     ...[...KITCHEN.filter((x) => x.href !== '/kitchen/customers' && x.href !== '/menu'), REPORTS].map((x) => ({ ...x, group: 'Kitchen' })),
     { href: '/admin/reports', label: 'Reports', icon: 'chart', group: 'Business' },
+    { ...ALL_REPORTS, group: 'Business' },
     { href: '/admin/money', label: 'Purchase + expenses', icon: 'money', group: 'Business' },
     { href: '/admin/dues', label: 'Dues', icon: 'wallet', group: 'Business' },
     { href: '/admin/users', label: 'Team + regions', icon: 'team', group: 'Business' },
