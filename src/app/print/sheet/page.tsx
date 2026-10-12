@@ -90,7 +90,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
                 [rows.length, 'Boxes', 'bg-brand-soft'],
                 [bm, 'Add-on drink', 'bg-[#fbe4ef]'],
                 [trials.length, 'Trial box', 'bg-tur-soft'],
-                [swaps, 'Fruit swaps', 'bg-red-soft'],
+                [swaps, 'Customizations', 'bg-red-soft'],
               ].map(([n, l, c]) => (
                 <div key={l as string} className={`flex items-center gap-2 rounded-xl px-3 py-2 ${c}`}>
                   <span className="font-display text-xl font-bold">{n}</span><span className="text-[10px] font-bold tracking-wide uppercase">{l}</span>

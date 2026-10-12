@@ -22,14 +22,14 @@ export default async function KitchenBoxes({ searchParams }: { searchParams: Pro
         <Tile big label="Boxes" value={sheet.boxes} />
         <Tile big label="Monthly" value={sheet.monthly} tone="leaf" />
         <Tile big label="Trial" value={sheet.trials.length} tone="sky" />
-        <Tile big label="Swaps" value={sheet.swapCount} tone="warn" />
+        <Tile big label="Customizations" value={sheet.swapCount} tone="warn" />
         <Tile big label="Absent" value={sheet.rows.length - going.length} sub="not packed" tone="muted" />
       </Tiles>
       {sheet.trials.length > 0 && (
         <section className="card overflow-x-auto">
           <div className="px-5 py-4"><h2 className="font-display text-lg font-semibold">Trial boxes · {sheet.trials.length}</h2></div>
           <table className="w-full">
-            <thead><tr><th className="th">Customer</th><th className="th">Region</th><th className="th">Slot</th><th className="th">Swap</th><th className="th">Notes</th></tr></thead>
+            <thead><tr><th className="th">Customer</th><th className="th">Region</th><th className="th">Slot</th><th className="th">Customization</th><th className="th">Notes</th></tr></thead>
             <tbody>
               {sheet.trials.map(({ trial, swap }) => (
                 <tr key={trial.id}>
@@ -49,7 +49,7 @@ export default async function KitchenBoxes({ searchParams }: { searchParams: Pro
         <section key={name} className="card overflow-x-auto">
           <div className="px-5 py-4"><h2 className="font-display text-lg font-semibold">{name} · {rows.length}</h2></div>
           <table className="w-full">
-            <thead><tr><th className="th">#</th><th className="th">Customer</th><th className="th">Time</th><th className="th">Day</th><th className="th">Swap</th><th className="th">Drink</th><th className="th">Alt box</th><th className="th">Address</th></tr></thead>
+            <thead><tr><th className="th">#</th><th className="th">Customer</th><th className="th">Time</th><th className="th">Day</th><th className="th">Customization</th><th className="th">Drink</th><th className="th">Alt box</th><th className="th">Address</th></tr></thead>
             <tbody>
               {rows.map((r, i) => (
                 <tr key={r.pkg.id} className={r.altBox ? 'bg-sky-soft' : ''}>

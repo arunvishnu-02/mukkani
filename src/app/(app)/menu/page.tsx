@@ -33,12 +33,12 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
         <Tabs items={[{ label: 'Tomorrow', href: '/menu', active: tab === 'tomorrow' }, { label: 'This week', href: '/menu?tab=week', active: tab === 'week' }, { label: 'Past menus', href: '/menu?tab=past', active: tab === 'past' }]} />
       </PageHeader>
       <ErrorNote error={sp.error} />
-      {sp.saved && <Callout>Menu saved. The kitchen sheet now shows who needs a swap.</Callout>}
+      {sp.saved && <Callout>Menu saved. The kitchen sheet now shows who needs customization.</Callout>}
       {tab !== 'tomorrow' ? (
         <section className="card overflow-x-auto">
           {menus.length === 0 ? <Empty>No menus here yet.</Empty> : (
             <table className="w-full">
-              <thead><tr><th className="th">Date</th><th className="th">Fruits</th><th className="th">Salad</th><th className="th">Swap fruits</th><th className="th"></th></tr></thead>
+              <thead><tr><th className="th">Date</th><th className="th">Fruits</th><th className="th">Salad</th><th className="th">Customization fruits</th><th className="th"></th></tr></thead>
               <tbody>
                 {menus.map((m) => (
                   <tr key={m.id}>
@@ -59,8 +59,8 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
           </div>
           <Tiles cols={4}>
             <Tile label={date.getTime() === day(0).getTime() ? 'Boxes today' : 'Boxes that day'} value={sheet.boxes} sub={`Monthly ${sheet.monthly} · Trial ${sheet.trials.length}`} />
-            <Tile label="Need a swap" value={swaps.length} sub="can't have a fruit on the menu" tone="warn" />
-            <Tile label="No swap" value={Math.max(0, sheet.boxes - swaps.length)} sub="get the menu as it is" tone="leaf" />
+            <Tile label="Need customization" value={swaps.length} sub="can't have a fruit on the menu" tone="warn" />
+            <Tile label="No customization" value={Math.max(0, sheet.boxes - swaps.length)} sub="get the menu as it is" tone="leaf" />
             <Tile label="Add-on drink" value={sheet.buttermilk} sub={isButtermilkDay(date) ? 'bottles that day' : 'Mon, Wed, Fri only'} tone="sky" />
           </Tiles>
           <div className="grid items-start gap-4 lg:grid-cols-[440px_1fr]">
@@ -72,7 +72,7 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
                   <div><span className="label">Fruits *</span><Checks name="fruits" options={st.fruits} values={splitList(menu?.fruits)} /></div>
                   <div><label className="label">Salad</label><input name="salad" className="input" defaultValue={menu?.salad ?? ''} placeholder="For example: sprouts salad with cucumber and carrot" /></div>
                   <div>
-                    <span className="label">Swap fruits (given instead)</span>
+                    <span className="label">Customization fruits (given instead)</span>
                     <Checks name="swapFruits" options={st.fruits} values={splitList(menu?.swapFruits)} />
                     <p className="mt-1.5 text-xs text-muted">Customers who cannot have a menu fruit get one of these instead.</p>
                   </div>
@@ -83,7 +83,7 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
                 <div className="space-y-2 text-sm">
                   <div><span className="font-semibold">Fruits:</span> {menu.fruits}</div>
                   <div><span className="font-semibold">Salad:</span> {menu.salad ?? '—'}</div>
-                  <div><span className="font-semibold">Swap fruits:</span> {menu.swapFruits || '—'}</div>
+                  <div><span className="font-semibold">Customization fruits:</span> {menu.swapFruits || '—'}</div>
                   {menu.note && <div><span className="font-semibold">Note:</span> {menu.note}</div>}
                 </div>
               ) : (
@@ -93,19 +93,19 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
             <div className="space-y-4">
               <section className="card overflow-x-auto">
                 <div className="px-5 py-4">
-                  <h2 className="font-display text-lg font-semibold">Customers who need a swap</h2>
+                  <h2 className="font-display text-lg font-semibold">Customers who need customization</h2>
                   <p className="text-[13px] text-muted">Found by matching the menu with each customer&apos;s foods to avoid and health notes</p>
                 </div>
-                {!menu ? <Empty>Save the menu to see the swap list.</Empty> : swaps.length === 0 ? <Empty>Nobody needs a swap for this menu.</Empty> : (
+                {!menu ? <Empty>Save the menu to see the customization list.</Empty> : swaps.length === 0 ? <Empty>Nobody needs customization for this menu.</Empty> : (
                   <table className="w-full">
-                    <thead><tr><th className="th">Customer</th><th className="th">Avoids</th><th className="th">In menu</th><th className="th">Swap to</th></tr></thead>
+                    <thead><tr><th className="th">Customer</th><th className="th">Avoids</th><th className="th">In menu</th><th className="th">Customized to</th></tr></thead>
                     <tbody>
                       {swaps.map(({ lead, swap }) => (
                         <tr key={lead.id}>
                           <td className="td"><Who name={lead.name} sub={lead.region?.name ?? lead.phone} href={`/customers/${lead.id}`} /></td>
                           <td className="td text-muted">{[lead.avoidFoods, lead.healthNotes].filter(Boolean).join(' · ')}</td>
                           <td className="td">{swap.avoids.join(', ')}</td>
-                          <td className="td">{swap.swapTo ? <Chip label={swap.swapTo} tone="brand" /> : <Chip label="Add a swap fruit" tone="red" />}</td>
+                          <td className="td">{swap.swapTo ? <Chip label={swap.swapTo} tone="brand" /> : <Chip label="Add a customization fruit" tone="red" />}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -113,7 +113,7 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
                 )}
               </section>
               {totals.length > 0 && (
-                <Card title="Swap fruit to prepare" sub="The kitchen uses this count for production">
+                <Card title="Customization fruit to prepare" sub="The kitchen uses this count for production">
                   <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                     {totals.map(([f, n]) => (
                       <div key={f} className="rounded-[10px] bg-brand-soft px-3.5 py-3">

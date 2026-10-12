@@ -46,7 +46,7 @@ export default async function KitchenDashboard() {
         <Tile big label="Boxes today" value={sheet.boxes} sub="production count" />
         <Tile big label="Monthly" value={sheet.monthly} tone="leaf" />
         <Tile big label="Trial" value={sheet.trials.length} tone="sky" />
-        <Tile big label="Need a swap" value={sheet.swapCount} sub="from the menu" tone="warn" />
+        <Tile big label="Need customization" value={sheet.swapCount} sub="from the menu" tone="warn" />
         <Tile big label="Add-on drink" value={sheet.buttermilk} sub="Mon, Wed, Fri" tone="brand" />
         <Tile big label="Calls today" value={calls.length} sub={`${calls.filter((c) => c.renewal).length} renewal`} tone="red" />
       </Tiles>
@@ -59,7 +59,7 @@ export default async function KitchenDashboard() {
             </div>
             {allRegions.length === 0 ? <Empty>No boxes today.</Empty> : (
               <table className="w-full">
-                <thead><tr><th className="th">Region</th><th className="th">Monthly</th><th className="th">Trial</th><th className="th">Swaps</th><th className="th">Add-on drink</th><th className="th">Total</th><th className="th"></th></tr></thead>
+                <thead><tr><th className="th">Region</th><th className="th">Monthly</th><th className="th">Trial</th><th className="th">Customizations</th><th className="th">Add-on drink</th><th className="th">Total</th><th className="th"></th></tr></thead>
                 <tbody>
                   {allRegions.map((name) => {
                     const m = regions.find((r) => r[0] === name)?.[1] ?? []
@@ -83,8 +83,8 @@ export default async function KitchenDashboard() {
           </Card>
         </div>
         <div className="space-y-4">
-          <Card title="Swap fruit to prepare" sub="Customers who can't have a fruit on today's menu">
-            {swaps.length === 0 ? <p className="text-sm text-muted">{sheet.menu ? 'No swaps today.' : 'No menu was added for today.'}</p> : (
+          <Card title="Customization fruit to prepare" sub="Customers who can't have a fruit on today's menu">
+            {swaps.length === 0 ? <p className="text-sm text-muted">{sheet.menu ? 'No customizations today.' : 'No menu was added for today.'}</p> : (
               <div className="grid grid-cols-2 gap-2">
                 {swaps.map(([f, n]) => <div key={f} className="rounded-lg bg-brand-soft px-3 py-2"><div className="text-xs text-muted">{f}</div><div className="font-display text-xl font-bold text-brand">{n} box{n > 1 ? 'es' : ''}</div></div>)}
               </div>

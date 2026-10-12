@@ -169,11 +169,11 @@ export const REPORTS: Record<string, Report> = {
   },
   menu: {
     title: 'Daily menu',
-    about: 'The fruits, salad and swap fruits of each day',
+    about: 'The fruits, salad and customization fruits of each day',
     group: 'Kitchen',
     roles: ['SALES', 'KITCHEN'],
     date: 'Date',
-    columns: [{ key: 'date', label: 'Date', type: 'date' }, { key: 'fruits', label: 'Fruits' }, { key: 'salad', label: 'Salad' }, { key: 'swap', label: 'Swap fruits' }, { key: 'note', label: 'Note for kitchen' }],
+    columns: [{ key: 'date', label: 'Date', type: 'date' }, { key: 'fruits', label: 'Fruits' }, { key: 'salad', label: 'Salad' }, { key: 'swap', label: 'Customization fruits' }, { key: 'note', label: 'Note for kitchen' }],
     kpi: async (r) => {
       const [n, next] = await Promise.all([db.menu.count({ where: { date: within(r) } }), db.menu.findFirst({ where: { date: { gte: r.to } }, orderBy: { date: 'asc' } })])
       return { value: n, label: 'days with a menu', sub: next ? `Next menu added: ${next.fruits}` : 'Next menu not added yet', tone: next ? 'brand' : 'warn' }

@@ -54,7 +54,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
       </div>
       <Tiles cols={5}>
         <Tile label="Boxes" value={sheet.boxes} sub={fmtWeekday(date)} />
-        <Tile label="Need a swap" value={sheet.swapCount} sub={sheet.menu ? "from yesterday's menu" : 'no menu added'} tone="warn" />
+        <Tile label="Need customization" value={sheet.swapCount} sub={sheet.menu ? "from yesterday's menu" : 'no menu added'} tone="warn" />
         <Tile label="Alternative boxes" value={sheet.altBoxes} sub="blue rows on the sheet" tone="sky" />
         <Tile label="Add-on drink" value={sheet.buttermilk} sub="Mon, Wed, Fri" tone="leaf" />
         <Tile label="Entered by sales" value={`${sheet.entered} of ${sheet.rows.length + sheet.trials.length}`} sub="after 9 AM" tone="brand" />
@@ -96,7 +96,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
                   <td className="td">{i + 1}</td>
                   <td className="td">
                     <Link href={`/customers/${r.lead.id}`} className="font-semibold hover:underline">{r.lead.name}</Link>
-                    {r.swap?.swapTo && <span className="ml-1.5"><Chip label={`Swap: ${r.swap.swapTo}`} tone="warn" /></span>}
+                    {r.swap?.swapTo && <span className="ml-1.5"><Chip label={`Customization: ${r.swap.swapTo}`} tone="warn" /></span>}
                     {r.isNew && <span className="ml-1.5"><Chip label="New" tone="leaf" /></span>}
                     {r.altBox && <span className="ml-1.5 text-[11px] font-bold text-sky">ALT BOX</span>}
                   </td>
@@ -139,7 +139,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
           </table>
         </section>
       )}
-      <Callout tone="sky">Blue = alternative box today. Orange tag = fruit swap from the menu. Trial boxes and customers on leave are printed at the bottom of the sheet.</Callout>
+      <Callout tone="sky">Blue = alternative box today. Orange tag = fruit customization from the menu. Trial boxes and customers on leave are printed at the bottom of the sheet.</Callout>
       {sp.leave === '1' && <LeaveDrawer customers={running.map((r) => ({ id: r.pkg.lead.id, name: r.pkg.lead.name, phone: r.pkg.lead.phone, region: r.pkg.lead.region?.name ?? null }))} date={dayInput(date > day(0) ? date : tomorrow)} close={self} self={`${self}&leave=1`} />}
     </>
   )

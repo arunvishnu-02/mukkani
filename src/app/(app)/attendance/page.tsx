@@ -36,7 +36,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
       time: r.lead.deliveryTime ?? r.lead.slot,
       tags: [
         ...(r.isNew ? ([['NEW', 'leaf']] as Row['tags']) : []),
-        ...(r.swap?.swapTo ? ([[`Swap: ${r.swap.swapTo}`, 'warn']] as Row['tags']) : []),
+        ...(r.swap?.swapTo ? ([[`Customization: ${r.swap.swapTo}`, 'warn']] as Row['tags']) : []),
         [`Day ${r.dayNo ?? '-'}`, 'brand'],
       ] as Row['tags'],
       bm: r.bm,
@@ -52,7 +52,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
       leadId: t.trial.leadId,
       name: t.trial.lead.name,
       time: t.trial.lead.deliveryTime ?? t.trial.slot,
-      tags: [['TRIAL', 'sky'] as Row['tags'][number], ...(t.swap?.swapTo ? ([[`Swap: ${t.swap.swapTo}`, 'warn']] as Row['tags']) : [])],
+      tags: [['TRIAL', 'sky'] as Row['tags'][number], ...(t.swap?.swapTo ? ([[`Customization: ${t.swap.swapTo}`, 'warn']] as Row['tags']) : [])],
       bm: 0,
       altBox: null,
       status: t.attendance?.status ?? null,
