@@ -19,8 +19,8 @@ export function PackageFields({ start, regions, slots, regionId, slot, price, bm
           <select name="regionId" className="input" defaultValue={regionId ?? ''}><option value="">Keep current</option>{regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select>
         </div>
         <div>
-          <label className="label">Buttermilk (Rs {bmPrice}/month a bottle)</label>
-          <select name="buttermilkQty" className="input" defaultValue="0"><option value="0">No buttermilk</option><option value="1">1 bottle</option><option value="2">2 bottles</option><option value="3">3 bottles</option></select>
+          <label className="label">Add-on drink (Rs {bmPrice}/month a bottle)</label>
+          <select name="buttermilkQty" className="input" defaultValue="0"><option value="0">No add-on drink</option><option value="1">1 bottle</option><option value="2">2 bottles</option><option value="3">3 bottles</option></select>
         </div>
         <label className="mt-6 flex items-center gap-2 text-sm font-medium"><input type="checkbox" name="pkgPaid" className="size-4 accent-brand" /> Paid</label>
       </div>

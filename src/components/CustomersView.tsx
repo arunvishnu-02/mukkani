@@ -78,7 +78,7 @@ export async function CustomersView({ base, sp, kitchen }: { base: string; sp: R
                     <td className="td">
                       {r ? (
                         <div className="w-36">
-                          <div className="mb-1 text-xs font-semibold">Month {r.pkg.number} · {r.plan.delivered}/26{r.pkg.buttermilkQty ? ' · BM' : ''}</div>
+                          <div className="mb-1 text-xs font-semibold">Month {r.pkg.number} · {r.plan.delivered}/26{r.pkg.buttermilkQty ? ' · Drink' : ''}</div>
                           <Progress value={r.plan.delivered} max={26} />
                         </div>
                       ) : trial && l.status === 'TRIAL' ? (

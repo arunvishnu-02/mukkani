@@ -93,7 +93,7 @@ export default async function CustomerProfile({ params, searchParams }: { params
           {pkg && plan ? (
             <Card
               title={`Package ${pkg.number} of ${lead.packages.length}`}
-              sub={`${rupees(pkg.price)} · 26 deliveries · Mon to Sat${pkg.buttermilkQty ? ` · buttermilk ${pkg.buttermilkQty} bottle${pkg.buttermilkQty > 1 ? 's' : ''}` : ''}`}
+              sub={`${rupees(pkg.price)} · 26 deliveries · Mon to Sat${pkg.buttermilkQty ? ` · add-on drink ${pkg.buttermilkQty} bottle${pkg.buttermilkQty > 1 ? 's' : ''}` : ''}`}
               right={<div className="flex gap-1.5"><StatusChip map={PACKAGE_STATUS} value={pkg.status} />{pkg.paid ? <Chip label="Paid" tone="leaf" /> : <Chip label="Not paid" tone="muted" />}</div>}
             >
               <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
@@ -117,9 +117,9 @@ export default async function CustomerProfile({ params, searchParams }: { params
                   <input type="hidden" name="packageId" value={pkg.id} />
                   <input type="hidden" name="back" value={self} />
                   <div className="w-48">
-                    <label className="label">Buttermilk (Mon, Wed, Fri) · Rs {pkg.buttermilkPrice}/month a bottle</label>
+                    <label className="label">Add-on drink (Mon, Wed, Fri) · Rs {pkg.buttermilkPrice}/month a bottle</label>
                     <select name="qty" className="input" defaultValue={String(pkg.buttermilkQty)}>
-                      <option value="0">No buttermilk</option><option value="1">1 bottle</option><option value="2">2 bottles</option><option value="3">3 bottles</option>
+                      <option value="0">No add-on drink</option><option value="1">1 bottle</option><option value="2">2 bottles</option><option value="3">3 bottles</option>
                     </select>
                   </div>
                   <button className="btn-secondary">Save</button>

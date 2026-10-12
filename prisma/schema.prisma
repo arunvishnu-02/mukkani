@@ -119,6 +119,8 @@ model Lead {
   dob                 DateTime?      @db.Date
   slot                String?
   deliveryTime        String?
+  // Position on the attendance sheet inside the region, set by hand to follow the delivery route. Empty = after the arranged ones.
+  sheetOrder          Int?
   customerStatus      CustomerStatus @default(ACTIVE)
   pausedUntil         DateTime?      @db.Date
   regionId            String? @db.Uuid
@@ -352,4 +354,70 @@ model Activity {
 
   @@index([leadId, createdAt])
   @@index([createdAt])
+}
+
+// Daily issue register (sales): what went wrong, who looks after it and where it stands.
+model Issue {
+  id          String   @id @default(uuid()) @db.Uuid
+  date        DateTime @db.Date
+  department  String
+  issue       String   @db.Text
+  responsible String?
+  status      String   @default("OPEN") // OPEN, IN_PROGRESS, DONE
+  followUp    String?  @db.Text
+  remarks     String?  @db.Text
+  byId        String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+  @@index([status])
+}
+
+// Kitchen and delivery staff the kitchen manager checks every day.
+model Staff {
+  id        String     @id @default(uuid()) @db.Uuid
+  name      String
+  kind      String // KITCHEN or DELIVERY
+  phone     String?
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  days      StaffDay[]
+}
+
+// One staff member on one day: ID card, uniform or dress code, in and out time, on-time pick-up, and for delivery the bike km.
+model StaffDay {
+  id           String   @id @default(uuid()) @db.Uuid
+  staffId      String   @db.Uuid
+  staff        Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  date         DateTime @db.Date
+  idCard       Boolean?
+  uniform      Boolean?
+  onTimePickup Boolean?
+  inTime       String?
+  outTime      String?
+  startKm      Int?
+  endKm        Int?
+  remarks      String?
+  byId         String?  @db.Uuid
+  updatedAt    DateTime @updatedAt
+
+  @@unique([staffId, date])
+  @@index([date])
+}
+
+// Money the business has to pay on a date: rent, salary, bank dues. Admin only.
+model Due {
+  id            String    @id @default(uuid()) @db.Uuid
+  kind          String // RENT, SALARY, BANK, OTHER
+  title         String
+  amount        Int
+  dueDate       DateTime  @db.Date
+  repeatMonthly Boolean   @default(false)
+  paidAt        DateTime?
+  note          String?   @db.Text
+  byId          String?   @db.Uuid
+  createdAt     DateTime  @default(now())
+
+  @@index([dueDate])
 }

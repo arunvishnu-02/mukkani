@@ -35,7 +35,7 @@ export async function GET(req: Request, ctx: RouteContext<'/api/export/[kind]'>)
     rows = leads.map((l) => [l.name, l.phone, LEAD_STATUS[l.status][0], l.notInterestedReason, SOURCE[l.source], l.region?.name, l.address, l.slot, l.deliveryTime, l.avoidFoods, l.healthNotes, d(l.dob), l.owner?.name, d(l.nextFollowUpAt), d(l.createdAt)])
   } else if (kind === 'packages') {
     const pkgs = await db.package.findMany({ where: { startDate: { lt: to } }, include: { lead: { include: { region: true } } }, orderBy: { startDate: 'desc' } })
-    head = ['Customer', 'Phone', 'Region', 'Month no.', 'Start date', 'Status', 'Price', 'Buttermilk bottles', 'Buttermilk price', 'Paid', 'Paid on']
+    head = ['Customer', 'Phone', 'Region', 'Month no.', 'Start date', 'Status', 'Price', 'Add-on drink bottles', 'Add-on drink price', 'Paid', 'Paid on']
     rows = pkgs.map((p) => [p.lead.name, p.lead.phone, p.lead.region?.name, p.number, d(p.startDate), PACKAGE_STATUS[p.status][0], p.price, p.buttermilkQty, p.buttermilkQty * p.buttermilkPrice, p.paid, d(p.paidAt)])
   } else if (kind === 'trials') {
     const trials = await db.trialBox.findMany({ where: { deliveryDate: range }, include: { lead: { include: { region: true, owner: true } } }, orderBy: { deliveryDate: 'desc' } })
@@ -43,7 +43,7 @@ export async function GET(req: Request, ctx: RouteContext<'/api/export/[kind]'>)
     rows = trials.map((t) => [t.lead.name, t.lead.phone, t.lead.region?.name, d(t.deliveryDate), t.slot, t.price, t.paid, TRIAL_STATUS[t.status][0], t.result ? TRIAL_RESULT[t.result][0] : '', t.feedback, t.lead.owner?.name])
   } else if (kind === 'attendance') {
     const att = await db.attendance.findMany({ where: { date: range }, include: { lead: { include: { region: true } } }, orderBy: [{ date: 'asc' }] })
-    head = ['Date', 'Customer', 'Phone', 'Region', 'Status', 'Buttermilk', 'Box returned', 'Remarks']
+    head = ['Date', 'Customer', 'Phone', 'Region', 'Status', 'Add-on drink', 'Box returned', 'Remarks']
     rows = att.map((a) => [d(a.date), a.lead.name, a.lead.phone, a.lead.region?.name, ATTENDANCE[a.status][0], a.buttermilk, a.boxBack, a.remarks])
   } else if (kind === 'money') {
     const money = await db.moneyEntry.findMany({ where: { date: range }, orderBy: { date: 'asc' } })

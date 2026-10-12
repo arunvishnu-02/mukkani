@@ -49,7 +49,7 @@ export default async function KitchenBoxes({ searchParams }: { searchParams: Pro
         <section key={name} className="card overflow-x-auto">
           <div className="px-5 py-4"><h2 className="font-display text-lg font-semibold">{name} · {rows.length}</h2></div>
           <table className="w-full">
-            <thead><tr><th className="th">#</th><th className="th">Customer</th><th className="th">Time</th><th className="th">Day</th><th className="th">Swap</th><th className="th">BM</th><th className="th">Alt box</th><th className="th">Address</th></tr></thead>
+            <thead><tr><th className="th">#</th><th className="th">Customer</th><th className="th">Time</th><th className="th">Day</th><th className="th">Swap</th><th className="th">Drink</th><th className="th">Alt box</th><th className="th">Address</th></tr></thead>
             <tbody>
               {rows.map((r, i) => (
                 <tr key={r.pkg.id} className={r.altBox ? 'bg-sky-soft' : ''}>

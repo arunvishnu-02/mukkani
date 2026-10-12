@@ -5,6 +5,8 @@ import { ATTENDANCE } from '@/lib/labels'
 import { daySheet, groupByRegion, runningPackages } from '@/lib/queries'
 import { Callout, Chip, Empty, ErrorNote, PageHeader, StatusChip, Tabs, Tile, Tiles } from '@/components/ui'
 import { CancelLeave, LeaveDrawer } from '@/components/Leave'
+import { lateAdds } from '@/lib/kitchen'
+import { saveSheetOrder } from '../../ops-actions'
 import { DateField } from '@/components/DateField'
 
 // Print at 3 AM. After delivery, write the attendance on the paper. Sales enters it after 9 AM.
@@ -12,7 +14,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
   await requireUser(['KITCHEN'])
   const sp = await searchParams
   const date = sp.date ? parseDay(sp.date) : day(0)
-  const [sheet, running] = await Promise.all([daySheet(date), runningPackages(day(0))])
+  const [sheet, running, late] = await Promise.all([daySheet(date), runningPackages(day(0)), lateAdds()])
   const rows = sheet.rows.filter((r) => !r.absent)
   const onLeave = sheet.rows.filter((r) => r.absent)
   const groups = groupByRegion(rows, (r) => r.lead.region?.name)
@@ -29,6 +31,22 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
       </PageHeader>
       <ErrorNote error={sp.error} />
       {sp.leave && sp.leave !== '1' && <Callout>{sp.leave}</Callout>}
+      {sp.ordered && <Callout>Order saved for {region?.[0]}. The printed sheet follows it.</Callout>}
+      {late.length > 0 && (
+        <section className="rounded-[10px] border border-tur bg-tur-soft px-4 py-3">
+          <div className="text-sm font-bold text-warn">Added after 2 PM today · {late.length}</div>
+          <p className="text-xs text-muted">These came in after the day&apos;s planning. Check tomorrow&apos;s count and sheet.</p>
+          <ul className="mt-2 space-y-1 text-[13px]">
+            {late.map((l) => (
+              <li key={l.id} className="flex flex-wrap items-center gap-x-2">
+                <span className="rounded bg-white px-1.5 py-0.5 text-[11px] font-bold text-warn">{l.kind}</span>
+                <Link href={`/customers/${l.leadId}`} className="font-semibold hover:underline">{l.name}</Link>
+                <span className="text-muted">{l.region ?? 'No region'} · {l.kind === 'Trial box' ? 'delivery' : 'starts'} {fmtWeekday(l.date)} · added {new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }).format(l.at)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <div className="flex flex-wrap items-center gap-2.5">
         {groups.length > 0 && <Tabs items={groups.map(([n, rs]) => ({ label: `${n} ${rs.length}`, href: `/kitchen/sheet?${q}&region=${encodeURIComponent(n)}`, active: n === region?.[0] }))} />}
         <div className="flex-1" />
@@ -38,7 +56,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
         <Tile label="Boxes" value={sheet.boxes} sub={fmtWeekday(date)} />
         <Tile label="Need a swap" value={sheet.swapCount} sub={sheet.menu ? "from yesterday's menu" : 'no menu added'} tone="warn" />
         <Tile label="Alternative boxes" value={sheet.altBoxes} sub="blue rows on the sheet" tone="sky" />
-        <Tile label="Buttermilk" value={sheet.buttermilk} sub="Mon, Wed, Fri" tone="leaf" />
+        <Tile label="Add-on drink" value={sheet.buttermilk} sub="Mon, Wed, Fri" tone="leaf" />
         <Tile label="Entered by sales" value={`${sheet.entered} of ${sheet.rows.length + sheet.trials.length}`} sub="after 9 AM" tone="brand" />
       </Tiles>
       <section className="card overflow-x-auto">
@@ -47,11 +65,31 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
             <h2 className="font-display text-lg font-semibold">{region?.[0] ?? 'No region'} · {list.length} customers</h2>
             <p className="text-[13px] text-muted">Same rows and order as the printed sheet</p>
           </div>
+          {region && list.length > 1 && !sp.arrange && <Link href={`${self}&arrange=1`} scroll={false} className="btn-secondary btn-sm">Arrange order</Link>}
           {region && <a href={`/print/sheet?${q}&region=${encodeURIComponent(region[0])}`} target="_blank" rel="noreferrer" className="btn-secondary btn-sm">Print {region[0]}</a>}
         </div>
-        {list.length === 0 ? <Empty>No monthly boxes on this day.</Empty> : (
+        {sp.arrange && list.length > 0 ? (
+          <form action={saveSheetOrder} className="border-t border-line">
+            <input type="hidden" name="back" value={self} />
+            <p className="bg-brand-soft px-5 py-3 text-[13px]">Type the position of each customer in the order the boxes are delivered (1 = first stop), then save. The order stays for every day until you change it. New customers go to the end.</p>
+            <table className="w-full">
+              <thead><tr><th className="th w-28">Position</th><th className="th">Customer</th><th className="th">Address</th><th className="th">Time</th></tr></thead>
+              <tbody>
+                {list.map((r, i) => (
+                  <tr key={r.pkg.id}>
+                    <td className="td"><input type="hidden" name="lead" value={r.lead.id} /><input type="number" min={1} max={999} name={`pos_${r.lead.id}`} defaultValue={i + 1} aria-label={`Position of ${r.lead.name}`} className="input w-20 px-2 py-1.5 text-center font-semibold" /></td>
+                    <td className="td font-semibold">{r.lead.name}</td>
+                    <td className="td max-w-80 truncate text-muted">{r.lead.address ?? '—'}</td>
+                    <td className="td">{r.lead.deliveryTime ?? r.lead.slot ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="flex justify-end gap-2.5 px-5 py-4"><Link href={self} scroll={false} className="btn-secondary">Cancel</Link><button className="btn">Save order</button></div>
+          </form>
+        ) : list.length === 0 ? <Empty>No monthly boxes on this day.</Empty> : (
           <table className="w-full">
-            <thead><tr><th className="th">#</th><th className="th">Customer</th><th className="th">Time</th><th className="th">BM</th><th className="th">Alt box no.</th><th className="th">Attendance</th></tr></thead>
+            <thead><tr><th className="th">#</th><th className="th">Customer</th><th className="th">Time</th><th className="th">Drink</th><th className="th">Alt box no.</th><th className="th">Attendance</th></tr></thead>
             <tbody>
               {list.map((r, i) => (
                 <tr key={r.pkg.id} className={r.altBox ? 'bg-sky-soft' : ''}>
@@ -63,7 +101,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
                     {r.altBox && <span className="ml-1.5 text-[11px] font-bold text-sky">ALT BOX</span>}
                   </td>
                   <td className="td">{r.lead.deliveryTime ?? r.lead.slot ?? '—'}</td>
-                  <td className="td">{r.bm ? <Chip label={`BM ${r.bm}`} tone="leaf" /> : ''}</td>
+                  <td className="td">{r.bm ? <Chip label={`Drink ${r.bm}`} tone="leaf" /> : ''}</td>
                   <td className="td">{r.altBox ?? '—'}</td>
                   <td className="td">{r.attendance ? <StatusChip map={ATTENDANCE} value={r.attendance.status} /> : <Chip label="After 9 AM" tone="muted" />}</td>
                 </tr>

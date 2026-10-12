@@ -109,7 +109,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
             <button className="btn">Save attendance</button>
           </div>
           <table className="w-full">
-            <thead><tr><th className="th">#</th><th className="th">Customer</th><th className="th">Time</th><th className="th">Attendance</th><th className="th">BM</th><th className="th">Alt box no.</th><th className="th">Empty box back</th><th className="th">Remarks</th><th className="th"></th></tr></thead>
+            <thead><tr><th className="th">#</th><th className="th">Customer</th><th className="th">Time</th><th className="th">Attendance</th><th className="th">Drink</th><th className="th">Alt box no.</th><th className="th">Empty box back</th><th className="th">Remarks</th><th className="th"></th></tr></thead>
             <tbody>
               {list.map((r, i) => (
                 <tr key={r.key} className={r.altBox ? 'bg-sky-soft' : ''}>

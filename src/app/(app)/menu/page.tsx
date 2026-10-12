@@ -61,7 +61,7 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
             <Tile label={date.getTime() === day(0).getTime() ? 'Boxes today' : 'Boxes that day'} value={sheet.boxes} sub={`Monthly ${sheet.monthly} · Trial ${sheet.trials.length}`} />
             <Tile label="Need a swap" value={swaps.length} sub="can't have a fruit on the menu" tone="warn" />
             <Tile label="No swap" value={Math.max(0, sheet.boxes - swaps.length)} sub="get the menu as it is" tone="leaf" />
-            <Tile label="Buttermilk" value={sheet.buttermilk} sub={isButtermilkDay(date) ? 'bottles that day' : 'Mon, Wed, Fri only'} tone="sky" />
+            <Tile label="Add-on drink" value={sheet.buttermilk} sub={isButtermilkDay(date) ? 'bottles that day' : 'Mon, Wed, Fri only'} tone="sky" />
           </Tiles>
           <div className="grid items-start gap-4 lg:grid-cols-[440px_1fr]">
             <Card title={`Menu for ${fmtWeekday(date)}`} sub={canEdit ? "Pick the fruits and salad going in the box" : 'Added by sales'}>

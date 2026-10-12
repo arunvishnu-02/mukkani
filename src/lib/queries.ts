@@ -42,7 +42,8 @@ const runningAt = cache(async (at: number): Promise<Running[]> => {
   const seen = new Set<string>()
   const first = [...pkgs].sort((a, b) => a.number - b.number).filter((p) => (seen.has(p.leadId) ? false : (seen.add(p.leadId), true)))
   const keep = new Set(first.map((p) => p.id))
-  const list = pkgs.filter((p) => keep.has(p.id))
+  // Hand-set sheet order first (delivery route), then the delivery time and name order from the query.
+  const list = pkgs.filter((p) => keep.has(p.id)).sort((a, b) => (a.lead.sheetOrder ?? 9999) - (b.lead.sheetOrder ?? 9999))
   if (list.length === 0) return []
   const minStart = list.reduce((m, p) => (p.startDate < m ? p.startDate : m), list[0].startDate)
   const att = await db.attendance.findMany({

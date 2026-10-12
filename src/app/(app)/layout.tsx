@@ -13,6 +13,7 @@ const SALES: NavItem[] = [
   { href: '/menu', label: 'Daily menu', icon: 'menu' },
   { href: '/attendance', label: 'Delivery attendance', icon: 'attendance' },
   { href: '/reminders', label: 'Reminders', icon: 'bell' },
+  { href: '/issues', label: 'Daily issues', icon: 'alert' },
 ]
 const KITCHEN: NavItem[] = [
   { href: '/kitchen/boxes', label: "Today's boxes", icon: 'box' },
@@ -23,6 +24,7 @@ const KITCHEN: NavItem[] = [
   { href: '/kitchen/alt-boxes', label: 'Alternative boxes', icon: 'box' },
   { href: '/kitchen/stock', label: 'Stock', icon: 'stock' },
   { href: '/kitchen/wastage', label: 'Wastage', icon: 'trash' },
+  { href: '/kitchen/staff', label: 'Staff tracking', icon: 'idcard' },
 ]
 const REPORTS: NavItem = { href: '/reports', label: 'Monthly reports', icon: 'report' }
 
@@ -36,6 +38,7 @@ const NAV: Record<string, NavItem[]> = {
     ...[...KITCHEN.filter((x) => x.href !== '/kitchen/customers' && x.href !== '/menu'), REPORTS].map((x) => ({ ...x, group: 'Kitchen' })),
     { href: '/admin/reports', label: 'Reports', icon: 'chart', group: 'Business' },
     { href: '/admin/money', label: 'Purchase + expenses', icon: 'money', group: 'Business' },
+    { href: '/admin/dues', label: 'Dues', icon: 'wallet', group: 'Business' },
     { href: '/admin/users', label: 'Team + regions', icon: 'team', group: 'Business' },
     { href: '/admin/settings', label: 'Settings', icon: 'settings', group: 'Business' },
   ],

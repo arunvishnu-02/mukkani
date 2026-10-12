@@ -25,7 +25,7 @@ export default async function AdminOverview() {
   await requireUser(['ADMIN'])
   const today = day(0)
   const month = period('month', today)
-  const [leadCounts, f, team, sheet, running, trialsWeek, calls, unpaid, stock, altOut, unpaidPkgs, st] = await Promise.all([
+  const [leadCounts, f, team, sheet, running, trialsWeek, calls, unpaid, stock, altOut, unpaidPkgs, st, duesSoon] = await Promise.all([
     db.lead.groupBy({ by: ['status'], _count: true }),
     figures(month),
     teamFigures(month),
@@ -38,6 +38,7 @@ export default async function AdminOverview() {
     db.altBox.count({ where: { collectedOn: null, givenOn: { lt: addDays(today, -1) } } }),
     db.package.count({ where: { status: 'ACTIVE', paid: false } }),
     appSettings(),
+    db.due.findMany({ where: { paidAt: null, dueDate: { lte: day(1) } }, select: { amount: true } }),
   ])
   const count = (s: string) => leadCounts.find((c) => c.status === s)?._count ?? 0
   const allLeads = leadCounts.reduce((a, c) => a + c._count, 0)
@@ -69,7 +70,7 @@ export default async function AdminOverview() {
           <dl className="space-y-2 text-sm">
             {[
               ['Monthly packs', f.monthlyIncome],
-              ['Buttermilk', f.buttermilkIncome],
+              ['Add-on drink', f.buttermilkIncome],
               ['Trial boxes', f.trialIncome],
             ].map(([l, v]) => <div key={l} className="flex justify-between"><dt className="text-muted">{l}</dt><dd className="font-semibold">{rupees(v as number)}</dd></div>)}
             <div className="flex justify-between border-t border-line pt-2"><dt className="font-semibold">Income</dt><dd className="font-bold text-leaf">{rupees(f.income)}</dd></div>
@@ -79,6 +80,7 @@ export default async function AdminOverview() {
           </dl>
         </Card>
         <Card title="Needs attention" sub="Tap to open">
+          <Alert n={duesSoon.length} text={`dues to pay by tomorrow (${rupees(duesSoon.reduce((a, d) => a + d.amount, 0))})`} href="/admin/dues" tone="red" />
           <Alert n={attendanceDue} text="attendance rows not entered today" href="/attendance" tone="red" />
           <Alert n={calls.length} text="customer calls due (kitchen)" href="/kitchen/calls" />
           <Alert n={unpaid.length} text="renewals waiting for payment" href="/kitchen/calls" />

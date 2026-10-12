@@ -205,13 +205,13 @@ export async function startPackageAction(form: FormData) {
   await attempt(form, `/customers/${id}`, () => startPackage(id, user.id, packageStart(form)))
 }
 
-// Buttermilk add-on: Rs 299 a month per bottle, Mon/Wed/Fri, monthly customers only.
+// Add-on drink add-on: Rs 299 a month per bottle, Mon/Wed/Fri, monthly customers only.
 export async function setButtermilkAction(form: FormData) {
   const user = await requireUser(['SALES', 'KITCHEN'])
   const id = z.string().uuid().parse(s(form, 'packageId'))
   const qty = z.coerce.number().int().min(0).max(5).parse(s(form, 'qty') ?? 0)
   const p = await db.package.update({ where: { id }, data: { buttermilkQty: qty } })
-  await log(p.leadId, 'package', qty ? `Buttermilk: ${qty} bottle${qty > 1 ? 's' : ''}` : 'Buttermilk stopped', null, user.id)
+  await log(p.leadId, 'package', qty ? `Add-on drink: ${qty} bottle${qty > 1 ? 's' : ''}` : 'Add-on drink stopped', null, user.id)
   revalidatePath('/', 'layout')
   redirect(back(form, `/customers/${p.leadId}`))
 }

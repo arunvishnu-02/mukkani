@@ -97,9 +97,20 @@ export const RENEWAL: Record<string, [string, Tone]> = {
 
 export const NOT_INTERESTED_REASONS = ['Price', 'Moving away', 'Health', 'Taste', 'Timing', 'Other']
 export const WASTE_REASONS = ['Cutting waste', 'Spoiled', 'Other'] as const
-export const MONEY_CATEGORIES = ['Fruits', 'Vegetables', 'Packaging', 'Buttermilk', 'Salary', 'Rent', 'Fuel / bike', 'Other bills']
+export const MONEY_CATEGORIES = ['Fruits', 'Vegetables', 'Packaging', 'Add-on drink', 'Salary', 'Rent', 'Fuel / bike', 'Other bills']
 
 export const PACKAGE_DAYS = 26
 export const BOX_NUMBERS = 100
 
 export const rupees = (n: number) => `Rs ${n.toLocaleString('en-IN')}`
+
+// Daily issue register
+export const ISSUE_DEPARTMENTS = ['Sales', 'Kitchen', 'Delivery', 'Customer', 'Admin', 'Other']
+export const ISSUE_STATUS: Record<string, [string, Tone]> = {
+  OPEN: ['Open', 'red'],
+  IN_PROGRESS: ['In progress', 'warn'],
+  DONE: ['Solved', 'leaf'],
+}
+
+// Dues the admin tracks
+export const DUE_KINDS: Record<string, string> = { RENT: 'Rent', SALARY: 'Salary', BANK: 'Bank due', OTHER: 'Other' }

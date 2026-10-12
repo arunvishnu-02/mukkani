@@ -13,7 +13,7 @@ function Column({ rows, start }: { rows: Line[]; start: number }) {
     <table className="w-full border-collapse overflow-hidden rounded-lg border border-ink text-[11px]">
       <thead>
         <tr className="bg-brand text-left text-[9px] font-bold text-white uppercase">
-          <th className="w-6 px-1.5 py-1.5">#</th><th className="w-9 px-1">Time</th><th className="px-1">Customer</th><th className="w-7 px-1 text-center">BM</th><th className="w-11 px-1 text-center">Box no.</th><th className="w-7 px-1 text-center">Ret.</th>
+          <th className="w-6 px-1.5 py-1.5">#</th><th className="w-9 px-1">Time</th><th className="px-1">Customer</th><th className="w-9 px-1 text-center">Drink</th><th className="w-11 px-1 text-center">Box no.</th><th className="w-7 px-1 text-center">Ret.</th>
         </tr>
       </thead>
       <tbody>
@@ -25,7 +25,7 @@ function Column({ rows, start }: { rows: Line[]; start: number }) {
               {r.name}
               {r.tags.map(([t, c]) => <span key={t} className={`ml-1 rounded px-1 py-px text-[8px] font-bold uppercase ${TAG[c]}`}>{t}</span>)}
             </td>
-            <td className="px-1 text-center">{r.bm ? <span className="rounded bg-leaf px-1 text-[8px] font-bold text-white">BM{r.bm > 1 ? ` ${r.bm}` : ''}</span> : ''}</td>
+            <td className="px-1 text-center">{r.bm ? <span className="rounded bg-leaf px-1 text-[8px] font-bold text-white">{r.bm}</span> : ''}</td>
             <td className="px-1 text-center"><span className={`inline-block h-[18px] w-9 rounded border ${r.alt ? 'border-sky font-bold text-sky' : 'border-brand/40'}`}>{r.box ?? ''}</span></td>
             <td className="px-1 text-center"><span className="inline-block size-3.5 rounded-sm border border-ink/60" /></td>
           </tr>
@@ -88,7 +88,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
             <div className="mt-4 grid grid-cols-4 gap-2.5">
               {[
                 [rows.length, 'Boxes', 'bg-brand-soft'],
-                [bm, 'Buttermilk', 'bg-[#fbe4ef]'],
+                [bm, 'Add-on drink', 'bg-[#fbe4ef]'],
                 [trials.length, 'Trial box', 'bg-tur-soft'],
                 [swaps, 'Fruit swaps', 'bg-red-soft'],
               ].map(([n, l, c]) => (

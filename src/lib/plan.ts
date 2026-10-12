@@ -111,5 +111,5 @@ export function calendarWeeks(plan: PackagePlan): (PlanDay | { date: Date; kind:
 // Kitchen manager call days: first month day 1, 5, 15, 26; later months day 15, 26 (day 26 = renewal).
 export const callDays = (packageNumber: number) => (packageNumber === 1 ? [1, 5, 15, 26] : [15, 26])
 
-// Buttermilk goes out Monday, Wednesday and Friday.
+// Add-on drink goes out Monday, Wednesday and Friday.
 export const isButtermilkDay = (d: Date) => [1, 3, 5].includes(d.getUTCDay())

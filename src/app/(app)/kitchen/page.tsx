@@ -3,7 +3,7 @@ import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { day, fmtWeekday, isSunday, longToday } from '@/lib/dates'
 import { daySheet, groupByRegion, swapTotals } from '@/lib/queries'
-import { dueCalls } from '@/lib/kitchen'
+import { lateAdds, dueCalls } from '@/lib/kitchen'
 import { appSettings } from '@/lib/settings'
 import { stockToday } from '@/lib/stock'
 import { Bar, Card, Chip, Empty, PageHeader, Tile, Tiles } from '@/components/ui'
@@ -13,7 +13,7 @@ export default async function KitchenDashboard() {
   await requireUser(['KITCHEN'])
   const today = day(0)
   const tomorrow = isSunday(day(1)) ? day(2) : day(1)
-  const [sheet, calls, altOut, stock, menuTomorrow, st] = await Promise.all([daySheet(today), dueCalls(today), db.altBox.count({ where: { collectedOn: null } }), appSettings().then((st) => stockToday(today, st.fruits, st.lowStockKg)), db.menu.findUnique({ where: { date: tomorrow } }), appSettings()])
+  const [sheet, calls, altOut, stock, menuTomorrow, st, late] = await Promise.all([daySheet(today), dueCalls(today), db.altBox.count({ where: { collectedOn: null } }), appSettings().then((st) => stockToday(today, st.fruits, st.lowStockKg)), db.menu.findUnique({ where: { date: tomorrow } }), appSettings(), lateAdds()])
   const going = sheet.rows.filter((r) => !r.absent)
   const regions = groupByRegion(going, (r) => r.lead.region?.name)
   const trialRegions = groupByRegion(sheet.trials, (t) => t.trial.lead.region?.name)
@@ -27,12 +27,27 @@ export default async function KitchenDashboard() {
         <a href="/print/sheet" target="_blank" rel="noreferrer" className="btn-secondary">Print attendance sheet</a>
         <Link href="/kitchen/boxes" className="btn">Today's boxes</Link>
       </PageHeader>
+      {late.length > 0 && (
+        <section className="rounded-[10px] border border-tur bg-tur-soft px-4 py-3">
+          <div className="text-sm font-bold text-warn">Added after 2 PM today · {late.length}</div>
+          <p className="text-xs text-muted">These came in after the day&apos;s planning. Check tomorrow&apos;s count and sheet.</p>
+          <ul className="mt-2 space-y-1 text-[13px]">
+            {late.map((l) => (
+              <li key={l.id} className="flex flex-wrap items-center gap-x-2">
+                <span className="rounded bg-white px-1.5 py-0.5 text-[11px] font-bold text-warn">{l.kind}</span>
+                <Link href={`/customers/${l.leadId}`} className="font-semibold hover:underline">{l.name}</Link>
+                <span className="text-muted">{l.region ?? 'No region'} · {l.kind === 'Trial box' ? 'delivery' : 'starts'} {fmtWeekday(l.date)} · added {new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }).format(l.at)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <Tiles cols={6}>
         <Tile big label="Boxes today" value={sheet.boxes} sub="production count" />
         <Tile big label="Monthly" value={sheet.monthly} tone="leaf" />
         <Tile big label="Trial" value={sheet.trials.length} tone="sky" />
         <Tile big label="Need a swap" value={sheet.swapCount} sub="from the menu" tone="warn" />
-        <Tile big label="Buttermilk" value={sheet.buttermilk} sub="Mon, Wed, Fri" tone="brand" />
+        <Tile big label="Add-on drink" value={sheet.buttermilk} sub="Mon, Wed, Fri" tone="brand" />
         <Tile big label="Calls today" value={calls.length} sub={`${calls.filter((c) => c.renewal).length} renewal`} tone="red" />
       </Tiles>
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_380px]">
@@ -44,7 +59,7 @@ export default async function KitchenDashboard() {
             </div>
             {allRegions.length === 0 ? <Empty>No boxes today.</Empty> : (
               <table className="w-full">
-                <thead><tr><th className="th">Region</th><th className="th">Monthly</th><th className="th">Trial</th><th className="th">Swaps</th><th className="th">Buttermilk</th><th className="th">Total</th><th className="th"></th></tr></thead>
+                <thead><tr><th className="th">Region</th><th className="th">Monthly</th><th className="th">Trial</th><th className="th">Swaps</th><th className="th">Add-on drink</th><th className="th">Total</th><th className="th"></th></tr></thead>
                 <tbody>
                   {allRegions.map((name) => {
                     const m = regions.find((r) => r[0] === name)?.[1] ?? []

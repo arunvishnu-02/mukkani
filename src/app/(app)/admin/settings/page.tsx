@@ -40,7 +40,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             <div className="grid gap-3 sm:grid-cols-2">
               <Text s={s} k="monthlyPrice" label="Monthly pack (26 days), Rs" type="number" />
               <Text s={s} k="trialPrice" label="Trial box incl. box, Rs" type="number" />
-              <Text s={s} k="buttermilkPrice" label="Buttermilk per bottle per month, Rs" type="number" />
+              <Text s={s} k="buttermilkPrice" label="Add-on drink per bottle per month, Rs" type="number" />
               <Text s={s} k="lowStockKg" label="Low stock below (kg)" type="number" />
             </div>
           </Card>

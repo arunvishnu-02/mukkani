@@ -52,7 +52,7 @@ export default async function ReportPrint({ params }: { params: Promise<{ id: st
           <div className="grid grid-cols-4 gap-3">
             {[
               [plan.delivered, 'Boxes delivered', 'bg-leaf'],
-              [bmDays.size, 'Buttermilk days', 'bg-[#c2477f]'],
+              [bmDays.size, 'Add-on drink days', 'bg-[#c2477f]'],
               [skipped, 'Days skipped', 'bg-red'],
               [sundays, 'Sundays off', 'bg-[#b9b0c6]'],
             ].map(([n, l, c]) => (
@@ -78,7 +78,7 @@ export default async function ReportPrint({ params }: { params: Promise<{ id: st
               return (
                 <div key={i} className={`h-[62px] rounded-lg px-2 py-1.5 text-left ${cls}`}>
                   <div className="flex items-baseline gap-1"><span className="font-display text-lg font-bold text-ink">{String(d.date.getUTCDate()).padStart(2, '0')}</span><span className="text-[9px] font-bold uppercase">{MON.format(d.date)}</span></div>
-                  <div className="text-[10px] font-semibold">{sun ? 'Holiday' : skip ? 'Skipped' : `Day ${d.dayNo}${bm ? ' · BM' : ''}`}</div>
+                  <div className="text-[10px] font-semibold">{sun ? 'Holiday' : skip ? 'Skipped' : `Day ${d.dayNo}${bm ? ' · Drink' : ''}`}</div>
                 </div>
               )
             })}

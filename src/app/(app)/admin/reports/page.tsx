@@ -41,7 +41,7 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
         <Tabs items={[tab('day', 'Daily'), tab('week', 'Weekly'), tab('month', 'Monthly')]} />
       </PageHeader>
       <Tiles cols={5}>
-        <Tile label="Money received" value={rupees(f.income)} sub="packs, buttermilk and trials paid" tone="leaf" />
+        <Tile label="Money received" value={rupees(f.income)} sub="packs, add-on drinks and trials paid" tone="leaf" />
         <Tile label="Money spent" value={rupees(f.spent)} sub="purchases + expenses entered" tone="red" />
         <Tile label={f.profit < 0 ? 'Loss' : 'Profit'} value={rupees(Math.abs(f.profit))} sub="received minus spent" tone={f.profit < 0 ? 'red' : 'leaf'} />
         <Tile label="Boxes delivered" value={f.boxesDelivered} sub="marked Delivered in attendance" tone="brand" />
@@ -62,7 +62,7 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
         <Card title="Money" sub={`Received and spent · ${p.label}`}>
           <dl>
             <Line label="Monthly packs" hint="Packs marked paid" value={rupees(f.monthlyIncome)} />
-            <Line label="Buttermilk" hint="Paid with the pack" value={rupees(f.buttermilkIncome)} />
+            <Line label="Add-on drink" hint="Paid with the pack" value={rupees(f.buttermilkIncome)} />
             <Line label="Trial boxes" hint="Trials marked paid" value={rupees(f.trialIncome)} />
             <Line label="Money received" value={rupees(f.income)} total tone="leaf" />
             {f.byCategory.length === 0 ? <Line label="Nothing spent" hint="No purchase or expense entered" value={rupees(0)} /> : f.byCategory.map(([c, v]) => <Line key={c} label={c} hint="Purchase + expenses" value={`- ${rupees(v)}`} />)}
