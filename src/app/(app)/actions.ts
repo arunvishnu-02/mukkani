@@ -266,6 +266,32 @@ export async function cancelLeaveAction(form: FormData) {
   redirect(back(form, user.role === 'KITCHEN' ? '/kitchen/sheet' : '/attendance'))
 }
 
+// One row of the attendance screen, stored the moment it is tapped. Answers instead of moving to another page.
+export async function saveAttendanceRowAction(dateKey: string, row: { leadId: string; status: string; buttermilk: boolean; boxBack: boolean | null; altBox: number | null; remarks: string | null }) {
+  const user = await requireUser(['SALES'])
+  const parsed = z.object({
+    leadId: z.string().uuid(),
+    status: z.enum(['DELIVERED', 'ABSENT', 'NOT_DELIVERED']),
+    buttermilk: z.boolean(),
+    boxBack: z.boolean().nullable(),
+    altBox: z.number().int().min(1).max(100).nullable(),
+    remarks: z.string().max(300).nullable(),
+  }).safeParse(row)
+  if (!parsed.success || !isDay(dateKey)) return { ok: false }
+  await saveAttendance(parseDay(dateKey), [parsed.data], user.id)
+  revalidatePath('/', 'layout')
+  return { ok: true }
+}
+
+// Takes back a row entered by mistake, so it shows as "To enter" again.
+export async function clearAttendanceRowAction(dateKey: string, leadId: string) {
+  await requireUser(['SALES'])
+  if (!isDay(dateKey) || !z.string().uuid().safeParse(leadId).success) return { ok: false }
+  await db.attendance.deleteMany({ where: { leadId, date: parseDay(dateKey) } })
+  revalidatePath('/', 'layout')
+  return { ok: true }
+}
+
 export async function saveAttendanceAction(form: FormData) {
   const user = await requireUser(['SALES'])
   const d = date(form, 'date') ?? day(0)
