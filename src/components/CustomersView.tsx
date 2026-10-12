@@ -17,12 +17,12 @@ const TABS: [string, string, Prisma.LeadWhereInput][] = [
   ['all', 'All', {}],
 ]
 
-// Customer list shared by sales (view, delete) and the kitchen manager (sets Active, Absent, Paused, Inactive).
+// Customer list shared by sales (view, delete) and the kitchen manager. Both can set Active, Absent, Paused, Inactive.
 export async function CustomersView({ base, sp, kitchen }: { base: string; sp: Record<string, string | undefined>; kitchen: boolean }) {
   const tab = TABS.find((t) => t[0] === sp.tab) ?? TABS[0]
   const q = sp.q?.trim()
   const today = day(0)
-  const where: Prisma.LeadWhereInput = { AND: [customerWhere, tab[2], q ? { OR: [{ name: { contains: q } }, { phone: { contains: q } }] } : {}] }
+  const where: Prisma.LeadWhereInput = { AND: [customerWhere, tab[2], q ? { OR: [{ name: { contains: q, mode: 'insensitive' } }, { phone: { contains: q } }] } : {}] }
   const [leads, running, absentToday, counts, selected] = await Promise.all([
     db.lead.findMany({ where, include: leadInclude, orderBy: [{ region: { name: 'asc' } }, { name: 'asc' }], take: 500 }),
     runningPackages(today),
@@ -38,7 +38,7 @@ export async function CustomersView({ base, sp, kitchen }: { base: string; sp: R
   const active = running.filter((r) => r.pkg.lead.customerStatus === 'ACTIVE').length
   return (
     <>
-      <PageHeader title="Customers" sub={kitchen ? 'Set each customer Active, Absent, Paused or Inactive. Absent and Paused push the end date.' : 'Everyone with a trial or a monthly pack'} />
+      <PageHeader title="Customers" sub={kitchen ? 'Set each customer Active, Absent, Paused or Inactive. Absent and Paused push the end date.' : 'Everyone with a trial or a monthly pack. Use Set status to mark a customer Absent, Paused or Inactive.'} />
       <Tiles cols={4}>
         <Tile label="Monthly customers" value={running.length} sub={`${active} active`} tone="leaf" />
         <Tile label="Absent today" value={absent.size} sub="end date moves forward" tone="warn" />
@@ -62,7 +62,7 @@ export async function CustomersView({ base, sp, kitchen }: { base: string; sp: R
               <tr>
                 {!kitchen && <th className="th w-10"><SelectAll formId="bulk-customers" /></th>}
                 <th className="th">Customer</th><th className="th">Region</th><th className="th">Time</th><th className="th">Package</th><th className="th">Last day</th><th className="th">Foods to avoid</th><th className="th">Status</th>
-                {kitchen && <th className="th">Change</th>}
+                <th className="th">Change</th>
               </tr>
             </thead>
             <tbody>
@@ -90,7 +90,7 @@ export async function CustomersView({ base, sp, kitchen }: { base: string; sp: R
                     <td className="td whitespace-nowrap">{r ? (r.plan.end ? fmtWeekday(r.plan.end) : 'Paused') : '—'}</td>
                     <td className="td max-w-48 text-muted">{[l.avoidFoods, l.healthNotes].filter(Boolean).join(' · ') || '—'}</td>
                     <td className="td"><StatusChip map={CUSTOMER_STATUS} value={status(l)} /></td>
-                    {kitchen && <td className="td"><Link href={`${list}&status=${l.id}`} scroll={false} className="btn-secondary btn-sm">Set status</Link></td>}
+                    <td className="td"><Link href={`${list}&status=${l.id}`} scroll={false} className="btn-secondary btn-sm whitespace-nowrap">Set status</Link></td>
                   </tr>
                 )
               })}
@@ -99,7 +99,7 @@ export async function CustomersView({ base, sp, kitchen }: { base: string; sp: R
         )}
       </section>
       {!kitchen && <BulkBar formId="bulk-customers" action={deleteLeads} confirmText="Delete {n} customers with all their packages, attendance and calls? This cannot be undone." />}
-      {kitchen && selected && (
+      {selected && (
         <Drawer title={selected.name} sub={`${selected.phone} · now ${CUSTOMER_STATUS[status(selected)][0]}`} close={list}>
           <form action={setCustomerStatusAction} className="space-y-4">
             <input type="hidden" name="leadId" value={selected.id} />

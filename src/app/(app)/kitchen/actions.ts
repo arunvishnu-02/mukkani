@@ -23,11 +23,11 @@ function done(path: string): never {
 }
 
 export async function setCustomerStatusAction(form: FormData) {
-  const user = await requireUser(['KITCHEN'])
+  const user = await requireUser(['KITCHEN', 'SALES'])
   const leadId = z.string().uuid().parse(s(form, 'leadId'))
   const status = z.enum(['ACTIVE', 'ABSENT', 'PAUSED', 'INACTIVE']).parse(s(form, 'status'))
   await setCustomerStatus(leadId, user.id, status, date(form, 'date'))
-  done(back(form, '/kitchen/customers'))
+  done(back(form, user.role === 'KITCHEN' ? '/kitchen/customers' : '/customers'))
 }
 
 // Day 1/5/15/26 calls. Day 26 is the renewal call.

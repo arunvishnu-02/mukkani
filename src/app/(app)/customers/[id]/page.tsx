@@ -81,7 +81,7 @@ export default async function CustomerProfile({ params, searchParams }: { params
         <a href={`tel:${lead.phone}`} className="btn-secondary">Call</a>
         <WaLink href={waLink(lead.phone, '')} />
         {sales && <Link href={`/leads?lead=${lead.id}`} className="btn-secondary">Edit</Link>}
-        {kitchen && <Link href={`/kitchen/customers?status=${lead.id}`} className="btn-secondary">Set status</Link>}
+        <Link href={`${kitchen ? '/kitchen/customers' : '/customers'}?tab=all&status=${lead.id}`} className="btn-secondary">Set status</Link>
       </div>
       {birthday && (
         <Callout tone="brand">
