@@ -15,6 +15,8 @@ export async function submitInvite(form: FormData) {
   const phone = text('phone', 20)
   if (!name) return back('Please enter your name')
   if (!phone || phone.replace(/\D/g, '').length < 10) return back('Please enter your 10-digit phone number')
+  const need: [string, string][] = [['address', 'your address'], ['regionId', 'your area'], ['slot', 'your delivery time'], ['dob', 'your date of birth'], ['avoidFoods', 'the foods you do not eat (type None if nothing)'], ['healthNotes', 'any health condition (type None if nothing)']]
+  for (const [k, what] of need) if (!text(k)) return back(`Please fill in ${what}`)
   const lat = num('lat')
   const lng = num('lng')
   const pin = lat != null && lng != null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180

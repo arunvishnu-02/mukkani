@@ -122,7 +122,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
             <div><label className="label" htmlFor="staff-name">{edit ? 'Name' : 'Add a person'} *</label><input id="staff-name" name="name" required className="input" defaultValue={edit?.name} placeholder="Name" /></div>
             <div className="grid grid-cols-2 gap-2.5">
               <div><label className="label" htmlFor="staff-kind">Work</label><select id="staff-kind" name="kind" className="input" defaultValue={edit?.kind ?? 'KITCHEN'}><option value="KITCHEN">Kitchen staff</option><option value="DELIVERY">Delivery person</option></select></div>
-              <div><label className="label" htmlFor="staff-phone">Phone</label><input id="staff-phone" name="phone" inputMode="tel" className="input" defaultValue={edit?.phone ?? ''} /></div>
+              <div><label className="label" htmlFor="staff-phone">Phone *</label><input id="staff-phone" name="phone" required inputMode="tel" className="input" defaultValue={edit?.phone ?? ''} /></div>
             </div>
             <button className="btn w-full">{edit ? 'Save changes' : 'Add to the list'}</button>
           </form>

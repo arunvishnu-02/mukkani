@@ -30,7 +30,7 @@ export default async function JoinPage({ params, searchParams }: { params: Promi
         <>
           <div>
             <h1 className="font-display text-[28px] font-bold leading-tight">Welcome{invite.name ? `, ${invite.name.split(' ')[0]}` : ''}</h1>
-            <p className="mt-1 text-sm leading-relaxed text-muted">Please fill in your details so we can deliver your Mukkani box. It takes one minute.</p>
+            <p className="mt-1 text-sm leading-relaxed text-muted">Please fill in your details so we can deliver your Mukkani box. It takes one minute. Everything marked * is needed.</p>
           </div>
           {sp.error && <div className="rounded-[10px] bg-red-soft px-3.5 py-2.5 text-[13px] font-medium text-red">{sp.error}</div>}
           <form action={submitInvite} className="space-y-3.5">
@@ -41,20 +41,20 @@ export default async function JoinPage({ params, searchParams }: { params: Promi
               <div><label className="label" htmlFor="j-alt">Another phone</label><input id="j-alt" name="altPhone" inputMode="tel" className="input" /></div>
             </div>
             <HomeLocation />
-            <div><label className="label" htmlFor="j-address">Address</label><textarea id="j-address" name="address" rows={2} className="input" placeholder="Door number, street, area, landmark" /></div>
+            <div><label className="label" htmlFor="j-address">Address *</label><textarea id="j-address" name="address" rows={2} required className="input" placeholder="Door number, street, area, landmark" /></div>
             <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className="label" htmlFor="j-region">Area</label>
-                <select id="j-region" name="regionId" className="input" defaultValue=""><option value="">Not sure</option>{regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select>
+                <label className="label" htmlFor="j-region">Area *</label>
+                <select id="j-region" name="regionId" required className="input" defaultValue=""><option value="">Pick your area</option>{regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select>
               </div>
               <div>
-                <label className="label" htmlFor="j-slot">Delivery time</label>
-                <select id="j-slot" name="slot" className="input" defaultValue=""><option value="">Any time</option>{(st?.slots ?? []).map((x) => <option key={x}>{x}</option>)}</select>
+                <label className="label" htmlFor="j-slot">Delivery time *</label>
+                <select id="j-slot" name="slot" required className="input" defaultValue=""><option value="">Pick a time</option>{(st?.slots ?? []).map((x) => <option key={x}>{x}</option>)}</select>
               </div>
             </div>
-            <div><label className="label">Date of birth</label><DateField name="dob" birthday /></div>
-            <div><label className="label" htmlFor="j-avoid">Fruits or foods you do not eat</label><input id="j-avoid" name="avoidFoods" className="input" placeholder="For example: banana, papaya" /></div>
-            <div><label className="label" htmlFor="j-health">Any health condition we should know</label><input id="j-health" name="healthNotes" className="input" placeholder="For example: diabetes" /></div>
+            <div><label className="label">Date of birth *</label><DateField name="dob" required birthday /></div>
+            <div><label className="label" htmlFor="j-avoid">Fruits or foods you do not eat *</label><input id="j-avoid" name="avoidFoods" required className="input" placeholder="For example: banana, papaya. Type None if nothing" /></div>
+            <div><label className="label" htmlFor="j-health">Any health condition we should know *</label><input id="j-health" name="healthNotes" required className="input" placeholder="For example: diabetes. Type None if nothing" /></div>
             <button className="btn w-full py-3.5 text-base">Submit</button>
             <p className="text-center text-xs text-muted">We use these details only for your Mukkani deliveries.</p>
           </form>

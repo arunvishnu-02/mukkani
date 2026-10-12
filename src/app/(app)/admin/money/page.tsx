@@ -100,7 +100,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
               <div><label className="label">Quantity</label><input name="quantity" className="input" defaultValue={edit?.quantity ?? ''} placeholder="20 kg" /></div>
               <div><label className="label">Amount (Rs) *</label><input name="amount" type="number" min="1" step="1" required className="input" defaultValue={edit?.amount} /></div>
             </div>
-            <div><label className="label">Paid to</label><input name="paidTo" className="input" defaultValue={edit?.paidTo ?? ''} placeholder="Shop or person" /></div>
+            <div><label className="label">Paid to *</label><input name="paidTo" required className="input" defaultValue={edit?.paidTo ?? ''} placeholder="Shop or person" /></div>
             <BillPhotos saved={bills} max={MAX_BILLS} />
             <div className="flex gap-2.5 pt-1"><Link href={back} className="btn-secondary flex-1">Cancel</Link><button className="btn flex-1">Save</button></div>
           </form>

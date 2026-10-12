@@ -33,11 +33,11 @@ export default async function UsersRegions({ searchParams }: { searchParams: Pro
         <form key={editUser?.id ?? 'new'} action={saveUser} className="card grid w-full max-w-[720px] gap-3 p-6 sm:grid-cols-3">
           <input type="hidden" name="id" value={editUser?.id ?? ''} />
           <h2 className="font-display text-lg font-semibold sm:col-span-3">{editUser ? `Edit ${editUser.name}` : 'Add user'}</h2>
-          <div><label className="label">Name</label><input name="name" className="input" defaultValue={editUser?.name} required /></div>
-          <div><label className="label">Username</label><input name="username" className="input" defaultValue={editUser?.username} required /></div>
+          <div><label className="label">Name *</label><input name="name" className="input" defaultValue={editUser?.name} required /></div>
+          <div><label className="label">Username *</label><input name="username" className="input" defaultValue={editUser?.username} required /></div>
           <div><label className="label">{editUser ? 'New password (leave empty to keep)' : 'Password'}</label><input name="password" type="password" className="input" minLength={6} required={!editUser} /></div>
           <div><label className="label">Role</label><select name="role" className="input" defaultValue={editUser?.role ?? 'SALES'}>{Object.entries(ROLE).map(([v, [l]]) => <option key={v} value={v}>{l}</option>)}</select></div>
-          <div><label className="label">Phone</label><input name="phone" className="input" defaultValue={editUser?.phone ?? ''} /></div>
+          <div><label className="label">Phone *</label><input name="phone" required inputMode="tel" className="input" defaultValue={editUser?.phone ?? ''} /></div>
           <div><label className="label">Status</label><select name="active" className="input" defaultValue={editUser?.active === false ? 'off' : 'on'}><option value="on">Active</option><option value="off">Inactive (cannot log in)</option></select></div>
           <div className="flex gap-2.5 sm:col-span-3"><Link href="/admin/users" className="btn-secondary">Cancel</Link><button className="btn">Save user</button></div>
         </form>

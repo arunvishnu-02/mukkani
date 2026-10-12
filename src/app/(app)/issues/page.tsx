@@ -80,8 +80,8 @@ export default async function IssuesPage({ searchParams }: { searchParams: Promi
             </div>
             <div><label className="label" htmlFor="issue-text">Issue *</label><textarea id="issue-text" name="issue" rows={3} required className="input" defaultValue={edit?.issue} placeholder="What happened? For example: box delivered late to Srirangam" /></div>
             <div>
-              <label className="label" htmlFor="issue-who">Responsible person</label>
-              <input id="issue-who" name="responsible" list="issue-people" className="input" defaultValue={edit?.responsible ?? ''} placeholder="Who will solve it" />
+              <label className="label" htmlFor="issue-who">Responsible person *</label>
+              <input id="issue-who" name="responsible" list="issue-people" required className="input" defaultValue={edit?.responsible ?? ''} placeholder="Who will solve it" />
               <datalist id="issue-people">{users.map((u) => <option key={u.name} value={u.name} />)}</datalist>
             </div>
             <div><span className="label">Status</span><Pills name="status" value={edit?.status ?? 'OPEN'} options={Object.entries(ISSUE_STATUS).map(([k, v]) => [k, v[0]])} tones={{ OPEN: 'red', IN_PROGRESS: 'warn', DONE: 'leaf' }} /></div>
