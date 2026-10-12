@@ -80,10 +80,17 @@ const leadFields = (form: FormData) => ({
 export async function createLead(form: FormData) {
   const user = await requireUser(['SALES'])
   const data = leadFields(form)
-  const lead = await db.lead.create({ data: { ...data, ownerId: user.id, nextFollowUpAt: date(form, 'nextFollowUpAt') ?? day(0) } })
+  // A new person can go straight to a trial box or a monthly pack instead of Follow up.
+  const startAs = s(form, 'startAs') === 'TRIAL' ? 'TRIAL' : s(form, 'startAs') === 'MONTHLY' ? 'MONTHLY' : 'FOLLOW_UP'
+  if (startAs !== 'FOLLOW_UP' && !data.slot) redirect(`/leads?f=all&new=1&error=${encodeURIComponent(`Pick the time slot: a ${startAs === 'TRIAL' ? 'trial box' : 'monthly pack'} needs one. The lead was not saved.`)}`)
+  const lead = await db.lead.create({ data: { ...data, ownerId: user.id, nextFollowUpAt: startAs === 'FOLLOW_UP' ? (date(form, 'nextFollowUpAt') ?? day(0)) : null } })
   await log(lead.id, 'lead', 'Lead added', `Source: ${data.source.toLowerCase().replace('_', ' ')}`, user.id)
+  if (startAs === 'TRIAL') await bookTrial(lead.id, user.id, date(form, 'trialDate') ?? day(1), data.slot)
+  if (startAs === 'MONTHLY') {
+    await startPackage(lead.id, user.id, { startDate: date(form, 'startDate') ?? undefined, slot: data.slot, deliveryTime: data.deliveryTime, regionId: data.regionId, buttermilkQty: Number(s(form, 'buttermilkQty') ?? 0), paid: form.get('pkgPaid') === 'on' })
+  }
   revalidatePath('/', 'layout')
-  redirect(`/leads?lead=${lead.id}`)
+  redirect(startAs === 'MONTHLY' ? `/customers/${lead.id}` : startAs === 'TRIAL' ? '/trials?tab=booked' : `/leads?lead=${lead.id}`)
 }
 
 const digits = (v: string) => v.replace(/\D/g, '').replace(/^(91|0)(?=\d{10}$)/, '')

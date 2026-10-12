@@ -5,7 +5,8 @@ import { dayInput, day, fmtDay } from '@/lib/dates'
 import { LEAD_STATUS, LOCATION_STATUS, SOURCE } from '@/lib/labels'
 import { leadInclude, regionsList } from '@/lib/queries'
 import { appSettings } from '@/lib/settings'
-import { Drawer, Empty, ErrorNote, PageHeader, StatusChip, Tabs, Who } from '@/components/ui'
+import { Drawer, Empty, ErrorNote, PageHeader, Pills, StatusChip, Tabs, Who } from '@/components/ui'
+import { Reveal } from '@/components/Reveal'
 import { LeadFields } from '@/components/LeadForm'
 import { BulkBar, RowCheck, SelectAll } from '@/components/Bulk'
 import { createLead, deleteLeads, updateLead } from '../actions'
@@ -120,10 +121,30 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
         </Drawer>
       )}
       {sp.new && (
-        <Drawer title="Add lead" sub="Goes into Follow up with a next call date" close={list}>
+        <Drawer title="Add lead" sub="Add the person, then pick where they start" close={list}>
           <form action={createLead} className="space-y-3.5">
             <LeadFields regions={regions} slots={st.slots} />
-            <div><label className="label">First call date</label><DateField name="nextFollowUpAt" defaultValue={dayInput(day(0))} /></div>
+            <div className="rounded-xl border border-line bg-s2/50 p-3.5">
+              <span className="label">Start as</span>
+              <Pills name="startAs" value="FOLLOW_UP" options={[['FOLLOW_UP', 'Follow up'], ['TRIAL', 'Trial box'], ['MONTHLY', 'Monthly pack']]} tones={{ FOLLOW_UP: 'warn', TRIAL: 'sky', MONTHLY: 'leaf' }} />
+              <div className="mt-3">
+                <Reveal name="startAs" values={['FOLLOW_UP']} initial="FOLLOW_UP">
+                  <div><label className="label">First call date</label><DateField name="nextFollowUpAt" defaultValue={dayInput(day(0))} /></div>
+                </Reveal>
+                <Reveal name="startAs" values={['TRIAL']} initial="FOLLOW_UP">
+                  <div><label className="label">Trial delivery date</label><DateField name="trialDate" defaultValue={dayInput(day(1))} /></div>
+                  <p className="text-xs text-muted">Books the trial box (Rs {st.trialPrice}) for the Time slot picked above. The time slot is needed.</p>
+                </Reveal>
+                <Reveal name="startAs" values={['MONTHLY']} initial="FOLLOW_UP">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div><label className="label">Pack start date</label><DateField name="startDate" defaultValue={dayInput(day(1))} /></div>
+                    <div><label className="label" htmlFor="new-drink">Add-on drink</label><select id="new-drink" name="buttermilkQty" className="input" defaultValue="0"><option value="0">No add-on drink</option><option value="1">1 bottle</option><option value="2">2 bottles</option><option value="3">3 bottles</option></select></div>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" name="pkgPaid" className="size-4 accent-brand" /> Paid (Rs {st.monthlyPrice.toLocaleString('en-IN')})</label>
+                  <p className="text-xs text-muted">Starts the 26-day monthly pack without a trial, for the Time slot picked above. The time slot is needed.</p>
+                </Reveal>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-2.5"><Link href={list} className="btn-secondary">Cancel</Link><button className="btn">Save lead</button></div>
           </form>
         </Drawer>
