@@ -93,7 +93,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
         <Tile label="Absent / Not delivered" value={`${off} / ${notDel}`} sub="pushes the end date" tone="warn" />
         <Tile label="Alternative boxes" value={list.filter((r) => r.altBox).length} sub="blue rows" tone="sky" />
       </Tiles>
-      <Callout tone="sky">Tap Delivered, Absent or Not delivered and the row is saved at once. Blue rows got an alternative box: write its number and whether the empty box came back.</Callout>
+      <Callout tone="sky">Blue rows got an alternative box. Write its number and whether the empty box came back. Attendance must be entered every day.</Callout>
       {list.length === 0 ? (
         <section className="card"><Empty>No deliveries on this day.</Empty></section>
       ) : (

@@ -61,62 +61,58 @@ export function AttendanceList({ date, region, rows }: { date: string; region: s
     })
   }
   const blank = rows.filter((r) => !entries[r.leadId].status)
-  const done = rows.length - blank.length
   const failed = rows.filter((r) => marks[r.leadId] === 'failed').length
 
+  const pill = 'rounded-md border px-2.5 py-1 text-[13px] font-medium'
   return (
-    <section className="card overflow-hidden">
+    <section className="card overflow-x-auto">
       <div className="flex flex-wrap items-center gap-3 px-5 py-4">
-        <div className="min-w-0 flex-1">
+        <div className="flex-1">
           <h2 className="font-display text-lg font-semibold">{region} · {rows.length} customers</h2>
-          <p className="text-[13px] text-muted">Tap the attendance. Each row saves by itself, there is no Save button.</p>
+          <p className="text-[13px] text-muted">Tap one option per row. Each row is saved as soon as you tap it.</p>
         </div>
-        <span className={`rounded-full px-3 py-1 text-[13px] font-semibold ${failed ? 'bg-red-soft text-red' : done === rows.length ? 'bg-leaf-soft text-leaf' : 'bg-tur-soft text-warn'}`}>{failed ? `${failed} not saved, tap again` : done === rows.length ? 'All entered and saved' : `${done} of ${rows.length} entered`}</span>
-        {blank.length > 0 && <button type="button" onClick={() => blank.forEach((r) => change(r.leadId, { status: 'DELIVERED' }))} className="btn btn-sm">Mark the other {blank.length} delivered</button>}
+        {failed > 0 && <span className="text-[13px] font-semibold text-red">{failed} not saved, tap again</span>}
+        {blank.length > 0 && <button type="button" onClick={() => blank.forEach((r) => change(r.leadId, { status: 'DELIVERED' }))} className="btn">Mark the other {blank.length} delivered</button>}
       </div>
-      <div className="divide-y divide-line border-t border-line">
-        {rows.map((r, i) => {
-          const e = entries[r.leadId]
-          const m = marks[r.leadId] ?? 'idle'
-          return (
-            <div key={r.key} className={`grid items-center gap-x-4 gap-y-2.5 px-5 py-3.5 lg:grid-cols-[minmax(190px,1.1fr)_auto_minmax(0,1.5fr)_92px] ${e.altBox ? 'bg-sky-soft' : ''}`}>
-              <div className="flex min-w-0 items-start gap-3">
-                <span className="mt-0.5 w-5 shrink-0 text-right text-[13px] font-semibold text-muted">{i + 1}</span>
-                <div className="min-w-0">
+      <table className="w-full">
+        <thead><tr><th className="th">#</th><th className="th">Customer</th><th className="th">Time</th><th className="th">Attendance</th><th className="th">Drink</th><th className="th">Alt box no.</th><th className="th">Empty box back</th><th className="th">Remarks</th><th className="th"></th></tr></thead>
+        <tbody>
+          {rows.map((r, i) => {
+            const e = entries[r.leadId]
+            const m = marks[r.leadId] ?? 'idle'
+            return (
+              <tr key={r.key} className={e.altBox ? 'bg-sky-soft' : ''}>
+                <td className="td">{i + 1}</td>
+                <td className="td">
                   <Link href={`/customers/${r.leadId}`} className="font-semibold hover:underline">{r.name}</Link>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[11px]">
-                    {r.time && <span className="text-muted">{r.time}</span>}
-                    {r.tags.map(([t, tone]) => <span key={t} className={`rounded-full px-2 py-px font-semibold ${TAG[tone]}`}>{t}</span>)}
+                  <div className="mt-0.5 flex flex-wrap gap-1">{r.tags.map(([t, tone]) => <span key={t} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${TAG[tone]}`}><span className="size-1.5 rounded-full bg-current" />{t}</span>)}</div>
+                </td>
+                <td className="td">{r.time ?? '—'}</td>
+                <td className="td">
+                  <div className="flex flex-wrap gap-1.5" role="group" aria-label={`Attendance for ${r.name}`}>
+                    {STATUS.map(([v, l, on]) => <button key={v} type="button" aria-pressed={e.status === v} onClick={() => change(r.leadId, { status: v })} className={`${pill} ${e.status === v ? on : 'border-line bg-surface'}`}>{l}</button>)}
                   </div>
-                </div>
-              </div>
-              <div className="flex gap-1.5" role="group" aria-label={`Attendance for ${r.name}`}>
-                {STATUS.map(([v, l, on]) => (
-                  <button key={v} type="button" aria-pressed={e.status === v} onClick={() => change(r.leadId, { status: v })} className={`rounded-lg border px-3 py-2 text-[13px] font-semibold whitespace-nowrap ${e.status === v ? on : 'border-line bg-surface hover:border-brand'}`}>{l}</button>
-                ))}
-              </div>
-              <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] ${e.status ? '' : 'opacity-55'}`}>
-                {r.bm > 0 && <label className="flex items-center gap-1.5 font-semibold whitespace-nowrap"><input type="checkbox" checked={e.buttermilk} onChange={(ev) => change(r.leadId, { buttermilk: ev.target.checked })} className="size-4 accent-leaf" />Drink × {r.bm}</label>}
-                <div className="flex items-center gap-1.5 whitespace-nowrap text-muted" role="group" aria-label={`Empty box back for ${r.name}`}>Empty box back
-                  <span className="flex gap-1">
-                    {([['Yes', true, 'border-leaf bg-leaf text-white'], ['No', false, 'border-red bg-red text-white']] as const).map(([l, v, on]) => (
-                      <button key={l} type="button" aria-pressed={e.boxBack === v} onClick={() => change(r.leadId, { boxBack: e.boxBack === v ? null : v })} className={`rounded-md border px-2.5 py-1 font-semibold ${e.boxBack === v ? on : 'border-line bg-surface text-ink'}`}>{l}</button>
-                    ))}
-                  </span>
-                </div>
-                <label className="flex items-center gap-1.5 whitespace-nowrap text-muted">Alt box no.
-                  <input type="number" min={1} max={100} value={e.altBox} onChange={(ev) => change(r.leadId, { altBox: ev.target.value }, false)} onBlur={() => store(r.leadId, e)} className="input px-2 py-1 text-center text-ink" style={{ width: 60 }} />
-                </label>
-                <input value={e.remarks} onChange={(ev) => change(r.leadId, { remarks: ev.target.value }, false)} onBlur={() => store(r.leadId, e)} placeholder="Remarks" aria-label={`Remarks for ${r.name}`} className="input min-w-32 flex-1 px-2.5 py-1 text-ink" />
-              </div>
-              <div className="flex items-center justify-end gap-2 text-xs font-semibold whitespace-nowrap">
-                {m === 'saving' ? <span className="text-muted">Saving…</span> : m === 'failed' ? <button type="button" onClick={() => store(r.leadId, e)} className="text-red underline">Not saved · retry</button> : e.status ? <span className="text-leaf">✓ Saved</span> : <span className="text-warn">To enter</span>}
-                {e.status && m !== 'saving' && <button type="button" onClick={() => clear(r.leadId)} title="Remove this entry" className="font-medium text-muted hover:text-red">Clear</button>}
-              </div>
-            </div>
-          )
-        })}
-      </div>
+                </td>
+                <td className="td">{r.bm > 0 ? <label className="flex items-center gap-1.5 text-[13px] font-semibold"><input type="checkbox" checked={e.buttermilk} onChange={(ev) => change(r.leadId, { buttermilk: ev.target.checked })} className="size-4 accent-leaf" />{r.bm}</label> : ''}</td>
+                <td className="td"><input type="number" min={1} max={100} value={e.altBox} onChange={(ev) => change(r.leadId, { altBox: ev.target.value }, false)} onBlur={() => store(r.leadId, e)} className="input w-16 px-2 py-1.5 text-center" aria-label={`Alternative box number for ${r.name}`} /></td>
+                <td className="td">
+                  <div className="flex gap-1.5" role="group" aria-label={`Empty box back for ${r.name}`}>
+                    {([['Yes', true, 'border-leaf bg-leaf text-white'], ['No', false, 'border-red bg-red text-white']] as const).map(([l, v, on]) => <button key={l} type="button" aria-pressed={e.boxBack === v} onClick={() => change(r.leadId, { boxBack: e.boxBack === v ? null : v })} className={`${pill} ${e.boxBack === v ? on : 'border-line bg-surface'}`}>{l}</button>)}
+                  </div>
+                </td>
+                <td className="td"><input value={e.remarks} onChange={(ev) => change(r.leadId, { remarks: ev.target.value }, false)} onBlur={() => store(r.leadId, e)} className="input min-w-32 px-2 py-1.5" aria-label={`Remarks for ${r.name}`} /></td>
+                <td className="td whitespace-nowrap">
+                  {m === 'saving' ? <span className="text-xs font-semibold text-muted">Saving…</span>
+                    : m === 'failed' ? <button type="button" onClick={() => store(r.leadId, e)} className="text-xs font-semibold text-red underline">Not saved · retry</button>
+                    : e.status ? <span className="inline-flex items-center gap-1.5 rounded-full bg-leaf-soft px-2.5 py-0.5 text-xs font-semibold text-leaf"><span className="size-1.5 rounded-full bg-current" />Entered</span>
+                    : <span className="inline-flex items-center gap-1.5 rounded-full bg-tur-soft px-2.5 py-0.5 text-xs font-semibold text-warn"><span className="size-1.5 rounded-full bg-current" />To enter</span>}
+                  {e.status && m !== 'saving' && <button type="button" onClick={() => clear(r.leadId)} title="Remove this entry" className="ml-2 text-xs font-medium text-muted hover:text-red">Clear</button>}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
     </section>
   )
 }
