@@ -421,3 +421,20 @@ model Due {
 
   @@index([dueDate])
 }
+
+// A form link sent to a new customer. Staff enter only the phone number; the customer fills in their
+// own details and home location, which becomes a lead (or completes the lead that has this phone).
+model LeadInvite {
+  id          String    @id @default(uuid()) @db.Uuid
+  token       String    @unique
+  phone       String
+  name        String?
+  source      String    @default("WHATSAPP")
+  createdById String?   @db.Uuid
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  filledAt    DateTime?
+  leadId      String?   @db.Uuid
+
+  @@index([createdAt])
+}

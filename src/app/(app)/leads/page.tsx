@@ -44,6 +44,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader title="Leads" sub={`${total} leads. Every new lead starts in Follow up with a next call date.`}>
+        <Link href="/invite" className="btn-secondary">Send form link</Link>
         <Link href={`${list}&import=1`} className="btn-secondary" scroll={false}>Import</Link>
         <Link href={`${list}&new=1`} className="btn" scroll={false}>Add lead</Link>
       </PageHeader>

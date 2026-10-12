@@ -5,7 +5,7 @@ import { addDays, day, deliveryDayFrom, fmtDay, fmtWeekday } from '@/lib/dates'
 import { nearestRegionId, reverseGeocode } from '@/lib/geo'
 import { packagePlan } from '@/lib/queries'
 import { appSettings } from '@/lib/settings'
-import { LEAD_CALL, NEEDS_NEXT_CALL } from '@/lib/labels'
+import { LEAD_CALL, NEEDS_NEXT_CALL, SOURCE } from '@/lib/labels'
 import type { AttendanceStatus, TrialResult } from '@/generated/prisma/enums'
 
 export class FlowError extends Error {}
@@ -264,4 +264,63 @@ export async function saveSharedLocation(token: string, lat: number, lng: number
   await db.locationRequest.update({ where: { id: req.id }, data: { sharedAt: new Date() } })
   await log(lead.id, 'location', 'Location shared by customer', 'Profile updated automatically')
   return { ok: true as const, address: lead.address, accuracy: lead.accuracyM }
+}
+
+// Customer form link. Staff enter the phone number; the customer fills in the rest on their own phone.
+const phoneDigits = (v: string) => v.replace(/\D/g, '').replace(/^(91|0)(?=\d{10}$)/, '')
+
+export async function createLeadInvite(phone: string, name: string | null, source: string, byId: string) {
+  if (phoneDigits(phone).length < 10) throw new FlowError('Enter the 10-digit phone number')
+  const token = randomBytes(6).toString('base64url')
+  return db.leadInvite.create({ data: { token, phone, name, source, createdById: byId, expiresAt: new Date(Date.now() + 14 * 86_400_000) } })
+}
+
+export type InviteAnswers = {
+  name: string
+  phone: string
+  altPhone: string | null
+  address: string | null
+  dob: Date | null
+  slot: string | null
+  avoidFoods: string | null
+  healthNotes: string | null
+  regionId: string | null
+  lat: number | null
+  lng: number | null
+  accuracy: number | null
+}
+
+// The customer pressed Submit. Their answers become a new lead in Follow up, or complete the lead that
+// already has this phone number. A shared location sets the pin, the address and the nearest region.
+export async function submitLeadInvite(token: string, a: InviteAnswers) {
+  const invite = await db.leadInvite.findUnique({ where: { token } })
+  if (!invite || invite.expiresAt < new Date()) return { ok: false as const, error: 'This link has expired. Please ask Mukkani for a new one.' }
+  if (invite.filledAt) return { ok: true as const }
+  const hasPin = a.lat != null && a.lng != null
+  const [found, region] = await Promise.all([hasPin ? reverseGeocode(a.lat!, a.lng!) : null, hasPin ? nearestRegionId(a.lat!, a.lng!) : null])
+  const maker = invite.createdById ? await db.user.findUnique({ where: { id: invite.createdById } }) : null
+  const digits = phoneDigits(a.phone)
+  const same = (await db.lead.findMany({ select: { id: true, phone: true } })).find((l) => phoneDigits(l.phone) === digits)
+  const details = {
+    name: a.name,
+    altPhone: a.altPhone,
+    // What the customer typed is kept; the map's address is used only when they typed none.
+    address: a.address ?? found,
+    dob: a.dob,
+    slot: a.slot,
+    avoidFoods: a.avoidFoods,
+    healthNotes: a.healthNotes,
+    regionId: region ?? a.regionId,
+    ...(hasPin ? { lat: a.lat, lng: a.lng, accuracyM: a.accuracy == null ? null : Math.round(a.accuracy), locationStatus: 'PIN_SAVED' as const, locationUpdatedAt: new Date() } : {}),
+  }
+  // Nothing the customer left empty wipes what staff already entered on an existing lead.
+  const filled = Object.fromEntries(Object.entries(details).filter(([, v]) => v != null))
+  const lead = same
+    ? await db.lead.update({ where: { id: same.id }, data: filled })
+    : await db.lead.create({
+        data: { ...details, phone: a.phone, source: (invite.source in SOURCE ? invite.source : 'OTHER') as never, ownerId: maker?.role === 'KITCHEN' ? null : (maker?.id ?? null), nextFollowUpAt: day(0) },
+      })
+  await db.leadInvite.update({ where: { id: invite.id }, data: { filledAt: new Date(), leadId: lead.id } })
+  await log(lead.id, 'lead', same ? 'Details filled in by the customer' : 'Lead added by the customer from the form link', hasPin ? 'Home location shared' : 'No location shared', invite.createdById)
+  return { ok: true as const }
 }

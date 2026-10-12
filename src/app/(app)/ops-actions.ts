@@ -7,6 +7,7 @@ import { db } from '@/lib/db'
 import { requireUser } from '@/lib/auth'
 import { day, isDay, parseDay } from '@/lib/dates'
 import { DUE_KINDS, ISSUE_DEPARTMENTS, ISSUE_STATUS } from '@/lib/labels'
+import { FlowError, createLeadInvite } from '@/lib/workflow'
 
 // Daily issues (sales), staff tracking (kitchen manager), dues (admin) and the hand-set order of the attendance sheet.
 
@@ -149,4 +150,24 @@ export async function saveSheetOrder(form: FormData) {
   await db.$transaction(ordered.map((r, n) => db.lead.update({ where: { id: r.leadId }, data: { sheetOrder: n + 1 } })))
   const to = back(form, '/kitchen/sheet')
   done(`${to}${to.includes('?') ? '&' : '?'}ordered=${ordered.length}`)
+}
+
+// Customer form link: any login can make one.
+export async function createInvite(form: FormData) {
+  const user = await requireUser()
+  let to = '/invite'
+  try {
+    const invite = await createLeadInvite(s(form, 'phone') ?? '', s(form, 'name'), s(form, 'source') ?? 'WHATSAPP', user.id)
+    to = `/invite?new=${invite.id}`
+  } catch (e) {
+    if (!(e instanceof FlowError)) throw e
+    to = `/invite?error=${encodeURIComponent(e.message)}`
+  }
+  done(to)
+}
+
+export async function deleteInvite(form: FormData) {
+  await requireUser()
+  await db.leadInvite.deleteMany({ where: { id: id(form), filledAt: null } })
+  done('/invite')
 }

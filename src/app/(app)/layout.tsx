@@ -7,6 +7,7 @@ import { logout } from '@/app/login/actions'
 // Menus follow the Figma V2 sidebars. Each person sees only their own work; admin sees everything.
 const SALES: NavItem[] = [
   { href: '/leads', label: 'Leads', icon: 'leads' },
+  { href: '/invite', label: 'Customer form link', icon: 'link' },
   { href: '/calls', label: 'Call register', icon: 'phone' },
   { href: '/trials', label: 'Trials', icon: 'box' },
   { href: '/customers', label: 'Customers', icon: 'customers' },
@@ -20,6 +21,7 @@ const KITCHEN: NavItem[] = [
   { href: '/menu', label: 'Daily menu', icon: 'menu' },
   { href: '/kitchen/sheet', label: 'Delivery attendance', icon: 'attendance' },
   { href: '/kitchen/customers', label: 'Customers', icon: 'customers' },
+  { href: '/invite', label: 'Customer form link', icon: 'link' },
   { href: '/kitchen/calls', label: 'Customer calls', icon: 'phone' },
   { href: '/kitchen/alt-boxes', label: 'Alternative boxes', icon: 'box' },
   { href: '/kitchen/stock', label: 'Stock', icon: 'stock' },
@@ -36,7 +38,7 @@ const NAV: Record<string, NavItem[]> = {
     { href: '/admin', label: 'Overview', icon: 'chart' },
     { href: '/calendar', label: 'Calendar', icon: 'calendar' },
     ...SALES.map((x) => ({ ...x, group: 'Sales' })),
-    ...[...KITCHEN.filter((x) => x.href !== '/kitchen/customers' && x.href !== '/menu'), REPORTS].map((x) => ({ ...x, group: 'Kitchen' })),
+    ...[...KITCHEN.filter((x) => x.href !== '/kitchen/customers' && x.href !== '/menu' && x.href !== '/invite'), REPORTS].map((x) => ({ ...x, group: 'Kitchen' })),
     { href: '/admin/reports', label: 'Reports', icon: 'chart', group: 'Business' },
     { ...ALL_REPORTS, group: 'Business' },
     { href: '/admin/money', label: 'Purchase + expenses', icon: 'money', group: 'Business' },
