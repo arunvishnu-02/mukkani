@@ -1,7 +1,7 @@
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { fmtDay } from '@/lib/dates'
-import { CUSTOMER_STATUS, LEAD_STATUS, SOURCE } from '@/lib/labels'
+import { CUSTOMER_STATUS, LEAD_STATUS, SOURCE, sourceLabel } from '@/lib/labels'
 import { Chip, Empty, PageHeader, StatusChip, Who } from '@/components/ui'
 
 // One search over every person in the system: leads, trial customers, monthly customers, not interested.
@@ -47,7 +47,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                         </span>
                       ) : p.trialBoxes[0] ? <span className="text-muted">Trial {fmtDay(p.trialBoxes[0].deliveryDate)}</span> : <span className="text-muted">—</span>}
                     </td>
-                    <td className="td">{SOURCE[p.source]}</td>
+                    <td className="td">{sourceLabel(p)}</td>
                     <td className="td">{p.owner?.name ?? '—'}</td>
                     <td className="td">{p.status === 'FOLLOW_UP' ? fmtDay(p.nextFollowUpAt) : '—'}</td>
                   </tr>

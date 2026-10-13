@@ -4,6 +4,8 @@ import { day, dayInput, fmtWeekday, isSunday, nowHourIST, parseDay } from '@/lib
 import { daySheet, groupByRegion, runningPackages } from '@/lib/queries'
 import { Callout, Chip, Empty, ErrorNote, PageHeader, Pills, Tabs, Tile, Tiles } from '@/components/ui'
 import { AttendanceList } from '@/components/AttendanceList'
+import { DayLock } from '@/components/DayLock'
+import { dayOpen } from '@/lib/lock'
 import { DateField } from '@/components/DateField'
 import { LeaveDrawer } from '@/components/Leave'
 
@@ -24,9 +26,10 @@ type Row = {
 
 // After 9 AM, sales copies the kitchen manager's paper sheet into the dashboard. Compulsory every day.
 export default async function AttendancePage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  await requireUser(['SALES'])
+  const user = await requireUser(['SALES'])
   const sp = await searchParams
   const date = sp.date ? parseDay(sp.date) : day(0)
+  const open = await dayOpen(user, date)
   const [sheet, running] = await Promise.all([daySheet(date), runningPackages(day(0))])
   const rows: Row[] = [
     ...sheet.rows.map((r) => ({
@@ -80,6 +83,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
         </form>
       </PageHeader>
       <ErrorNote error={sp.error} />
+      <DayLock user={user} date={date} area="Delivery attendance" back={self} />
       {sp.leave && sp.leave !== '1' && <Callout>{sp.leave}</Callout>}
       {sp.leave === '1' && <LeaveDrawer customers={running.map((r) => ({ id: r.pkg.lead.id, name: r.pkg.lead.name, phone: r.pkg.lead.phone, region: r.pkg.lead.region?.name ?? null }))} date={dayInput(date > day(0) ? date : isSunday(day(1)) ? day(2) : day(1))} close={self} self={`${self}&leave=1`} />}
       {date.getTime() === day(0).getTime() && nowHourIST() < 9 && !sp.saved && (
@@ -97,7 +101,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
       {list.length === 0 ? (
         <section className="card"><Empty>No deliveries on this day.</Empty></section>
       ) : (
-        <AttendanceList key={`${dayInput(date)}-${region?.[0]}`} date={dayInput(date)} region={region?.[0] ?? 'No region'} rows={list} />
+        !open ? <section className="card"><Empty>This past day is locked, so its attendance cannot be changed here. You can still see it in All reports &rsaquo; Delivery attendance.</Empty></section> : <AttendanceList key={`${dayInput(date)}-${region?.[0]}`} date={dayInput(date)} region={region?.[0] ?? 'No region'} rows={list} />
       )}
     </>
   )

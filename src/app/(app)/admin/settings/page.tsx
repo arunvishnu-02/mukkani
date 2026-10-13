@@ -42,6 +42,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               <Text s={s} k="trialPrice" label="Trial box incl. box, Rs" type="number" />
               <Text s={s} k="buttermilkPrice" label="Add-on drink per bottle per month, Rs" type="number" />
               <Text s={s} k="lowStockKg" label="Low stock below (kg)" type="number" />
+              <Text s={s} k="altBoxTotal" label="Alternative boxes we own (total count)" type="number" />
             </div>
           </Card>
           <Card title="Delivery and kitchen">

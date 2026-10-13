@@ -142,6 +142,7 @@ export default async function CustomerCalls({ searchParams }: { searchParams: Pr
                 </Reveal>
                 <Reveal name="renewal" values={['NO']}>
                   <div><span className="label">Reason</span><Pills name="reason" options={NOT_INTERESTED_REASONS.map((r) => [r, r])} /></div>
+              <Reveal name="reason" values={['Other']}><div><label className="label">What is the reason? *</label><input name="reasonOther" className="input" placeholder="Type the reason" /></div></Reveal>
                   <p className="text-xs text-muted">A customer who says no moves to Not interested. The current package still runs to its last day.</p>
                 </Reveal>
               </>

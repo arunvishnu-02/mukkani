@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { dayInput, day, fmtDay } from '@/lib/dates'
-import { LEAD_STATUS, LOCATION_STATUS, SOURCE } from '@/lib/labels'
+import { LEAD_STATUS, LOCATION_STATUS, SOURCE, sourceLabel } from '@/lib/labels'
 import { leadInclude, regionsList } from '@/lib/queries'
 import { appSettings } from '@/lib/settings'
 import { Drawer, Empty, ErrorNote, PageHeader, Pills, StatusChip, Tabs, Who } from '@/components/ui'
@@ -82,7 +82,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                   <td className="td"><RowCheck formId="bulk-leads" id={l.id} /></td>
                   <td className="td"><Who name={l.name} sub={l.phone} href={`${list}&lead=${l.id}`} /></td>
                   <td className="td">{l.region?.name ?? '—'}</td>
-                  <td className="td">{SOURCE[l.source]}</td>
+                  <td className="td">{sourceLabel(l)}</td>
                   <td className="td">
                     <StatusChip map={LEAD_STATUS} value={l.status} />
                     {l.status === 'NOT_INTERESTED' && l.notInterestedReason && <div className="mt-0.5 text-[11px] text-muted">{l.notInterestedReason}</div>}

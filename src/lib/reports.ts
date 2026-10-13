@@ -1,7 +1,7 @@
 import 'server-only'
 import { db } from '@/lib/db'
 import { day, keyOf } from '@/lib/dates'
-import { ATTENDANCE, CUSTOMER_STATUS, DUE_KINDS, ISSUE_STATUS, LEAD_CALL, LEAD_STATUS, PACKAGE_STATUS, SOURCE, TRIAL_RESULT, TRIAL_STATUS } from '@/lib/labels'
+import { ATTENDANCE, CUSTOMER_STATUS, DUE_KINDS, ISSUE_STATUS, LEAD_CALL, LEAD_STATUS, PACKAGE_STATUS, SOURCE, TRIAL_RESULT, TRIAL_STATUS, sourceLabel } from '@/lib/labels'
 import type { Role } from '@/generated/prisma/enums'
 import type { Tone } from '@/lib/labels'
 
@@ -64,7 +64,7 @@ export const REPORTS: Record<string, Report> = {
     },
     load: async (f) =>
       (await db.lead.findMany({ where: { createdAt: moments(f), ...(f.status ? { status: f.status as never } : {}), ...inRegion(f) }, include: { region: true, owner: { select: { name: true } } }, orderBy: { createdAt: 'desc' }, take: MAX })).map((l) => ({
-        added: d(new Date(l.createdAt.getTime() + 5.5 * 3_600_000)), name: l.name, phone: l.phone, category: label(LEAD_STATUS, l.status), source: SOURCE[l.source], region: l.region?.name ?? null,
+        added: d(new Date(l.createdAt.getTime() + 5.5 * 3_600_000)), name: l.name, phone: l.phone, category: label(LEAD_STATUS, l.status), source: sourceLabel(l), region: l.region?.name ?? null,
         sales: l.owner?.name ?? null, next: l.status === 'FOLLOW_UP' ? d(l.nextFollowUpAt) : null, reason: l.notInterestedReason, address: l.address,
       })),
   },
@@ -206,14 +206,14 @@ export const REPORTS: Record<string, Report> = {
     date: 'Given on',
     status: [['OUT', 'Not collected'], ['BACK', 'Collected']],
     region: true,
-    columns: [{ key: 'given', label: 'Given on', type: 'date' }, { key: 'box', label: 'Box no.', type: 'number' }, { key: 'name', label: 'Customer' }, { key: 'phone', label: 'Phone' }, { key: 'region', label: 'Region' }, { key: 'state', label: 'Status' }, { key: 'back', label: 'Collected on', type: 'date' }],
+    columns: [{ key: 'given', label: 'Given on', type: 'date' }, { key: 'box', label: 'Box no.', type: 'number' }, { key: 'name', label: 'Who has it' }, { key: 'phone', label: 'Phone' }, { key: 'region', label: 'Region' }, { key: 'state', label: 'Status' }, { key: 'back', label: 'Collected on', type: 'date' }],
     kpi: async (r) => {
       const [out, given] = await Promise.all([db.altBox.count({ where: { collectedOn: null } }), db.altBox.count({ where: { givenOn: within(r) } })])
       return { value: out, label: 'boxes not collected', sub: `${given} given in this period`, tone: out ? 'warn' : 'leaf' }
     },
     load: async (f) =>
       (await db.altBox.findMany({ where: { givenOn: days(f), ...(f.status === 'OUT' ? { collectedOn: null } : f.status === 'BACK' ? { collectedOn: { not: null } } : {}), ...(f.regionId ? { lead: { regionId: f.regionId } } : {}) }, include: { lead: { include: { region: true } } }, orderBy: { givenOn: 'desc' }, take: MAX })).map((a) => ({
-        given: d(a.givenOn), box: a.boxNo, name: a.lead.name, phone: a.lead.phone, region: a.lead.region?.name ?? null, state: a.collectedOn ? 'Collected' : 'Not collected', back: d(a.collectedOn),
+        given: d(a.givenOn), box: a.boxNo, name: a.lead?.name ?? `${a.holder ?? 'Someone'} (not a customer)`, phone: a.lead?.phone ?? null, region: a.lead?.region?.name ?? null, state: a.collectedOn ? 'Collected' : 'Not collected', back: d(a.collectedOn),
       })),
   },
   stock: {

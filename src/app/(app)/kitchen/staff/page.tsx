@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { day, dayInput, fmtWeekday, parseDay } from '@/lib/dates'
 import { Callout, Drawer, Empty, ErrorNote, PageHeader, Tile, Tiles } from '@/components/ui'
 import { DateField } from '@/components/DateField'
+import { DayLock } from '@/components/DayLock'
 import { saveStaff, saveStaffDay, setStaffActive } from '../../ops-actions'
 import type { StaffDay } from '@/generated/prisma/client'
 
@@ -21,7 +22,7 @@ const Time = ({ name, value }: { name: string; value: string | null | undefined 
 // Daily check of kitchen staff and delivery persons: ID card, uniform or dress code, in and out time,
 // on-time pick-up, and the bike's starting and ending km. Kitchen manager only.
 export default async function StaffPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  await requireUser(['KITCHEN'])
+  const user = await requireUser(['KITCHEN'])
   const sp = await searchParams
   const date = sp.date ? parseDay(sp.date) : day(0)
   const monthStart = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1))
@@ -48,6 +49,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
         <form action="/kitchen/staff" className="flex items-center gap-2"><DateField name="date" defaultValue={dayInput(date)} max={dayInput(day(0))} compact /><button className="btn-secondary btn-sm">Go</button></form>
       </PageHeader>
       <ErrorNote error={sp.error} />
+      <DayLock user={user} date={date} area="Staff tracking" back={self} />
       {sp.saved && <Callout>Saved for {fmtWeekday(date)}.</Callout>}
       <Tiles cols={4}>
         <Tile label="Came in" value={`${present} of ${staff.length}`} sub="in time entered" tone="leaf" />

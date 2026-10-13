@@ -8,6 +8,7 @@ import { requireUser } from '@/lib/auth'
 import { day, isDay, parseDay } from '@/lib/dates'
 import { DUE_KINDS, ISSUE_DEPARTMENTS, ISSUE_STATUS } from '@/lib/labels'
 import { FlowError, createLeadInvite } from '@/lib/workflow'
+import { dayOpen, lockedText } from '@/lib/lock'
 
 // Daily issues (sales), staff tracking (kitchen manager), dues (admin) and the hand-set order of the attendance sheet.
 
@@ -35,7 +36,8 @@ export async function saveIssue(form: FormData) {
   if (!issue) fail(self, 'Write what the issue is')
   const data = {
     date: date(form, 'date') ?? day(0),
-    department: ISSUE_DEPARTMENTS.includes(s(form, 'department') ?? '') ? s(form, 'department')! : 'Other',
+    // Other with a typed name is saved under that name.
+    department: s(form, 'department') === 'Other' ? (s(form, 'departmentOther') ?? 'Other') : ISSUE_DEPARTMENTS.includes(s(form, 'department') ?? '') ? s(form, 'department')! : 'Other',
     issue: issue!,
     responsible: s(form, 'responsible'),
     status: (s(form, 'status') ?? 'OPEN') in ISSUE_STATUS ? (s(form, 'status') ?? 'OPEN') : 'OPEN',
@@ -83,6 +85,7 @@ export async function saveStaffDay(form: FormData) {
   const user = await requireUser(['KITCHEN'])
   const d = date(form, 'date') ?? day(0)
   const self = back(form, '/kitchen/staff')
+  if (!(await dayOpen(user, d))) fail(self, lockedText(d))
   let saved = 0
   for (const staffId of form.getAll('staff').map(String)) {
     const g = (k: string) => s(form, `${k}_${staffId}`)
@@ -170,4 +173,27 @@ export async function deleteInvite(form: FormData) {
   await requireUser()
   await db.leadInvite.deleteMany({ where: { id: id(form), filledAt: null } })
   done('/invite')
+}
+
+// Past-day permission: sales or the kitchen manager ask, the admin allows (for 24 hours) or refuses.
+export async function askDayPermission(form: FormData) {
+  const user = await requireUser()
+  const d = date(form, 'date')
+  const to = back(form, '/')
+  if (!d || d >= day(0)) done(to)
+  const note = s(form, 'note')
+  if (!note) fail(to, 'Say why you need to change that day')
+  const open = await db.dayRequest.findFirst({ where: { userId: user.id, date: d!, status: 'PENDING' } })
+  if (!open) await db.dayRequest.create({ data: { userId: user.id, date: d!, area: s(form, 'area') ?? 'Other', note } })
+  done(to)
+}
+
+export async function decideDayRequest(form: FormData) {
+  const admin = await requireUser(['ADMIN'])
+  const allow = s(form, 'decision') === 'allow'
+  await db.dayRequest.update({
+    where: { id: id(form) },
+    data: { status: allow ? 'ALLOWED' : 'REFUSED', decidedAt: new Date(), decidedById: admin.id, expiresAt: allow ? new Date(Date.now() + 24 * 3_600_000) : null },
+  })
+  done('/admin/requests')
 }

@@ -6,6 +6,7 @@ import { ISSUE_DEPARTMENTS, ISSUE_STATUS } from '@/lib/labels'
 import { Drawer, Empty, ErrorNote, PageHeader, Pills, StatusChip, Tabs, Tile, Tiles } from '@/components/ui'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { DateField } from '@/components/DateField'
+import { Reveal } from '@/components/Reveal'
 import { deleteIssue, saveIssue, setIssueStatus } from '../ops-actions'
 
 // Daily issue register: date, department, issue, responsible person, status, follow-up, remarks.
@@ -23,6 +24,7 @@ export default async function IssuesPage({ searchParams }: { searchParams: Promi
   ])
   const list = `/issues?tab=${tab}`
   const edit = sp.edit ? issues.find((i) => i.id === sp.edit) ?? (await db.issue.findUnique({ where: { id: sp.edit } })) : null
+  const known = !!edit && ISSUE_DEPARTMENTS.includes(edit.department)
   const old = issues.filter((i) => i.status !== 'DONE' && i.date < day(-2)).length
   return (
     <>
@@ -75,9 +77,12 @@ export default async function IssuesPage({ searchParams }: { searchParams: Promi
               <div><label className="label">Date *</label><DateField name="date" required defaultValue={dayInput(edit?.date ?? day(0))} max={dayInput(day(0))} /></div>
               <div>
                 <label className="label" htmlFor="issue-dept">Department *</label>
-                <select id="issue-dept" name="department" className="input" defaultValue={edit?.department ?? 'Sales'}>{ISSUE_DEPARTMENTS.map((d) => <option key={d}>{d}</option>)}</select>
+                <select id="issue-dept" name="department" className="input" defaultValue={!edit ? 'Sales' : known ? edit.department : 'Other'}>{ISSUE_DEPARTMENTS.map((d) => <option key={d}>{d}</option>)}</select>
               </div>
             </div>
+            <Reveal name="department" values={['Other']} initial={!edit ? 'Sales' : known ? edit.department : 'Other'}>
+              <div><label className="label" htmlFor="issue-dept-other">Which department? *</label><input id="issue-dept-other" name="departmentOther" className="input" defaultValue={edit && !known ? edit.department : ''} placeholder="Type the department" /></div>
+            </Reveal>
             <div><label className="label" htmlFor="issue-text">Issue *</label><textarea id="issue-text" name="issue" rows={3} required className="input" defaultValue={edit?.issue} placeholder="What happened? For example: box delivered late to Srirangam" /></div>
             <div>
               <label className="label" htmlFor="issue-who">Responsible person *</label>

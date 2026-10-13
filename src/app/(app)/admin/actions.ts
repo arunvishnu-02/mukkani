@@ -85,7 +85,7 @@ export async function saveRegion(form: FormData) {
 export async function saveSettings(form: FormData) {
   await requireUser(['ADMIN'])
   const self = back(form, '/admin/settings')
-  for (const k of ['monthlyPrice', 'trialPrice', 'buttermilkPrice', 'lowStockKg'] as const) {
+  for (const k of ['monthlyPrice', 'trialPrice', 'buttermilkPrice', 'lowStockKg', 'altBoxTotal'] as const) {
     const v = s(form, k)
     if (v != null && !(Number(v) >= 0)) fail(self, 'Prices and stock limits must be numbers')
   }

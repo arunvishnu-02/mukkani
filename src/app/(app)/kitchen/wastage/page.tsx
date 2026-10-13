@@ -6,12 +6,14 @@ import { appSettings } from '@/lib/settings'
 import { Bar, Callout, Card, PageHeader, Pills, Tile, Tiles } from '@/components/ui'
 import { saveWastageAction } from '../actions'
 import { DateField } from '@/components/DateField'
+import { DayLock } from '@/components/DayLock'
+import { Reveal } from '@/components/Reveal'
 
 const r1 = (n: number) => Math.round(n * 10) / 10
 
 // After cutting fruit each day, write the waste for each fruit and the reason.
 export default async function WastagePage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  await requireUser(['KITCHEN'])
+  const user = await requireUser(['KITCHEN'])
   const sp = await searchParams
   const date = sp.date ? parseDay(sp.date) : day(0)
   const monday = addDays(date, -((date.getUTCDay() + 6) % 7))
@@ -26,7 +28,7 @@ export default async function WastagePage({ searchParams }: { searchParams: Prom
   const by = new Map(rows.map((r) => [r.fruit, r]))
   const total = rows.reduce((a, r) => a + r.wasteKg, 0)
   const cut = rows.reduce((a, r) => a + r.cutKg, 0)
-  const sumReason = (re: string) => rows.filter((r) => r.reason === re).reduce((a, r) => a + r.wasteKg, 0)
+  const sumReason = (re: string) => rows.filter((r) => r.reason === re || r.reason.startsWith(`${re}:`)).reduce((a, r) => a + r.wasteKg, 0)
   const days = [0, 1, 2, 3, 4, 5].map((i) => addDays(monday, i))
   const perDay = days.map((d) => [d, week.filter((w) => w.date.getTime() === d.getTime()).reduce((a, w) => a + w.wasteKg, 0)] as const)
   const maxDay = Math.max(1, ...perDay.map((p) => p[1]))
@@ -36,6 +38,8 @@ export default async function WastagePage({ searchParams }: { searchParams: Prom
       <PageHeader title="Daily wastage" crumb="Wastage" sub="After cutting fruit each day, write the waste for each fruit and the reason.">
         <form action="/kitchen/wastage" className="flex items-center gap-2"><DateField name="date" defaultValue={dayInput(date)} compact /><button className="btn-secondary btn-sm">Go</button></form>
       </PageHeader>
+      {sp.error && <div className="rounded-[10px] bg-red-soft px-3.5 py-2.5 text-[13px] font-medium text-red">{sp.error}</div>}
+      <DayLock user={user} date={date} area="Wastage" back={`/kitchen/wastage?date=${dayInput(date)}`} />
       <Tiles cols={4}>
         <Tile label={date.getTime() === day(0).getTime() ? 'Wastage today' : `Wastage ${fmtWeekday(date)}`} value={`${r1(total)} kg`} sub={cut ? `${Math.round((total / cut) * 100)}% of fruit cut` : undefined} tone="red" />
         <Tile label="Cutting waste" value={`${r1(sumReason('Cutting waste'))} kg`} sub="peel, seeds, ends" />
@@ -65,7 +69,10 @@ export default async function WastagePage({ searchParams }: { searchParams: Prom
                     <td className="td"><input name={`cut_${f}`} type="number" step="0.1" min="0" defaultValue={c || ''} className="input w-20 px-2 py-1.5" aria-label={`${f} cut`} /></td>
                     <td className="td"><input name={`waste_${f}`} type="number" step="0.1" min="0" defaultValue={w?.wasteKg ?? ''} className="input w-20 px-2 py-1.5" aria-label={`${f} waste`} /></td>
                     <td className="td">{w && w.cutKg ? `${Math.round((w.wasteKg / w.cutKg) * 100)}%` : '–'}</td>
-                    <td className="td"><Pills name={`reason_${f}`} value={w?.reason ?? 'Cutting waste'} options={WASTE_REASONS.map((r) => [r, r])} tones={{ Spoiled: 'warn', Other: 'muted' }} /></td>
+                    <td className="td">
+                      <Pills name={`reason_${f}`} value={w?.reason.startsWith('Other') ? 'Other' : (w?.reason ?? 'Cutting waste')} options={WASTE_REASONS.map((r) => [r, r])} tones={{ Spoiled: 'warn', Other: 'muted' }} />
+                      <Reveal name={`reason_${f}`} values={['Other']} initial={w?.reason.startsWith('Other') ? 'Other' : null}><input name={`reasonNote_${f}`} defaultValue={w?.reason.startsWith('Other: ') ? w.reason.slice(7) : ''} placeholder="Type the reason" aria-label={`Other reason for ${f}`} className="input mt-1.5 px-2 py-1.5 text-[13px]" /></Reveal>
+                    </td>
                   </tr>
                 )
               })}

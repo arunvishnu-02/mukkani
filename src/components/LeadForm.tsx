@@ -1,4 +1,5 @@
 import { SOURCE } from '@/lib/labels'
+import { Reveal } from '@/components/Reveal'
 import { dayInput } from '@/lib/dates'
 import type { Lead, Region } from '@/generated/prisma/client'
 import { DateField } from '@/components/DateField'
@@ -20,6 +21,9 @@ export function LeadFields({ lead, regions, slots }: { lead?: Lead | null; regio
         </div>
         <div><label className="label">Date of birth *</label><DateField name="dob" required defaultValue={dayInput(lead?.dob)} birthday /></div>
       </div>
+      <Reveal name="source" values={['OTHER']} initial={lead?.source ?? 'WHATSAPP'}>
+        <div><label className="label">Which other source? *</label><input name="sourceOther" className="input" defaultValue={lead?.sourceOther ?? ''} placeholder="For example: friend, pamphlet, apartment group" /></div>
+      </Reveal>
       <div><label className="label">Address *</label><input name="address" required className="input" placeholder="Door number, street, area" defaultValue={lead?.address ?? ''} /></div>
       <div className="grid grid-cols-3 gap-2.5">
         <div>

@@ -43,6 +43,7 @@ const NAV: Record<string, NavItem[]> = {
     { ...ALL_REPORTS, group: 'Business' },
     { href: '/admin/money', label: 'Purchase + expenses', icon: 'money', group: 'Business' },
     { href: '/admin/dues', label: 'Dues', icon: 'wallet', group: 'Business' },
+    { href: '/admin/requests', label: 'Past-day requests', icon: 'bell', group: 'Business' },
     { href: '/admin/users', label: 'Team + regions', icon: 'team', group: 'Business' },
     { href: '/admin/settings', label: 'Settings', icon: 'settings', group: 'Business' },
   ],

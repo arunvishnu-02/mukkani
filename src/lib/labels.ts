@@ -64,6 +64,8 @@ export const SOURCE: Record<LeadSource, string> = {
   CALL: 'Phone call',
   OTHER: 'Other',
 }
+// Source as shown: "Other: friend" when Other was picked and described.
+export const sourceLabel = (l: { source: LeadSource; sourceOther?: string | null }) => (l.source === 'OTHER' && l.sourceOther ? `Other: ${l.sourceOther}` : SOURCE[l.source])
 
 export const ROLE: Record<Role, [string, Tone]> = {
   ADMIN: ['Admin', 'leaf'],

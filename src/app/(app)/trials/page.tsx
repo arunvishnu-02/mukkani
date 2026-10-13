@@ -125,6 +125,7 @@ export default async function TrialsPage({ searchParams }: { searchParams: Promi
             </Reveal>
             <Reveal name="result" values={['NOT_INTERESTED']}>
               <div><span className="label">Reason</span><Pills name="reason" options={NOT_INTERESTED_REASONS.map((r) => [r, r])} /></div>
+              <Reveal name="reason" values={['Other']}><div><label className="label">What is the reason? *</label><input name="reasonOther" className="input" placeholder="Type the reason" /></div></Reveal>
             </Reveal>
             <div className="grid grid-cols-2 gap-2.5"><Link href={list} className="btn-secondary">Cancel</Link><button className="btn">Save result</button></div>
           </form>

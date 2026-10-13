@@ -121,6 +121,8 @@ model Lead {
   deliveryTime        String?
   // Position on the attendance sheet inside the region, set by hand to follow the delivery route. Empty = after the arranged ones.
   sheetOrder          Int?
+  // What the source is when Source is Other.
+  sourceOther         String?
   customerStatus      CustomerStatus @default(ACTIVE)
   pausedUntil         DateTime?      @db.Date
   regionId            String? @db.Uuid
@@ -228,8 +230,10 @@ model Attendance {
 // Alternative box sent when the empty box was not given back. Box numbers 1 to 100.
 model AltBox {
   id          String    @id @default(uuid()) @db.Uuid
-  leadId      String @db.Uuid
-  lead        Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId      String? @db.Uuid
+  lead        Lead?     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  // Who has the box when it is not a customer (a shop, a staff member, a relative).
+  holder      String?
   boxNo       Int
   givenOn     DateTime  @db.Date
   collectedOn DateTime? @db.Date
@@ -437,4 +441,22 @@ model LeadInvite {
   leadId      String?   @db.Uuid
 
   @@index([createdAt])
+}
+
+// Sales or the kitchen manager asking the admin to let them change a past day. Today can always be
+// changed; an older day opens for that person only after the admin allows it, until `expiresAt`.
+model DayRequest {
+  id          String    @id @default(uuid()) @db.Uuid
+  date        DateTime  @db.Date
+  userId      String    @db.Uuid
+  area        String
+  note        String?
+  status      String    @default("PENDING") // PENDING, ALLOWED, REFUSED
+  createdAt   DateTime  @default(now())
+  decidedAt   DateTime?
+  decidedById String?   @db.Uuid
+  expiresAt   DateTime?
+
+  @@index([status])
+  @@index([userId, date])
 }

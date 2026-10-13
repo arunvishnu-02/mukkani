@@ -10,6 +10,7 @@ export const DEFAULTS = {
   slots: '6:30 to 7:00\n7:00 to 7:30\n7:30 to 8:00',
   fruits: 'Papaya\nWatermelon\nBanana\nPomegranate\nGuava\nApple\nMango\nGrapes\nPineapple\nMuskmelon\nOrange\nSapota',
   lowStockKg: '3',
+  altBoxTotal: '15',
   reviewLink: 'https://share.google/TvL4e1RGLlg3p1xAK',
   paymentQrId: '',
   msgReminder:
@@ -52,5 +53,6 @@ export async function appSettings() {
     slots: lines(s.slots),
     fruits: lines(s.fruits),
     lowStockKg: Number(s.lowStockKg) || 3,
+    altBoxTotal: Math.max(1, Math.round(Number(s.altBoxTotal)) || 15),
   }
 }

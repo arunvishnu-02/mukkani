@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { day, fmtDay, fmtTime, fmtWeekday } from '@/lib/dates'
-import { CUSTOMER_CALL, CUSTOMER_STATUS, LEAD_STATUS, LOCATION_STATUS, PACKAGE_STATUS, RENEWAL, SOURCE, TRIAL_RESULT, TRIAL_STATUS, rupees } from '@/lib/labels'
+import { CUSTOMER_CALL, CUSTOMER_STATUS, LEAD_STATUS, LOCATION_STATUS, PACKAGE_STATUS, RENEWAL, SOURCE, TRIAL_RESULT, TRIAL_STATUS, rupees, sourceLabel } from '@/lib/labels'
 import { planFor, regionsList } from '@/lib/queries'
 import { appSettings, getSettings } from '@/lib/settings'
 import { fill, firstName, waLink } from '@/lib/whatsapp'
@@ -145,7 +145,7 @@ export default async function CustomerProfile({ params, searchParams }: { params
             <Row k="Time slot" v={lead.slot ?? '—'} />
             <Row k="Delivery time" v={lead.deliveryTime ?? '—'} />
             <Row k="Alternate phone" v={lead.altPhone ?? '—'} />
-            <Row k="Source" v={SOURCE[lead.source]} />
+            <Row k="Source" v={sourceLabel(lead)} />
             {lead.notInterestedReason && <Row k="Not interested" v={lead.notInterestedReason} />}
             <Row k="Notes" v={lead.notes ?? '—'} />
           </Card>

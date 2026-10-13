@@ -7,6 +7,7 @@ import { db } from '@/lib/db'
 import { requireUser } from '@/lib/auth'
 import { addDays, day, fmtDay, fmtWeekday, isDay, isSunday, parseDay } from '@/lib/dates'
 import { getSettings } from '@/lib/settings'
+import { dayOpen, lockedText } from '@/lib/lock'
 import { LEAD_IMPORT_COLUMNS, parseCsv, sheetDate } from '@/lib/csv'
 import { SOURCE } from '@/lib/labels'
 import { fill, firstName, waLink } from '@/lib/whatsapp'
@@ -33,6 +34,8 @@ const s = (f: FormData, k: string) => {
 }
 const date = (f: FormData, k: string) => (isDay(s(f, k)) ? parseDay(s(f, k)!) : null)
 const back = (f: FormData, fallback: string) => s(f, 'back') ?? fallback
+// When Other is picked, what was typed beside it is kept with it.
+const reasonOf = (f: FormData) => (s(f, 'reason') === 'Other' && s(f, 'reasonOther') ? `Other: ${s(f, 'reasonOther')}` : s(f, 'reason'))
 const withError = (url: string, e: unknown) => {
   if (!(e instanceof FlowError)) throw e
   return `${url}${url.includes('?') ? '&' : '?'}error=${encodeURIComponent(e.message)}`
@@ -68,6 +71,7 @@ const leadFields = (form: FormData) => ({
   address: s(form, 'address'),
   regionId: s(form, 'regionId'),
   source: z.enum(LeadSource).parse(s(form, 'source') ?? 'CALL'),
+  sourceOther: s(form, 'source') === 'OTHER' ? s(form, 'sourceOther') : null,
   notes: s(form, 'notes'),
   avoidFoods: s(form, 'avoidFoods'),
   healthNotes: s(form, 'healthNotes'),
@@ -177,7 +181,7 @@ export async function logCallAction(form: FormData) {
       next: date(form, 'next'),
       trialDate: date(form, 'trialDate') ?? day(1),
       slot: s(form, 'trialSlot'),
-      reason: s(form, 'reason'),
+      reason: reasonOf(form),
       start: packageStart(form),
     }),
   )
@@ -200,7 +204,7 @@ export async function trialFeedbackAction(form: FormData) {
       feedback: s(form, 'feedback'),
       paid: form.get('paid') === 'on',
       next: date(form, 'next'),
-      reason: s(form, 'reason'),
+      reason: reasonOf(form),
       start: packageStart(form),
     }),
   )
@@ -231,6 +235,7 @@ export async function saveMenuAction(form: FormData) {
   const swaps = form.getAll('swapFruits').map(String)
   const self = back(form, '/menu')
   if (fruits.length === 0) redirect(withError(self, new FlowError('Pick at least one fruit')))
+  if (!(await dayOpen(user, d))) redirect(withError(self, new FlowError(lockedText(d))))
   const data = { fruits: fruits.join(', '), swapFruits: swaps.join(', '), salad: s(form, 'salad'), note: s(form, 'note'), byId: user.id }
   await db.menu.upsert({ where: { date: d }, create: { date: d, ...data }, update: data })
   revalidatePath('/', 'layout')
@@ -285,6 +290,7 @@ export async function saveAttendanceRowAction(dateKey: string, row: { leadId: st
     remarks: z.string().max(300).nullable(),
   }).safeParse(row)
   if (!parsed.success || !isDay(dateKey)) return { ok: false }
+  if (!(await dayOpen(user, parseDay(dateKey)))) return { ok: false }
   await saveAttendance(parseDay(dateKey), [parsed.data], user.id)
   revalidatePath('/', 'layout')
   return { ok: true }
@@ -292,8 +298,9 @@ export async function saveAttendanceRowAction(dateKey: string, row: { leadId: st
 
 // Takes back a row entered by mistake, so it shows as "To enter" again.
 export async function clearAttendanceRowAction(dateKey: string, leadId: string) {
-  await requireUser(['SALES'])
+  const user = await requireUser(['SALES'])
   if (!isDay(dateKey) || !z.string().uuid().safeParse(leadId).success) return { ok: false }
+  if (!(await dayOpen(user, parseDay(dateKey)))) return { ok: false }
   await db.attendance.deleteMany({ where: { leadId, date: parseDay(dateKey) } })
   revalidatePath('/', 'layout')
   return { ok: true }
@@ -302,6 +309,7 @@ export async function clearAttendanceRowAction(dateKey: string, leadId: string) 
 export async function saveAttendanceAction(form: FormData) {
   const user = await requireUser(['SALES'])
   const d = date(form, 'date') ?? day(0)
+  if (!(await dayOpen(user, d))) redirect(withError(back(form, '/attendance'), new FlowError(lockedText(d))))
   const rows: AttendanceInput[] = []
   for (const leadId of form.getAll('lead').map(String)) {
     const st = s(form, `st_${leadId}`)
