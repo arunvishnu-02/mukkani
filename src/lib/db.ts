@@ -7,7 +7,7 @@ const NOTHING: Record<string, unknown> = { findUnique: null, findFirst: null, fi
 
 // Keep connections open between clicks (opening one costs several trips to the database) and stay
 // under the 15 connections Supabase's session pooler allows when two server processes run.
-const POOL = { connectionString: process.env.DATABASE_URL, max: 7, idleTimeoutMillis: 5 * 60_000 }
+const POOL = { connectionString: process.env.DATABASE_URL, max: 4, idleTimeoutMillis: 60_000 }
 
 function client() {
   return new PrismaClient({ adapter: new PrismaPg(POOL) }).$extends({
