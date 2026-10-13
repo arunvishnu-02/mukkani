@@ -1,4 +1,6 @@
+import { Suspense } from 'react'
 import { Clock } from '@/components/Clock'
+import { TableTools } from '@/components/TableTools'
 import { Sidebar, type NavItem } from '@/components/Sidebar'
 import { requireUser } from '@/lib/auth'
 import { ROLE } from '@/lib/labels'
@@ -56,6 +58,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="md:flex">
       <Sidebar section={section} items={NAV[user.role]} user={{ name: user.name, role: ROLE[user.role][0] }} logout={logout} />
       <main className="min-w-0 flex-1 space-y-[18px] px-4 py-6 md:px-8 md:py-7">{children}</main>
+      <Suspense fallback={null}><TableTools /></Suspense>
     </div>
   )
 }

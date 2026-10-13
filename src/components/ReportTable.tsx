@@ -48,7 +48,7 @@ export function ReportTable({ columns, rows, fileName }: { columns: Column[]; ro
       </div>
       <div className="overflow-x-auto">
         {shown.length === 0 ? <div className="px-5 py-10 text-center text-sm text-muted">{rows.length === 0 ? 'Nothing for these filters. Try a wider date range.' : 'No row matches what you typed.'}</div> : (
-          <table className="w-full">
+          <table className="w-full" data-no-tools>
             <thead>
               <tr>
                 {columns.map((c) => {
