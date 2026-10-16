@@ -124,7 +124,7 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
                   </div>
                 </Card>
               )}
-              <Callout tone="brand">The menu is locked in when the kitchen manager prints the attendance sheet at 3 AM.</Callout>
+              <Callout tone="brand">Add the menu the day before. The kitchen prints the sheet at 3 AM with this menu and its customizations, so a change made after printing will not be on the paper.</Callout>
             </div>
           </div>
         </>
