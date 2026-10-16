@@ -9,12 +9,14 @@ import { deleteLeads } from '@/app/(app)/actions'
 import { setCustomerStatusAction } from '@/app/(app)/kitchen/actions'
 import type { Prisma } from '@/generated/prisma/client'
 import { DateField } from '@/components/DateField'
+import { missingDetails, missingWhere } from '@/lib/missing'
 
 const TABS: [string, string, Prisma.LeadWhereInput][] = [
   ['monthly', 'Monthly pack', { status: 'MONTHLY' }],
   ['trial', 'Trial', { status: 'TRIAL' }],
   ['stopped', 'Paused / inactive', { customerStatus: { in: ['PAUSED', 'INACTIVE'] } }],
   ['all', 'All', {}],
+  ['missing', 'Missing details', missingWhere],
 ]
 
 // Customer list shared by sales (view, delete) and the kitchen manager. Both can set Active, Absent, Paused, Inactive.
@@ -72,7 +74,7 @@ export async function CustomersView({ base, sp, kitchen }: { base: string; sp: R
                 return (
                   <tr key={l.id}>
                     {!kitchen && <td className="td"><RowCheck formId="bulk-customers" id={l.id} /></td>}
-                    <td className="td"><Who name={l.name} sub={l.phone} href={`/customers/${l.id}`} /></td>
+                    <td className="td"><Who name={l.name} sub={l.phone || 'No phone'} href={`/customers/${l.id}`} />{missingDetails(l).length > 0 && <div className="mt-0.5 text-[11px] font-semibold text-red">Missing: {missingDetails(l).join(', ')}</div>}</td>
                     <td className="td">{l.region?.name ?? '—'}</td>
                     <td className="td whitespace-nowrap">{l.deliveryTime ?? l.slot ?? '—'}</td>
                     <td className="td">

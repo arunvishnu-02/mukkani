@@ -6,7 +6,7 @@ import { daySheet, groupByRegion, runningPackages } from '@/lib/queries'
 import { Callout, Chip, Empty, ErrorNote, PageHeader, StatusChip, Tabs, Tile, Tiles } from '@/components/ui'
 import { CancelLeave, LeaveDrawer } from '@/components/Leave'
 import { lateAdds } from '@/lib/kitchen'
-import { saveSheetOrder } from '../../ops-actions'
+import { SheetOrder } from '@/components/SheetOrder'
 import { DateField } from '@/components/DateField'
 
 // Print at 3 AM. After delivery, write the attendance on the paper. Sales enters it after 9 AM.
@@ -31,7 +31,12 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
       </PageHeader>
       <ErrorNote error={sp.error} />
       {sp.leave && sp.leave !== '1' && <Callout>{sp.leave}</Callout>}
-      {sp.ordered && <Callout>Order saved for {region?.[0]}. The printed sheet follows it.</Callout>}
+      {sp.ordered && (
+        <div className="flex flex-wrap items-center gap-3 rounded-[10px] bg-leaf-soft px-4 py-3 text-[13px] font-medium text-leaf">
+          <span className="flex-1">Order saved for {region?.[0]}. Check the list below, then print the sheet; it follows the same order.</span>
+          {region && <a href={`/print/sheet?${q}&region=${encodeURIComponent(region[0])}`} target="_blank" rel="noreferrer" className="btn btn-sm">Print {region[0]}</a>}
+        </div>
+      )}
       {late.length > 0 && (
         <section className="rounded-[10px] border border-tur bg-tur-soft px-4 py-3">
           <div className="text-sm font-bold text-warn">Added after 2 PM today · {late.length}</div>
@@ -69,24 +74,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
           {region && <a href={`/print/sheet?${q}&region=${encodeURIComponent(region[0])}`} target="_blank" rel="noreferrer" className="btn-secondary btn-sm">Print {region[0]}</a>}
         </div>
         {sp.arrange && list.length > 0 ? (
-          <form action={saveSheetOrder} className="border-t border-line">
-            <input type="hidden" name="back" value={self} />
-            <p className="bg-brand-soft px-5 py-3 text-[13px]">Type the position of each customer in the order the boxes are delivered (1 = first stop), then save. The order stays for every day until you change it. New customers go to the end.</p>
-            <table className="w-full">
-              <thead><tr><th className="th w-28">Position</th><th className="th">Customer</th><th className="th">Address</th><th className="th">Time</th></tr></thead>
-              <tbody>
-                {list.map((r, i) => (
-                  <tr key={r.pkg.id}>
-                    <td className="td"><input type="hidden" name="lead" value={r.lead.id} /><input type="number" min={1} max={999} name={`pos_${r.lead.id}`} defaultValue={i + 1} aria-label={`Position of ${r.lead.name}`} className="input w-20 px-2 py-1.5 text-center font-semibold" /></td>
-                    <td className="td font-semibold">{r.lead.name}</td>
-                    <td className="td max-w-80 truncate text-muted">{r.lead.address ?? '—'}</td>
-                    <td className="td">{r.lead.deliveryTime ?? r.lead.slot ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="flex justify-end gap-2.5 px-5 py-4"><Link href={self} scroll={false} className="btn-secondary">Cancel</Link><button className="btn">Save order</button></div>
-          </form>
+          <SheetOrder rows={list.map((r) => ({ id: r.lead.id, name: r.lead.name, address: r.lead.address, time: r.lead.deliveryTime ?? r.lead.slot }))} back={self} region={region?.[0] ?? ''} />
         ) : list.length === 0 ? <Empty>No monthly boxes on this day.</Empty> : (
           <table className="w-full">
             <thead><tr><th className="th">#</th><th className="th">Customer</th><th className="th">Time</th><th className="th">Drink</th><th className="th">Alt box no.</th><th className="th">Attendance</th></tr></thead>

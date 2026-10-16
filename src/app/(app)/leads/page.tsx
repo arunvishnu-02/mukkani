@@ -13,6 +13,7 @@ import { createLead, deleteLeads, updateLead } from '../actions'
 import type { Prisma } from '@/generated/prisma/client'
 import type { LeadStatus } from '@/generated/prisma/enums'
 import { DateField } from '@/components/DateField'
+import { missingDetails, missingWhere } from '@/lib/missing'
 import { LEAD_IMPORT_COLUMNS } from '@/lib/csv'
 
 const FILTERS: [string, string, LeadStatus | null][] = [
@@ -21,6 +22,7 @@ const FILTERS: [string, string, LeadStatus | null][] = [
   ['trial', 'Trial', 'TRIAL'],
   ['monthly', 'Monthly pack', 'MONTHLY'],
   ['no', 'Not interested', 'NOT_INTERESTED'],
+  ['missing', 'Missing details', null],
 ]
 
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -30,14 +32,16 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   const q = sp.q?.trim()
   const where: Prisma.LeadWhereInput = {
     ...(f[2] ? { status: f[2] } : {}),
+    ...(f[0] === 'missing' ? missingWhere : {}),
     ...(q ? { OR: [{ name: { contains: q } }, { phone: { contains: q } }] } : {}),
   }
-  const [leads, counts, regions, selected, st] = await Promise.all([
+  const [leads, counts, regions, selected, st, nMissing] = await Promise.all([
     db.lead.findMany({ where, include: leadInclude, orderBy: { updatedAt: 'desc' }, take: 300 }),
     db.lead.groupBy({ by: ['status'], _count: true }),
     regionsList(),
     sp.lead ? db.lead.findUnique({ where: { id: sp.lead }, include: leadInclude }) : null,
     appSettings(),
+    db.lead.count({ where: missingWhere }),
   ])
   const c = Object.fromEntries(counts.map((r) => [r.status, r._count])) as Record<string, number>
   const total = Object.values(c).reduce((a, b) => a + b, 0)
@@ -58,7 +62,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2.5">
-        <Tabs items={FILTERS.map(([k, label, status]) => ({ label: `${label} ${status ? (c[status] ?? 0) : total}`, href: `/leads?f=${k}${q ? `&q=${encodeURIComponent(q)}` : ''}`, active: f[0] === k }))} />
+        <Tabs items={FILTERS.map(([k, label, status]) => ({ label: `${label} ${k === 'missing' ? nMissing : status ? (c[status] ?? 0) : total}`, href: `/leads?f=${k}${q ? `&q=${encodeURIComponent(q)}` : ''}`, active: f[0] === k }))} />
         <div className="flex-1" />
         <form action="/leads" className="w-full sm:w-60">
           <input type="hidden" name="f" value={f[0]} />
@@ -80,7 +84,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
               {leads.map((l) => (
                 <tr key={l.id} className={l.id === selected?.id ? 'bg-brand-soft/60' : ''}>
                   <td className="td"><RowCheck formId="bulk-leads" id={l.id} /></td>
-                  <td className="td"><Who name={l.name} sub={l.phone} href={`${list}&lead=${l.id}`} /></td>
+                  <td className="td"><Who name={l.name} sub={l.phone || 'No phone'} href={`${list}&lead=${l.id}`} />{missingDetails(l).length > 0 && <div className="mt-0.5 text-[11px] font-semibold text-red">Missing: {missingDetails(l).join(', ')}</div>}</td>
                   <td className="td">{l.region?.name ?? '—'}</td>
                   <td className="td">{sourceLabel(l)}</td>
                   <td className="td">
