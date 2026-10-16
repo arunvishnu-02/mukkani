@@ -61,7 +61,7 @@ export async function CustomersView({ base, sp, kitchen }: { base: string; sp: R
             <thead>
               <tr>
                 {!kitchen && <th className="th w-10"><SelectAll formId="bulk-customers" /></th>}
-                <th className="th">Customer</th><th className="th">Region</th><th className="th">Time</th><th className="th">Package</th><th className="th">Last day</th><th className="th">Foods to avoid</th><th className="th">Status</th>
+                <th className="th">Customer</th><th className="th">Region</th><th className="th">Time</th><th className="th">Package</th><th className="th">Start date</th><th className="th">End date</th><th className="th">Foods to avoid</th><th className="th">Status</th>
                 <th className="th">Change</th>
               </tr>
             </thead>
@@ -87,6 +87,7 @@ export async function CustomersView({ base, sp, kitchen }: { base: string; sp: R
                         <StatusChip map={LEAD_STATUS} value={l.status} />
                       )}
                     </td>
+                    <td className="td whitespace-nowrap">{r ? fmtDay(r.pkg.startDate) : l.packages[0] ? fmtDay(l.packages[0].startDate) : '—'}</td>
                     <td className="td whitespace-nowrap">{r ? (r.plan.end ? fmtWeekday(r.plan.end) : 'Paused') : '—'}</td>
                     <td className="td max-w-48 text-muted">{[l.avoidFoods, l.healthNotes].filter(Boolean).join(' · ') || '—'}</td>
                     <td className="td"><StatusChip map={CUSTOMER_STATUS} value={status(l)} /></td>
