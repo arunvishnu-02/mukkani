@@ -27,6 +27,8 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
   const totals = swapTotals(swaps.map((s) => s.swap))
   const self = `/menu?date=${dayInput(date)}`
   const nextDays = [0, 1, 2, 3, 4, 5, 6].map((i) => addDays(day(0), i)).filter((d) => !isSunday(d))
+  const added = new Set((await db.menu.findMany({ where: { date: { in: nextDays } }, select: { date: true } })).map((m) => m.date.getTime()))
+  const when = (d: Date) => (d.getTime() === day(0).getTime() ? 'Today' : d.getTime() === tomorrow.getTime() ? 'Tomorrow' : null)
   return (
     <>
       <PageHeader title={tab === 'tomorrow' ? `Menu for ${fmtWeekday(date)}` : tab === 'week' ? 'This week' : 'Past menus'} crumb="Daily menu" sub="Add today the menu for tomorrow. The app checks it against every customer's foods to avoid and health notes.">
@@ -52,10 +54,17 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
         </section>
       ) : (
         <>
-          <div className="flex flex-wrap gap-1.5">
-            {nextDays.map((d) => (
-              <Link key={d.toISOString()} href={`/menu?date=${dayInput(d)}`} className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${d.getTime() === date.getTime() ? 'border-brand bg-brand text-white' : 'border-line bg-surface'}`}>{fmtWeekday(d)}</Link>
-            ))}
+          <div>
+            <p className="mb-1.5 text-[13px] text-muted">Which day&apos;s menu? Tomorrow is picked for you. <span className="text-leaf">✓ = menu added</span></p>
+            <div className="flex flex-wrap gap-1.5">
+              {nextDays.map((d) => (
+                <Link key={d.toISOString()} href={`/menu?date=${dayInput(d)}`} className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${d.getTime() === date.getTime() ? 'border-brand bg-brand text-white' : 'border-line bg-surface'}`}>
+                  {when(d) && <span className="mr-1 text-[11px] uppercase opacity-80">{when(d)} ·</span>}
+                  {fmtWeekday(d)}
+                  {added.has(d.getTime()) && <span className={d.getTime() === date.getTime() ? 'ml-1' : 'ml-1 text-leaf'}>✓</span>}
+                </Link>
+              ))}
+            </div>
           </div>
           <Tiles cols={4}>
             <Tile label={date.getTime() === day(0).getTime() ? 'Boxes today' : 'Boxes that day'} value={sheet.boxes} sub={`Monthly ${sheet.monthly} · Trial ${sheet.trials.length}`} />
@@ -69,14 +78,14 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
                 <form action={saveMenuAction} className="space-y-4">
                   <input type="hidden" name="date" value={dayInput(date)} />
                   <input type="hidden" name="back" value={self} />
-                  <div><span className="label">Fruits *</span><Checks name="fruits" options={st.fruits} values={splitList(menu?.fruits)} /></div>
-                  <div><label className="label">Salad</label><input name="salad" className="input" defaultValue={menu?.salad ?? ''} placeholder="For example: sprouts salad with cucumber and carrot" /></div>
+                  <div><span className="label">1. Fruits going in the box *</span><Checks name="fruits" options={st.fruits} values={splitList(menu?.fruits)} /></div>
+                  <div><label className="label">2. Salad</label><input name="salad" className="input" defaultValue={menu?.salad ?? ''} placeholder="For example: sprouts salad with cucumber and carrot" /></div>
                   <div>
-                    <span className="label">Customization fruits (given instead)</span>
+                    <span className="label">3. Fruits to give instead (optional)</span>
                     <Checks name="swapFruits" options={st.fruits} values={splitList(menu?.swapFruits)} />
-                    <p className="mt-1.5 text-xs text-muted">Customers who cannot have a menu fruit get one of these instead.</p>
+                    <p className="mt-1.5 text-xs text-muted">Tick a few fruits that are NOT in step 1. A customer who can&apos;t eat a menu fruit gets one of these instead.</p>
                   </div>
-                  <div><label className="label">Note for kitchen</label><textarea name="note" rows={2} className="input" defaultValue={menu?.note ?? ''} /></div>
+                  <div><label className="label">4. Note for kitchen (optional)</label><textarea name="note" rows={2} className="input" defaultValue={menu?.note ?? ''} /></div>
                   <button className="btn w-full">Save menu</button>
                 </form>
               ) : menu ? (
