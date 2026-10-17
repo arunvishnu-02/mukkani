@@ -8,7 +8,7 @@ import { NavIcon, type IconName } from './NavIcon'
 
 export type NavItem = { href: string; label: string; icon: IconName; group?: string }
 
-export function Sidebar({ section, items, user, logout }: { section: string; items: NavItem[]; user: { name: string; role: string }; logout: () => Promise<void> }) {
+export function Sidebar({ section, items, badges = {}, user, logout }: { section: string; items: NavItem[]; badges?: Record<string, { n: number; tip: string }>; user: { name: string; role: string }; logout: () => Promise<void> }) {
   const path = usePathname()
   const [open, setOpen] = useState(false)
   // The longest nav link that matches the current path is the active one.
@@ -22,6 +22,7 @@ export function Sidebar({ section, items, user, logout }: { section: string; ite
       <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-surface px-4 py-2.5 md:hidden">
         <button onClick={() => setOpen(!open)} className="rounded-md border border-line px-2.5 py-1 text-sm font-semibold" aria-label="Menu">
           Menu
+          {Object.keys(badges).length > 0 && <span className="ml-1.5 inline-block size-2 rounded-full bg-red align-middle" aria-label="Work waiting" />}
         </button>
         <Image src="/mukkani-logo.png" alt="Mukkani" width={96} height={46} priority />
       </div>
@@ -48,7 +49,12 @@ export function Sidebar({ section, items, user, logout }: { section: string; ite
                 className={`flex items-center gap-2.5 rounded-lg px-3 ${dense ? 'py-1.5' : 'py-2.5'} text-sm ${on ? 'bg-side-active font-semibold text-brand' : 'font-medium text-side-muted hover:bg-s2 hover:text-ink'}`}
               >
                 <NavIcon name={it.icon} />
-                {it.label}
+                <span className="flex-1">{it.label}</span>
+                {badges[it.href] && (
+                  <span title={badges[it.href].tip} aria-label={`${badges[it.href].n} · ${badges[it.href].tip}`} className="min-w-5 rounded-full bg-red px-1.5 py-px text-center text-[11px] font-bold text-white">
+                    {it.href === '/menu' ? '!' : badges[it.href].n > 99 ? '99+' : badges[it.href].n}
+                  </span>
+                )}
               </Link>
             </div>
           )
