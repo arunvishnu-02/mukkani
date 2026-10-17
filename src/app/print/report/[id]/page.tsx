@@ -49,8 +49,8 @@ export default async function ReportPrint({ params }: { params: Promise<{ id: st
           </div>
           <div className="w-[250px] shrink-0">
             <div className="flex items-baseline justify-between">
-              <span className="font-display text-[34px] font-bold leading-none text-leaf">{plan.delivered}<span className="text-lg text-muted"> of 26</span></span>
-              <span className="text-[11px] font-bold tracking-wider text-muted uppercase">boxes delivered</span>
+              <span className="font-display text-[34px] font-bold leading-none whitespace-nowrap text-leaf">{plan.delivered}<span className="text-lg text-muted"> of 26</span></span>
+              <span className="text-[11px] font-bold tracking-wider whitespace-nowrap text-muted uppercase">boxes delivered</span>
             </div>
             <div className="mt-2 flex gap-[3px]">
               {Array.from({ length: 26 }, (_, i) => <span key={i} className={`h-2.5 flex-1 rounded-sm ${i < plan.delivered ? 'bg-leaf' : 'bg-s2'}`} />)}
