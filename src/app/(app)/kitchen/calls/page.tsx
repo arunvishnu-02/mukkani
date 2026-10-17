@@ -6,7 +6,7 @@ import { CUSTOMER_CALL, NOT_INTERESTED_REASONS, RENEWAL } from '@/lib/labels'
 import { dueCalls, waitingPayment } from '@/lib/kitchen'
 import { appSettings, getSettings } from '@/lib/settings'
 import { fill, firstName, waLink } from '@/lib/whatsapp'
-import { Callout, Chip, Drawer, Empty, ErrorNote, PageHeader, Pills, StatusChip, Tile, Tiles, WaLink, Who } from '@/components/ui'
+import { Callout, Chip, Drawer, Empty, ErrorNote, PageHeader, Pills, StatusChip, Tabs, Tile, Tiles, WaLink, Who } from '@/components/ui'
 import { Reveal } from '@/components/Reveal'
 import { ShareQr } from '@/components/ShareQr'
 import { customerCallAction, markPaidAction } from '../actions'
@@ -24,6 +24,24 @@ export default async function CustomerCalls({ searchParams }: { searchParams: Pr
     db.customerCall.findMany({ where: { createdAt: { gte: day(-6) } }, include: { lead: true, package: true }, orderBy: { createdAt: 'desc' }, take: 30 }),
   ])
   const selected = sp.call ? due.find((d) => d.pkg.id === sp.call) : null
+  // Filters: which calls (today, overdue, renewal, day 1/5/15) and which region.
+  const KINDS: [string, string, (d: (typeof due)[number]) => boolean][] = [
+    ['all', 'All', () => true],
+    ['today', 'Today', (d) => d.date.getTime() === today.getTime()],
+    ['overdue', 'Overdue', (d) => d.date < today],
+    ['renewal', 'Renewal · day 26', (d) => d.renewal],
+    ['1', 'Day 1', (d) => d.dayNo === 1],
+    ['5', 'Day 5', (d) => d.dayNo === 5],
+    ['15', 'Day 15', (d) => d.dayNo === 15],
+  ]
+  const kind = KINDS.find(([k]) => k === sp.f) ?? KINDS[0]
+  const regions = [...new Set(due.map((d) => d.pkg.lead.region?.name ?? 'No region'))].sort()
+  const region = sp.r && regions.includes(sp.r) ? sp.r : null
+  const inRegion = due.filter((d) => !region || (d.pkg.lead.region?.name ?? 'No region') === region)
+  const shown = inRegion.filter(kind[2])
+  const link = (f: string, r: string | null) => `/kitchen/calls?${new URLSearchParams({ ...(f !== 'all' ? { f } : {}), ...(r ? { r } : {}) })}`
+  const dueToday = due.filter((d) => d.date.getTime() === today.getTime()).length
+  const overdue = due.filter((d) => d.date < today).length
   const qrUrl = msgs.paymentQrId ? `/api/files/${msgs.paymentQrId}` : null
   const amount = (bm: number) => st.monthlyPrice + bm * st.buttermilkPrice
   const payText = (name: string, bm: number) => fill(msgs.msgRenewal, { name: firstName(name), amount: amount(bm).toLocaleString('en-IN') })
@@ -31,29 +49,44 @@ export default async function CustomerCalls({ searchParams }: { searchParams: Pr
     <>
       <PageHeader title="Customer calls" sub="New customers: day 1, 5, 15 and 26 of the first month. From month 2: day 15 and 26. Day 26 is the renewal call. Sunday is not counted." />
       <ErrorNote error={sp.error} />
-      <Tiles cols={4}>
-        <Tile label="Due today" value={due.length} sub="counted on delivery days" tone="brand" />
-        <Tile label="Renewal calls" value={due.filter((d) => d.renewal).length} sub="day 26" tone="leaf" />
+      <Tiles cols={5}>
+        <Tile label="Calls due today" value={dueToday} sub={`${due.length} to make in all`} tone="brand" />
+        <Tile label="Overdue" value={overdue} sub="missed on an earlier day" tone="red" />
+        <Tile label="Renewal calls" value={due.filter((d) => d.renewal).length} sub="day 26 · continue next month?" tone="leaf" />
         <Tile label="Waiting for payment" value={waiting.length} sub="QR sent, no screenshot yet" tone="warn" />
-        <Tile label="Calls this week" value={recent.length} sub={`${recent.filter((r) => r.outcome === 'ISSUE').length} with an issue`} tone="red" />
+        <Tile label="Calls done this week" value={recent.length} sub={`${recent.filter((r) => r.outcome === 'ISSUE').length} with an issue`} />
       </Tiles>
       <section className="card overflow-x-auto">
-        <div className="px-5 py-4">
-          <h2 className="font-display text-lg font-semibold">Calls to make today</h2>
-          <p className="text-[13px] text-muted">Write what the customer said. Renewal calls send the payment QR when the customer says yes.</p>
+        <div className="space-y-3 px-5 py-4">
+          <div>
+            <h2 className="font-display text-lg font-semibold">Calls to make · {shown.length}{region ? ` in ${region}` : ''}</h2>
+            <p className="text-[13px] text-muted">Write what the customer said. Renewal calls send the payment QR when the customer says yes.</p>
+          </div>
+          <Tabs items={KINDS.map(([k, l, f]) => ({ label: `${l} ${inRegion.filter(f).length}`, href: link(k, region), active: k === kind[0] }))} />
+          {regions.length > 1 && (
+            <div className="flex flex-wrap items-center gap-1.5 text-[13px]">
+              <span className="mr-1 text-muted">Region</span>
+              {[null, ...regions].map((r) => (
+                <Link key={r ?? 'all'} href={link(kind[0], r)} scroll={false} className={`rounded-full border px-3 py-1 font-semibold ${r === region ? 'border-brand bg-brand text-white' : 'border-line bg-surface'}`}>
+                  {r ?? 'All'} {r ? due.filter((d) => (d.pkg.lead.region?.name ?? 'No region') === r && kind[2](d)).length : due.filter(kind[2]).length}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
-        {due.length === 0 ? <Empty>No calls due. Nice work.</Empty> : (
+        {shown.length === 0 ? <Empty>{due.length === 0 ? 'No calls due. Nice work.' : 'No calls in this filter.'}</Empty> : (
           <table className="w-full">
-            <thead><tr><th className="th">Customer</th><th className="th">Month</th><th className="th">Call</th><th className="th">Due</th><th className="th">Foods to avoid</th><th className="th"></th></tr></thead>
+            <thead><tr><th className="th">Customer</th><th className="th">Region</th><th className="th">Month</th><th className="th">Call</th><th className="th">Due</th><th className="th">Foods to avoid</th><th className="th"></th></tr></thead>
             <tbody>
-              {due.map((d) => (
+              {shown.map((d) => (
                 <tr key={d.pkg.id}>
                   <td className="td"><Who name={d.pkg.lead.name} sub={d.pkg.lead.phone} href={`/customers/${d.pkg.leadId}`} /></td>
+                  <td className="td">{d.pkg.lead.region?.name ?? '—'}</td>
                   <td className="td">Month {d.pkg.number}</td>
                   <td className="td"><Chip label={d.renewal ? 'Day 26 · Renewal' : `Day ${d.dayNo}`} tone={d.renewal ? 'leaf' : 'sky'} /></td>
-                  <td className={`td ${d.date < today ? 'font-semibold text-red' : ''}`}>{d.date < today ? fmtWeekday(d.date) : 'Today'}</td>
+                  <td className={`td ${d.date < today ? 'font-semibold text-red' : ''}`}>{d.date < today ? <>{fmtWeekday(d.date)}<div className="text-[11px]">overdue</div></> : 'Today'}</td>
                   <td className="td max-w-48 text-muted">{d.pkg.lead.avoidFoods ?? '—'}</td>
-                  <td className="td"><Link href={`/kitchen/calls?call=${d.pkg.id}`} scroll={false} className="btn btn-sm">Log call</Link></td>
+                  <td className="td"><Link href={`${link(kind[0], region)}&call=${d.pkg.id}`} scroll={false} className="btn btn-sm">Log call</Link></td>
                 </tr>
               ))}
             </tbody>
