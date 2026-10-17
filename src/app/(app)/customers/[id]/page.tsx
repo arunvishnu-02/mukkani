@@ -4,7 +4,7 @@ import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { day, fmtDay, fmtTime, fmtWeekday } from '@/lib/dates'
 import { CUSTOMER_CALL, CUSTOMER_STATUS, LEAD_STATUS, LOCATION_STATUS, PACKAGE_STATUS, RENEWAL, SOURCE, TRIAL_RESULT, TRIAL_STATUS, rupees, sourceLabel } from '@/lib/labels'
-import { planFor, regionsList } from '@/lib/queries'
+import { holidaySet, planFor, regionsList } from '@/lib/queries'
 import { appSettings, getSettings } from '@/lib/settings'
 import { fill, firstName, waLink } from '@/lib/whatsapp'
 import { Avatar, Callout, Card, Chip, Drawer, ErrorNote, Progress, StatusChip, WaLink } from '@/components/ui'
@@ -54,7 +54,7 @@ export default async function CustomerProfile({ params, searchParams }: { params
   const sales = user.role !== 'KITCHEN'
   const trial = lead.trialBoxes[0]
   const pkg = lead.packages.find((p) => p.status === 'ACTIVE') ?? lead.packages[lead.packages.length - 1]
-  const plan = pkg ? planFor({ ...pkg, lead }, lead.attendance, today) : null
+  const plan = pkg ? planFor({ ...pkg, lead }, lead.attendance, today, await holidaySet()) : null
   const absentToday = lead.attendance.some((a) => a.date.getTime() === today.getTime() && a.status === 'ABSENT')
   const status =
     lead.customerStatus === 'INACTIVE' ? 'INACTIVE' : lead.customerStatus === 'PAUSED' && (!lead.pausedUntil || lead.pausedUntil >= today) ? 'PAUSED' : absentToday ? 'ABSENT' : 'ACTIVE'

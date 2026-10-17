@@ -5,13 +5,13 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { db } from '@/lib/db'
 import { requireUser } from '@/lib/auth'
-import { addDays, day, fmtDay, fmtWeekday, isDay, isSunday, parseDay } from '@/lib/dates'
+import { addDays, day, fmtDay, fmtWeekday, isDay, isSunday, keyOf, parseDay } from '@/lib/dates'
 import { getSettings } from '@/lib/settings'
 import { dayOpen, lockedText } from '@/lib/lock'
 import { LEAD_IMPORT_COLUMNS, parseCsv, sheetDate } from '@/lib/csv'
 import { SOURCE } from '@/lib/labels'
 import { fill, firstName, waLink } from '@/lib/whatsapp'
-import { packagePlan } from '@/lib/queries'
+import { holidaySet, packagePlan } from '@/lib/queries'
 import { notifyAdmin } from '@/lib/notice'
 import {
   FlowError,
@@ -274,7 +274,8 @@ export async function markLeaveAction(form: FormData) {
     if (until < from) throw new FlowError('The Until date is before the leave date')
     if (until > addDays(from, 13)) throw new FlowError('Up to 14 days here. For a longer break, set the customer to Paused in Customers.')
     const dates: Date[] = []
-    for (let d = from; d <= until; d = addDays(d, 1)) if (!isSunday(d)) dates.push(d)
+    const hol = await holidaySet()
+    for (let d = from; d <= until; d = addDays(d, 1)) if (!isSunday(d) && !hol.has(keyOf(d))) dates.push(d)
     const name = await markLeave(leadId.data, dates, user.id)
     const days = dates.length === 1 ? fmtDay(dates[0]) : `${dates.length} days from ${fmtDay(dates[0])}`
     to = `${to}${to.includes('?') ? '&' : '?'}leave=${encodeURIComponent(`${name} is on leave ${days}. They are off the attendance sheet.`)}`

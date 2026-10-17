@@ -64,6 +64,28 @@ export async function deleteIssue(form: FormData) {
   done(back(form, '/issues'))
 }
 
+// Office holidays: the whole service is off that day. Sales and admin set them on the Calendar.
+export async function addHoliday(form: FormData) {
+  const user = await requireUser(['SALES'])
+  const d = date(form, 'date')
+  const name = s(form, 'name')?.slice(0, 80) ?? 'Office holiday'
+  const self = back(form, '/calendar')
+  if (!d) fail(self, 'Pick the holiday date')
+  if (d!.getUTCDay() === 0) fail(self, 'Sunday is already a holiday')
+  await db.holiday.upsert({ where: { date: d! }, create: { date: d!, name, byId: user.id }, update: { name } })
+  done(self)
+}
+
+export async function removeHoliday(form: FormData) {
+  const user = await requireUser(['SALES'])
+  const h = await db.holiday.findUnique({ where: { id: id(form) } })
+  if (h) {
+    await db.holiday.delete({ where: { id: h.id } })
+    await notifyAdmin(user, 'Removed an office holiday', `${h.date.toISOString().slice(0, 10)} · ${h.name}`)
+  }
+  done(back(form, '/calendar'))
+}
+
 export async function markNoticesSeen() {
   await requireUser(['ADMIN'])
   await db.adminNotice.updateMany({ where: { seenAt: null }, data: { seenAt: new Date() } })

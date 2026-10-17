@@ -29,6 +29,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
         <Link href={`${self}&leave=1`} scroll={false} className="btn-secondary">Mark leave</Link>
         <a href={`/print/sheet?${q}`} target="_blank" rel="noreferrer" className="btn">Print all regions</a>
       </PageHeader>
+      {sheet.holiday && <Callout tone="warn">Office holiday: {sheet.holiday.name}. No monthly boxes go out.</Callout>}
       <ErrorNote error={sp.error} />
       {sp.leave && sp.leave !== '1' && <Callout>{sp.leave}</Callout>}
       {sp.ordered && (

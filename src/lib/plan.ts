@@ -33,6 +33,7 @@ export function planPackage(opts: {
   total?: number
   attendance: { date: Date; status: AttendanceStatus; boxes?: number | null }[]
   boxesPerDay?: number
+  holidays?: Set<string> // office holidays (YYYY-MM-DD): no delivery, like Sunday
   pause?: { from: Date; until: Date | null } | null
   stopped?: boolean
   today: Date
@@ -40,10 +41,13 @@ export function planPackage(opts: {
   const total = opts.total ?? 26
   const perDay = Math.max(1, opts.boxesPerDay ?? 1)
   const att = new Map(opts.attendance.map((a) => [keyOf(a.date), a]))
+  const hol = opts.holidays ?? new Set<string>()
+  // A box entered as delivered on an office holiday still counts.
+  const off = (d: Date) => isSunday(d) || (hol.has(keyOf(d)) && att.get(keyOf(d))?.status !== 'DELIVERED')
   const days: PlanDay[] = []
   let originalEnd = opts.start
   for (let d = opts.start, n = 0; n < total; d = addDays(d, 1)) {
-    if (!isSunday(d)) {
+    if (!isSunday(d) && !hol.has(keyOf(d))) {
       n += perDay
       originalEnd = d
     }
@@ -61,7 +65,7 @@ export function planPackage(opts: {
     // The last day only takes the boxes that are left.
     const take = (n: number) => Math.min(Math.max(1, n), total - count)
     const base = { date: d, carried: false, entered: st != null, boxes: 0 }
-    if (isSunday(d)) {
+    if (off(d)) {
       days.push({ ...base, kind: 'holiday', dayNo: null })
     } else if (st === 'ABSENT' || st === 'NOT_DELIVERED') {
       days.push({ ...base, kind: st === 'ABSENT' ? 'leave' : 'notDelivered', dayNo: null })

@@ -483,3 +483,12 @@ model AdminNotice {
   @@index([seenAt])
   @@index([createdAt])
 }
+
+// A day the whole service is off (festival, office leave). Like a Sunday: no boxes, and every pack's end moves on a day.
+model Holiday {
+  id        String   @id @default(uuid()) @db.Uuid
+  date      DateTime @unique @db.Date
+  name      String
+  byId      String?  @db.Uuid
+  createdAt DateTime @default(now())
+}

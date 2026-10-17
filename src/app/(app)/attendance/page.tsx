@@ -99,6 +99,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
       </PageHeader>
       <ErrorNote error={sp.error} />
       <DayLock user={user} date={date} area="Delivery attendance" back={self} />
+      {sheet.holiday && <Callout tone="warn">Office holiday: {sheet.holiday.name}. No monthly boxes go out today.</Callout>}
       {sp.leave && sp.leave !== '1' && <Callout>{sp.leave}</Callout>}
       {sp.leave === '1' && <LeaveDrawer customers={running.map((r) => ({ id: r.pkg.lead.id, name: r.pkg.lead.name, phone: r.pkg.lead.phone, region: r.pkg.lead.region?.name ?? null }))} date={dayInput(date > day(0) ? date : isSunday(day(1)) ? day(2) : day(1))} close={self} self={`${self}&leave=1`} />}
       {date.getTime() === day(0).getTime() && nowHourIST() < 9 && !sp.saved && (

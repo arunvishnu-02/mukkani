@@ -1,7 +1,7 @@
 import 'server-only'
 import { cache } from 'react'
 import { db } from '@/lib/db'
-import { addDays, day, isSunday } from '@/lib/dates'
+import { addDays, day, isSunday, keyOf } from '@/lib/dates'
 import { matchSwaps, splitList, type Swap } from '@/lib/menu'
 import { isButtermilkDay, planPackage, type PackagePlan } from '@/lib/plan'
 import type { Prisma } from '@/generated/prisma/client'
@@ -52,7 +52,8 @@ const runningAt = cache(async (at: number): Promise<Running[]> => {
   })
   const byLead = new Map<string, typeof att>()
   for (const a of att) byLead.set(a.leadId, [...(byLead.get(a.leadId) ?? []), a])
-  return list.map((pkg) => ({ pkg, plan: planFor(pkg, byLead.get(pkg.leadId) ?? [], today) }))
+  const hol = await holidaySet()
+  return list.map((pkg) => ({ pkg, plan: planFor(pkg, byLead.get(pkg.leadId) ?? [], today, hol) }))
 })
 
 // Packs that finished (26 boxes) but had a delivery or leave on this date, so a finished customer still shows
@@ -63,17 +64,23 @@ const finishedOn = cache(async (at: number): Promise<Running[]> => {
   if (pkgs.length === 0) return []
   const minStart = pkgs.reduce((m, p) => (p.startDate < m ? p.startDate : m), pkgs[0].startDate)
   const att = await db.attendance.findMany({ where: { leadId: { in: pkgs.map((p) => p.leadId) }, date: { gte: minStart } }, select: { leadId: true, date: true, status: true, boxes: true } })
+  const hol = await holidaySet()
   return pkgs
-    .map((pkg) => ({ pkg, plan: planFor(pkg, att.filter((a) => a.leadId === pkg.leadId), day(0)) }))
+    .map((pkg) => ({ pkg, plan: planFor(pkg, att.filter((a) => a.leadId === pkg.leadId), day(0), hol) }))
     .filter(({ plan }) => { const k = plan.dayOn(date)?.kind; return k === 'delivered' || k === 'leave' || k === 'notDelivered' })
 })
+
+// Office holidays as YYYY-MM-DD keys, loaded once per request.
+export const holidaySet = cache(async () => new Set((await db.holiday.findMany({ select: { date: true } })).map((h) => keyOf(h.date))))
 
 export function planFor(
   pkg: { startDate: Date; status: string; boxesPerDay?: number; lead: { customerStatus: string; pausedUntil: Date | null } },
   attendance: { date: Date; status: 'DELIVERED' | 'ABSENT' | 'NOT_DELIVERED'; boxes?: number | null }[],
   today = day(0),
+  holidays?: Set<string>,
 ) {
   return planPackage({
+    holidays,
     start: pkg.startDate,
     attendance: attendance.filter((a) => a.date >= pkg.startDate),
     boxesPerDay: pkg.boxesPerDay,
@@ -86,7 +93,7 @@ export function planFor(
 export async function packagePlan(packageId: string, today = day(0)) {
   const pkg = await db.package.findUniqueOrThrow({ where: { id: packageId }, include: pkgInclude })
   const att = await db.attendance.findMany({ where: { leadId: pkg.leadId, date: { gte: pkg.startDate } }, select: { date: true, status: true, boxes: true } })
-  return { pkg, plan: planFor(pkg, att, today) }
+  return { pkg, plan: planFor(pkg, att, today, await holidaySet()) }
 }
 
 export type SheetRow = {
@@ -120,7 +127,8 @@ export async function daySheet(date: Date) {
   const running = finished.length ? [...covering, ...finished].sort((a, b) => (a.pkg.lead.sheetOrder ?? 9999) - (b.pkg.lead.sheetOrder ?? 9999)) : covering
   const att = new Map(attendance.map((a) => [a.leadId, a]))
   const alt = new Map(altBoxes.map((a) => [a.leadId, a.boxNo]))
-  const due = isSunday(date)
+  const holiday = await db.holiday.findUnique({ where: { date } })
+  const due = isSunday(date) || holiday
     ? []
     : running.filter(({ plan }) => {
         const d = plan.dayOn(date)
@@ -146,6 +154,7 @@ export async function daySheet(date: Date) {
   })
   const boxes = rows.reduce((n, r) => n + (r.absent ? 0 : r.boxes), 0) + trials.length
   return {
+    holiday,
     menu,
     rows,
     trials: trials.map((t) => ({ trial: t, swap: swaps.get(t.leadId) ?? null, attendance: att.get(t.leadId) ?? null })),

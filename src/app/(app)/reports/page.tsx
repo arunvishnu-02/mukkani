@@ -3,7 +3,7 @@ import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { day, fmtDay } from '@/lib/dates'
 import { PACKAGE_STATUS } from '@/lib/labels'
-import { packagePlan, planFor, runningPackages } from '@/lib/queries'
+import { holidaySet, packagePlan, planFor, runningPackages } from '@/lib/queries'
 import { getSettings } from '@/lib/settings'
 import { fill, firstName, waLink } from '@/lib/whatsapp'
 import { Drawer, Empty, PageHeader, Progress, StatusChip, Tabs, Tile, Tiles, WaLink, Who } from '@/components/ui'
@@ -22,7 +22,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     sp.pkg ? packagePlan(sp.pkg).catch(() => null) : null,
   ])
   const att = await db.attendance.findMany({ where: { leadId: { in: done.map((p) => p.leadId) } }, select: { leadId: true, date: true, status: true, boxes: true } })
-  const endOf = new Map(done.map((p) => [p.id, planFor(p, att.filter((a) => a.leadId === p.leadId), today).end]))
+  const hol = await holidaySet()
+  const endOf = new Map(done.map((p) => [p.id, planFor(p, att.filter((a) => a.leadId === p.leadId), today, hol).end]))
   const list = `/reports?tab=${tab}`
   const sendText = (name: string, from: Date, to: Date | null) => fill(st.msgReport, { name: firstName(name), from: fmtDay(from), to: fmtDay(to) })
   return (

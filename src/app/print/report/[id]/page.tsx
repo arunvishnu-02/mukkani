@@ -2,7 +2,7 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { db } from '@/lib/db'
 import { day, keyOf } from '@/lib/dates'
-import { planFor } from '@/lib/queries'
+import { holidaySet, planFor } from '@/lib/queries'
 import { getSettings } from '@/lib/settings'
 import { fill, firstName } from '@/lib/whatsapp'
 
@@ -19,7 +19,7 @@ export default async function ReportPrint({ params }: { params: Promise<{ id: st
     db.attendance.findMany({ where: { leadId: pkg.leadId, date: { gte: pkg.startDate } } }),
     getSettings(),
   ])
-  const plan = planFor(pkg, att, day(0))
+  const plan = planFor(pkg, att, day(0), await holidaySet())
   const bmDays = new Set(att.filter((a) => a.buttermilk && a.status === 'DELIVERED').map((a) => keyOf(a.date)))
   const days = plan.days
   const first = days[0]?.date ?? pkg.startDate
