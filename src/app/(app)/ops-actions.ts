@@ -146,7 +146,7 @@ export async function deleteDue(form: FormData) {
 
 // Attendance sheet order: the kitchen manager numbers a region's customers in the order the boxes are delivered.
 export async function saveSheetOrder(form: FormData) {
-  await requireUser(['KITCHEN'])
+  await requireUser(['KITCHEN', 'SALES'])
   const rows = form.getAll('lead').map((leadId) => ({ leadId: z.string().uuid().parse(String(leadId)), pos: Number(s(form, `pos_${leadId}`)) }))
   // Sort by the typed number (ties keep the order shown), then store 1, 2, 3...
   const ordered = rows.map((r, i) => ({ ...r, i })).sort((a, b) => (Number.isFinite(a.pos) && a.pos > 0 ? a.pos : 9999) - (Number.isFinite(b.pos) && b.pos > 0 ? b.pos : 9999) || a.i - b.i)

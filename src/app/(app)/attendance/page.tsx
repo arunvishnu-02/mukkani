@@ -8,6 +8,7 @@ import { DayLock } from '@/components/DayLock'
 import { dayOpen } from '@/lib/lock'
 import { DateField } from '@/components/DateField'
 import { LeaveDrawer } from '@/components/Leave'
+import { SheetOrder } from '@/components/SheetOrder'
 
 type Row = {
   key: string
@@ -101,7 +102,21 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
         <Tile label="Alternative boxes" value={list.filter((r) => r.altBox).length} sub="blue rows" tone="sky" />
       </Tiles>
       <Callout tone="sky">Blue rows got an alternative box. Write its number and whether the empty box came back. Attendance must be entered every day.</Callout>
-      {list.length === 0 ? (
+      {sp.ordered && <Callout>Order saved for {region?.[0]}. The attendance list, the kitchen sheet and the printed sheet follow it from now on.</Callout>}
+      {region && sheet.rows.some((r) => !r.absent && (r.lead.region?.name ?? 'No region') === region[0]) && (
+        sp.arrange ? (
+          <section className="card overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4">
+              <h2 className="flex-1 font-display text-lg font-semibold">Arrange order · {region[0]}</h2>
+              <Link href={self} scroll={false} className="btn-secondary btn-sm">Cancel</Link>
+            </div>
+            <SheetOrder rows={sheet.rows.filter((r) => !r.absent && (r.lead.region?.name ?? 'No region') === region[0]).map((r) => ({ id: r.lead.id, name: r.lead.name, address: r.lead.address, time: r.lead.deliveryTime ?? r.lead.slot }))} back={self} region={region[0]} />
+          </section>
+        ) : (
+          <div className="flex justify-end"><Link href={`${self}&arrange=1`} scroll={false} className="btn-secondary btn-sm">Arrange order of {region[0]}</Link></div>
+        )
+      )}
+      {sp.arrange ? null : list.length === 0 ? (
         <section className="card"><Empty>No deliveries on this day.</Empty></section>
       ) : (
         !open ? <section className="card"><Empty>This past day is locked, so its attendance cannot be changed here. You can still see it in All reports &rsaquo; Delivery attendance.</Empty></section> : <AttendanceList key={`${dayInput(date)}-${region?.[0]}`} date={dayInput(date)} region={region?.[0] ?? 'No region'} rows={list} />
