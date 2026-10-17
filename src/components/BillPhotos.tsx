@@ -14,27 +14,28 @@ function Thumb({ file }: { file: Shown }) {
 }
 
 // The bill photos field: small previews of the saved photos (each can be removed) and of the files just picked.
-export function BillPhotos({ saved, max }: { saved: { id: string; isImage: boolean }[]; max: number }) {
+export function BillPhotos({ saved, max, label = 'Bill photos', name = 'bill', removeName = 'removeBill', required }: { saved: { id: string; isImage: boolean }[]; max: number; label?: string; name?: string; removeName?: string; required?: boolean }) {
   const [picked, setPicked] = useState<Shown[]>([])
   useEffect(() => () => picked.forEach((p) => URL.revokeObjectURL(p.url)), [picked])
   return (
     <div>
-      <label className="label" htmlFor="bill">Bill photos</label>
+      <label className="label" htmlFor={name}>{label}</label>
       {saved.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-2.5">
           {saved.map((s, i) => (
             <div key={s.id} className="w-[72px]">
-              <Thumb file={{ url: `/api/files/${s.id}`, isImage: s.isImage, name: `Saved bill ${i + 1}` }} />
-              <label className="mt-1 flex items-center gap-1 text-[11px] font-medium text-muted"><input type="checkbox" name="removeBill" value={s.id} className="size-3.5 accent-red" /> Remove</label>
+              <Thumb file={{ url: `/api/files/${s.id}`, isImage: s.isImage, name: `${label} ${i + 1}` }} />
+              <label className="mt-1 flex items-center gap-1 text-[11px] font-medium text-muted"><input type="checkbox" name={removeName} value={s.id} className="size-3.5 accent-red" /> Remove</label>
             </div>
           ))}
         </div>
       )}
       <input
-        id="bill"
-        name="bill"
+        id={name}
+        name={name}
         type="file"
         multiple
+        required={required}
         accept="image/*,application/pdf"
         className="input py-2"
         onChange={(e) => setPicked([...(e.target.files ?? [])].map((f) => ({ url: URL.createObjectURL(f), isImage: f.type.startsWith('image/'), name: f.name })))}

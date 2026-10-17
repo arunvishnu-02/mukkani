@@ -44,6 +44,27 @@ async function saveUpload(file: FormDataEntryValue | null, kind: string, self: s
   return up.id
 }
 
+// A monthly pack paid: the payment screenshots (UPI / GPay) and a note. Sales and admin.
+// Posted through /api/form/payment because it carries photos.
+export async function savePackagePayment(form: FormData) {
+  const user = await requireUser(['SALES'])
+  const id = z.string().uuid().parse(s(form, 'packageId'))
+  const old = await db.package.findUniqueOrThrow({ where: { id } })
+  const self = back(form, `/customers/${old.leadId}`)
+  const remove = form.getAll('removeProof').map(String).filter((x) => old.paymentProofIds.includes(x))
+  const keep = old.paymentProofIds.filter((x) => !remove.includes(x))
+  const files = form.getAll('proof').filter(picked)
+  if (keep.length + files.length > 4) fail(self, 'Up to 4 payment screenshots')
+  for (const f of files) checkUpload(f, self)
+  const added: string[] = []
+  for (const f of files) added.push((await saveUpload(f, 'payment', self))!)
+  const note = s(form, 'paymentNote')?.slice(0, 200) ?? null
+  await db.package.update({ where: { id }, data: { paid: true, paidAt: old.paidAt ?? new Date(), paymentProofIds: [...keep, ...added], paymentNote: note } })
+  if (remove.length) await db.upload.deleteMany({ where: { id: { in: remove }, kind: 'payment' } })
+  if (!old.paid) await db.activity.create({ data: { leadId: old.leadId, kind: 'package', text: `Month ${old.number} paid`, detail: [`Rs ${old.price + old.buttermilkQty * old.buttermilkPrice}`, note, added.length ? `${added.length} screenshot${added.length > 1 ? 's' : ''}` : null].filter(Boolean).join(' · '), byId: user.id } })
+  done(`/customers/${old.leadId}?paid=1`)
+}
+
 // Team + regions
 export async function saveUser(form: FormData) {
   await requireUser(['ADMIN'])

@@ -197,6 +197,9 @@ model Package {
   status         PackageStatus @default(ACTIVE)
   paid           Boolean       @default(false)
   paidAt         DateTime?
+  // Screenshots of the payment (UPI / GPay) and how it was paid.
+  paymentProofIds String[]     @default([]) @db.Uuid
+  paymentNote    String?
   buttermilkQty  Int           @default(0)
   // Boxes the customer takes each day. Every box counts toward the 26, so 2 a day ends the pack in 13 days.
   boxesPerDay    Int           @default(1)

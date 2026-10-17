@@ -11,6 +11,7 @@ import { Avatar, Callout, Card, Chip, Drawer, ErrorNote, Progress, StatusChip, W
 import { PackageCalendar } from '@/components/PackageCalendar'
 import { PackageFields } from '@/components/PackageFields'
 import { MapPin } from '@/components/MapPin'
+import { BillPhotos } from '@/components/BillPhotos'
 import { setButtermilkAction, setPackagePaidAction, startPackageAction } from '../../actions'
 
 function Row({ k, v }: { k: string; v: React.ReactNode }) {
@@ -59,12 +60,15 @@ export default async function CustomerProfile({ params, searchParams }: { params
     lead.customerStatus === 'INACTIVE' ? 'INACTIVE' : lead.customerStatus === 'PAUSED' && (!lead.pausedUntil || lead.pausedUntil >= today) ? 'PAUSED' : absentToday ? 'ABSENT' : 'ACTIVE'
   const birthday = lead.dob && lead.dob.getUTCDate() === today.getUTCDate() && lead.dob.getUTCMonth() === today.getUTCMonth()
   const self = `/customers/${lead.id}`
+  const proofs = pkg && sales && pkg.paymentProofIds.length ? await db.upload.findMany({ where: { id: { in: pkg.paymentProofIds } }, select: { id: true, mime: true } }) : []
+  const shots = (pkg?.paymentProofIds ?? []).map((id) => proofs.find((x) => x.id === id)).filter((x) => !!x).map((x) => ({ id: x.id, isImage: x.mime.startsWith('image/') }))
   return (
     <>
       <div className="text-[13px] font-medium text-muted">
         <Link href={kitchen ? '/kitchen/customers' : '/customers'} className="hover:underline">Customers</Link> / {lead.name}
       </div>
       <ErrorNote error={sp.error} />
+      {sp.paid && <Callout>Payment saved.</Callout>}
       <div className="flex flex-wrap items-center gap-4">
         <Avatar name={lead.name} size={64} />
         <div className="min-w-0 flex-1">
@@ -98,13 +102,15 @@ export default async function CustomerProfile({ params, searchParams }: { params
                 <div className="flex flex-wrap items-center gap-1.5">
                   <StatusChip map={PACKAGE_STATUS} value={pkg.status} />
                   {pkg.paid ? <Chip label={`Paid${pkg.paidAt ? ` ${fmtDay(pkg.paidAt)}` : ''}`} tone="leaf" /> : <Chip label="Not paid" tone="muted" />}
-                  {sales && (
+                  {sales && (pkg.paid ? (
                     <form action={setPackagePaidAction}>
                       <input type="hidden" name="packageId" value={pkg.id} />
                       <input type="hidden" name="back" value={self} />
-                      {pkg.paid ? <button name="paid" value="no" className="text-xs font-semibold text-muted hover:text-red">Undo</button> : <button name="paid" value="yes" className="btn btn-sm">Mark paid</button>}
+                      <button name="paid" value="no" className="text-xs font-semibold text-muted hover:text-red">Undo</button>
                     </form>
-                  )}
+                  ) : (
+                    <Link href={`${self}?pay=1`} scroll={false} className="btn btn-sm">Mark paid</Link>
+                  ))}
                 </div>
               }
             >
@@ -123,6 +129,20 @@ export default async function CustomerProfile({ params, searchParams }: { params
                 ))}
               </div>
               <div className="mb-4 flex items-center gap-3"><Progress value={plan.delivered} max={26} tone="leaf" /><span className="text-xs font-semibold">{plan.delivered}/26</span></div>
+              {sales && pkg.paid && (
+                <div className="mb-4 flex flex-wrap items-center gap-2.5 rounded-[10px] bg-leaf-soft px-3.5 py-2.5">
+                  <span className="text-[13px] font-semibold text-leaf">Paid{pkg.paidAt ? ` ${fmtDay(pkg.paidAt)}` : ''}{pkg.paymentNote ? ` · ${pkg.paymentNote}` : ''}</span>
+                  {shots.map((x, i) => (
+                    <a key={x.id} href={`/api/files/${x.id}`} target="_blank" rel="noreferrer" title="Open the screenshot" className="flex size-11 items-center justify-center overflow-hidden rounded-md border border-line bg-surface text-[10px] font-bold text-muted">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {x.isImage ? <img src={`/api/files/${x.id}`} alt={`Payment screenshot ${i + 1}`} className="size-full object-cover" /> : 'PDF'}
+                    </a>
+                  ))}
+                  {shots.length === 0 && <span className="text-xs text-muted">No screenshot</span>}
+                  <span className="flex-1" />
+                  <Link href={`${self}?pay=1`} scroll={false} className="text-xs font-semibold text-sky">{shots.length ? 'Change' : 'Add screenshot'}</Link>
+                </div>
+              )}
               <PackageCalendar plan={plan} today={today} />
               {pkg.status === 'ACTIVE' && (
                 <form action={setButtermilkAction} className="mt-4 flex flex-wrap items-end gap-2.5 border-t border-line pt-4">
@@ -242,6 +262,17 @@ export default async function CustomerProfile({ params, searchParams }: { params
           </Card>
         </div>
       </div>
+      {sales && sp.pay && pkg && (
+        <Drawer title={pkg.paid ? 'Payment' : 'Mark paid'} sub={`${lead.name} · Month ${pkg.number} · ${rupees(pkg.price + pkg.buttermilkQty * pkg.buttermilkPrice)}`} close={self}>
+          <form action="/api/form/payment" method="post" encType="multipart/form-data" className="space-y-3.5">
+            <input type="hidden" name="packageId" value={pkg.id} />
+            <input type="hidden" name="back" value={`${self}?pay=1`} />
+            <BillPhotos saved={shots} max={4} label="Payment screenshot (GPay / PhonePe / UPI)" name="proof" removeName="removeProof" />
+            <div><label className="label">Note</label><input name="paymentNote" className="input" defaultValue={pkg.paymentNote ?? ''} placeholder="For example: GPay, ref 4521, paid by husband" /></div>
+            <div className="grid grid-cols-2 gap-2.5"><Link href={self} className="btn-secondary">Cancel</Link><button className="btn">{pkg.paid ? 'Save' : 'Mark paid'}</button></div>
+          </form>
+        </Drawer>
+      )}
       {sales && sp.start && (
         <Drawer title="Start monthly pack" sub={lead.name} close={self}>
           <form action={startPackageAction} className="space-y-3.5">
