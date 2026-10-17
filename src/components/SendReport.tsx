@@ -21,9 +21,14 @@ export function SendReport({ packageId, fileName, waHref, text, small }: { packa
       const page = doc.querySelector<HTMLElement>('.a4')
       if (!page) throw new Error('no page')
       const [{ toJpeg }, { jsPDF }] = await Promise.all([import('html-to-image'), import('jspdf')])
-      const img = await toJpeg(page, { quality: 0.92, pixelRatio: 2, backgroundColor: '#ffffff' })
+      const w = page.offsetWidth
+      const h = page.offsetHeight
+      // The page is centred on screen with a shadow; the copy for the PDF sits at 0,0 at its own size.
+      const img = await toJpeg(page, { quality: 0.92, pixelRatio: 2, backgroundColor: '#ffffff', width: w, height: h, style: { margin: '0', boxShadow: 'none' } })
       const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
-      pdf.addImage(img, 'JPEG', 0, 0, 210, 297)
+      const ph = Math.min(297, (210 * h) / w)
+      // Fit the page into A4: full width, or full height if the page is taller than A4.
+      pdf.addImage(img, 'JPEG', 0, 0, (ph * w) / h, ph)
       return new File([pdf.output('blob')], fileName, { type: 'application/pdf' })
     } finally {
       frame.remove()
