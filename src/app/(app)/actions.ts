@@ -12,6 +12,7 @@ import { LEAD_IMPORT_COLUMNS, parseCsv, sheetDate } from '@/lib/csv'
 import { SOURCE } from '@/lib/labels'
 import { fill, firstName, waLink } from '@/lib/whatsapp'
 import { packagePlan } from '@/lib/queries'
+import { notifyAdmin } from '@/lib/notice'
 import {
   FlowError,
   bookTrial,
@@ -163,9 +164,11 @@ export async function updateLead(form: FormData) {
 }
 
 export async function deleteLeads(form: FormData) {
-  await requireUser(['SALES'])
-  const ids = form.getAll('ids').map(String)
+  const user = await requireUser(['SALES'])
+  const ids = form.getAll('ids').map(String).filter((x) => z.string().uuid().safeParse(x).success)
+  const gone = await db.lead.findMany({ where: { id: { in: ids } }, select: { name: true, phone: true, status: true } })
   await db.lead.deleteMany({ where: { id: { in: ids } } })
+  if (gone.length) await notifyAdmin(user, `Deleted ${gone.length} lead${gone.length > 1 ? 's' : ''}`, gone.map((l) => `${l.name}${l.phone ? ` (${l.phone})` : ''} · ${l.status}`).join('\n'))
   revalidatePath('/', 'layout')
   redirect(back(form, '/leads'))
 }
@@ -286,7 +289,11 @@ export async function cancelLeaveAction(form: FormData) {
   const user = await requireUser(['SALES', 'KITCHEN'])
   const leadId = z.string().uuid().parse(s(form, 'leadId'))
   const d = date(form, 'date')
-  if (d && d >= day(0)) await cancelLeave(leadId, d, user.id)
+  if (d && d >= day(0)) {
+    await cancelLeave(leadId, d, user.id)
+    const lead = await db.lead.findUnique({ where: { id: leadId }, select: { name: true } })
+    await notifyAdmin(user, 'Took back a leave', `${lead?.name ?? 'A customer'} · ${fmtWeekday(d)}`)
+  }
   revalidatePath('/', 'layout')
   redirect(back(form, user.role === 'KITCHEN' ? '/kitchen/sheet' : '/attendance'))
 }
@@ -315,7 +322,9 @@ export async function clearAttendanceRowAction(dateKey: string, leadId: string) 
   const user = await requireUser(['SALES'])
   if (!isDay(dateKey) || !z.string().uuid().safeParse(leadId).success) return { ok: false }
   if (!(await dayOpen(user, parseDay(dateKey)))) return { ok: false }
+  const gone = await db.attendance.findFirst({ where: { leadId, date: parseDay(dateKey) }, include: { lead: { select: { name: true } } } })
   await db.attendance.deleteMany({ where: { leadId, date: parseDay(dateKey) } })
+  if (gone) await notifyAdmin(user, 'Cleared an attendance entry', `${gone.lead.name} · ${fmtWeekday(parseDay(dateKey))} · was ${gone.status.replace('_', ' ').toLowerCase()}`)
   revalidatePath('/', 'layout')
   return { ok: true }
 }

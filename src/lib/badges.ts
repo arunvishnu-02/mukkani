@@ -15,7 +15,7 @@ export async function navBadges(role: string): Promise<Badges> {
   const kitchen = role === 'KITCHEN' || role === 'ADMIN'
   const admin = role === 'ADMIN'
   const none = Promise.resolve(0)
-  const [newLeads, calls, trials, menu, issues, running, sheet, kCalls, late, dues, requests] = await Promise.all([
+  const [newLeads, calls, trials, menu, issues, running, sheet, kCalls, late, dues, requests, notices] = await Promise.all([
     sales ? db.lead.count({ where: { createdAt: { gte: new Date(today.getTime() - 5.5 * 3_600_000) } } }) : none,
     sales ? db.lead.count({ where: { status: 'FOLLOW_UP', nextFollowUpAt: { lte: today } } }) : none,
     sales ? db.trialBox.count({ where: { status: { not: 'DONE' }, deliveryDate: { lte: today } } }) : none,
@@ -27,6 +27,7 @@ export async function navBadges(role: string): Promise<Badges> {
     kitchen ? lateAdds().then((x) => x.length) : none,
     admin ? db.due.count({ where: { paidAt: null, dueDate: { lte: day(1) } } }) : none,
     admin ? db.dayRequest.count({ where: { status: 'PENDING' } }) : none,
+    admin ? db.adminNotice.count({ where: { seenAt: null } }) : none,
   ])
   const reminders = running.filter((r) => r.plan.end && r.plan.end >= today && r.plan.end <= day(3) && !r.pkg.reminderSentAt).length
   const toEnter = sheet ? sheet.rows.length + sheet.trials.length - sheet.entered : 0
@@ -42,6 +43,7 @@ export async function navBadges(role: string): Promise<Badges> {
     '/kitchen/boxes': { n: late, tip: 'New trials or packs added after 2 PM' },
     '/admin/dues': { n: dues, tip: 'Dues due by tomorrow or overdue' },
     '/admin/requests': { n: requests, tip: 'Past-day requests waiting for you' },
+    '/admin/notices': { n: notices, tip: 'Deleted by sales or the kitchen, not seen yet' },
   }
   return Object.fromEntries(Object.entries(b).filter(([, x]) => x.n > 0))
 }

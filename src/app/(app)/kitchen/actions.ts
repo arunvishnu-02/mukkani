@@ -10,6 +10,7 @@ import { log, logCustomerCall, markRenewalPaid, setCustomerStatus } from '@/lib/
 import { WASTE_REASONS } from '@/lib/labels'
 import { appSettings } from '@/lib/settings'
 import { dayOpen, lockedText } from '@/lib/lock'
+import { notifyAdmin } from '@/lib/notice'
 
 const s = (f: FormData, k: string) => {
   const v = String(f.get(k) ?? '').trim()
@@ -101,6 +102,7 @@ export async function deleteStockAction(form: FormData) {
   const entry = await db.stockEntry.findUniqueOrThrow({ where: { id: z.string().uuid().parse(s(form, 'id')) } })
   if (!(await dayOpen(user, entry.date))) locked(back(form, '/kitchen/stock'), entry.date)
   await db.stockEntry.delete({ where: { id: entry.id } })
+  await notifyAdmin(user, 'Deleted a stock entry', `${entry.date.toISOString().slice(0, 10)} · ${entry.fruit} · ${entry.kind} · ${entry.qtyKg} kg${entry.note ? ` · ${entry.note}` : ''}`)
   done(back(form, '/kitchen/stock'))
 }
 

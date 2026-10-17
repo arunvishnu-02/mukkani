@@ -9,6 +9,7 @@ import { day, isDay, parseDay } from '@/lib/dates'
 import { DUE_KINDS, ISSUE_DEPARTMENTS, ISSUE_STATUS } from '@/lib/labels'
 import { FlowError, createLeadInvite } from '@/lib/workflow'
 import { dayOpen, lockedText } from '@/lib/lock'
+import { notifyAdmin } from '@/lib/notice'
 
 // Daily issues (sales), staff tracking (kitchen manager), dues (admin) and the hand-set order of the attendance sheet.
 
@@ -57,9 +58,16 @@ export async function setIssueStatus(form: FormData) {
 }
 
 export async function deleteIssue(form: FormData) {
-  await requireUser(['SALES'])
-  await db.issue.delete({ where: { id: id(form) } })
+  const user = await requireUser(['SALES'])
+  const issue = await db.issue.delete({ where: { id: id(form) } })
+  await notifyAdmin(user, 'Deleted a daily issue', `${issue.department} · ${issue.issue}`)
   done(back(form, '/issues'))
+}
+
+export async function markNoticesSeen() {
+  await requireUser(['ADMIN'])
+  await db.adminNotice.updateMany({ where: { seenAt: null }, data: { seenAt: new Date() } })
+  done('/admin/notices')
 }
 
 // Staff tracking
@@ -170,8 +178,10 @@ export async function createInvite(form: FormData) {
 }
 
 export async function deleteInvite(form: FormData) {
-  await requireUser()
+  const user = await requireUser()
+  const invite = await db.leadInvite.findFirst({ where: { id: id(form), filledAt: null } })
   await db.leadInvite.deleteMany({ where: { id: id(form), filledAt: null } })
+  if (invite) await notifyAdmin(user, 'Deleted a customer form link', [invite.name, invite.phone].filter(Boolean).join(' · '))
   done('/invite')
 }
 

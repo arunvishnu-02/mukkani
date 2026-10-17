@@ -467,3 +467,19 @@ model DayRequest {
   @@index([status])
   @@index([userId, date])
 }
+
+// Told to admin: something deleted (or taken back) by sales or the kitchen manager. Kept as text, because the
+// deleted row itself is gone.
+model AdminNotice {
+  id        String    @id @default(uuid()) @db.Uuid
+  text      String
+  detail    String?   @db.Text
+  byId      String?   @db.Uuid
+  byName    String?
+  byRole    String?
+  createdAt DateTime  @default(now())
+  seenAt    DateTime?
+
+  @@index([seenAt])
+  @@index([createdAt])
+}
