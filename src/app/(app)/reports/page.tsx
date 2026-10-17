@@ -6,8 +6,9 @@ import { PACKAGE_STATUS } from '@/lib/labels'
 import { holidaySet, packagePlan, planFor, runningPackages } from '@/lib/queries'
 import { getSettings } from '@/lib/settings'
 import { fill, firstName, waLink } from '@/lib/whatsapp'
-import { Drawer, Empty, PageHeader, Progress, StatusChip, Tabs, Tile, Tiles, WaLink, Who } from '@/components/ui'
+import { Drawer, Empty, PageHeader, Progress, StatusChip, Tabs, Tile, Tiles, Who } from '@/components/ui'
 import { saveReportNoteAction } from '../actions'
+import { SendReport } from '@/components/SendReport'
 
 // Monthly report for each customer: created after the 26th delivery, can be edited, then printed or sent.
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -53,7 +54,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                         <div className="flex flex-wrap gap-1.5">
                           <Link href={`${list}&pkg=${p.id}`} scroll={false} className="btn-secondary btn-sm">Edit</Link>
                           <a href={`/print/report/${p.id}`} target="_blank" rel="noreferrer" className="btn btn-sm">Print</a>
-                          <WaLink small href={waLink(p.lead.phone, sendText(p.lead.name, p.startDate, endOf.get(p.id) ?? null))}>Send</WaLink>
+                          <SendReport small packageId={p.id} fileName={`Mukkani report - ${p.lead.name} - month ${p.number}.pdf`} waHref={waLink(p.lead.phone, sendText(p.lead.name, p.startDate, endOf.get(p.id) ?? null))} text={sendText(p.lead.name, p.startDate, endOf.get(p.id) ?? null)} />
                         </div>
                       </td>
                     </tr>
@@ -86,8 +87,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               <a href={`/print/report/${selected.pkg.id}`} target="_blank" rel="noreferrer" className="btn-secondary">Preview</a>
               <button className="btn">Save</button>
             </div>
-            <WaLink href={waLink(selected.pkg.lead.phone, sendText(selected.pkg.lead.name, selected.pkg.startDate, selected.plan.end))}>Send on WhatsApp</WaLink>
-            <p className="text-xs text-muted">To send the report itself, open Print, choose Save as PDF and attach the PDF in WhatsApp.</p>
+            <SendReport packageId={selected.pkg.id} fileName={`Mukkani report - ${selected.pkg.lead.name} - month ${selected.pkg.number}.pdf`} waHref={waLink(selected.pkg.lead.phone, sendText(selected.pkg.lead.name, selected.pkg.startDate, selected.plan.end))} text={sendText(selected.pkg.lead.name, selected.pkg.startDate, selected.plan.end)} />
+            <p className="text-xs text-muted">Makes a one-page PDF of the report. On a phone, pick WhatsApp and the PDF goes attached. On a computer the PDF downloads and WhatsApp opens; attach it there.</p>
           </form>
         </Drawer>
       )}
