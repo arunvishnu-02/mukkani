@@ -12,8 +12,7 @@ import { saveRenewalDecisionAction } from '../actions'
 // Month over: will the customer continue? Sales sees everyone whose month ends in 3 days or has ended without
 // a next month, with the kitchen's renewal call answer, and records Continue / Not continuing from here.
 export default async function RenewalsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const user = await requireUser(['SALES', 'KITCHEN'])
-  const kitchen = user.role === 'KITCHEN'
+  await requireUser(['SALES', 'KITCHEN'])
   const sp = await searchParams
   const today = day(0)
   const [all, st] = await Promise.all([renewalList(today), getSettings()])
@@ -41,7 +40,7 @@ export default async function RenewalsPage({ searchParams }: { searchParams: Pro
       <Tiles cols={4}>
         <Tile label="Month over, no answer" value={finished.length} sub="ask today" tone={finished.length ? 'red' : 'muted'} />
         <Tile label="Ending in 3 days" value={ending.length} sub="send the reminder" tone="warn" />
-        <Tile label="Said yes" value={yes.length} sub={kitchen ? 'sales starts next month' : 'start next month'} tone="leaf" />
+        <Tile label="Said yes" value={yes.length} sub="start next month" tone="leaf" />
         <Tile label="Not continuing" value={all.filter((r) => r.decision === 'NO').length} sub="moved to Not interested" />
       </Tiles>
       <section className="card overflow-x-auto">
@@ -61,7 +60,7 @@ export default async function RenewalsPage({ searchParams }: { searchParams: Pro
                     <form action={saveRenewalDecisionAction} className="flex flex-wrap gap-1.5">
                       <input type="hidden" name="packageId" value={r.pkg.id} />
                       <input type="hidden" name="back" value={self} />
-                      {kitchen ? (r.decision !== 'YES' && <button name="decision" value="YES" className="btn btn-sm">Yes, continuing</button>) : <button name="decision" value="YES" className="btn btn-sm">Continue · start month {r.pkg.number + 1}</button>}
+                      <button name="decision" value="YES" className="btn btn-sm">Continue · start month {r.pkg.number + 1}</button>
                       {r.decision !== 'UNDECIDED' && <button name="decision" value="UNDECIDED" className="btn-secondary btn-sm">Not decided</button>}
                       <Link href={`${self}${self.includes('?') ? '&' : '?'}no=${r.pkg.id}`} scroll={false} className="btn-secondary btn-sm text-red">Not continuing</Link>
                     </form>

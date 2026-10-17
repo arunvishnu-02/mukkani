@@ -214,7 +214,7 @@ export async function trialFeedbackAction(form: FormData) {
 }
 
 export async function startPackageAction(form: FormData) {
-  const user = await requireUser(['SALES'])
+  const user = await requireUser(['SALES', 'KITCHEN'])
   const id = z.string().uuid().parse(s(form, 'leadId'))
   await attempt(form, `/customers/${id}`, () => startPackage(id, user.id, packageStart(form)))
 }
@@ -369,8 +369,7 @@ export async function saveRenewalDecisionAction(form: FormData) {
   await log(pkg.leadId, 'call', decision === 'YES' ? 'Renewal: continuing' : decision === 'NO' ? 'Renewal: not continuing' : 'Renewal: not decided', decision === 'NO' ? reason : null, user.id)
   if (decision === 'NO') await markNotInterested(pkg.leadId, user.id, reason)
   revalidatePath('/', 'layout')
-  // Sales goes straight on to start next month; the kitchen manager only records the answer.
-  redirect(decision === 'YES' && user.role !== 'KITCHEN' ? `/customers/${pkg.leadId}?start=1` : back(form, '/renewals'))
+  redirect(decision === 'YES' ? `/customers/${pkg.leadId}?start=1` : back(form, '/renewals'))
 }
 
 export async function sendReminderAction(form: FormData) {

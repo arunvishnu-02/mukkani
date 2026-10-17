@@ -176,7 +176,7 @@ export default async function CustomerProfile({ params, searchParams }: { params
               </Card>
             )
           )}
-          {sales && pkg && latest && pkg.status !== 'CANCELLED' && (
+          {pkg && latest && pkg.status !== 'CANCELLED' && (
             <div className={`flex flex-wrap items-center gap-3 rounded-[10px] px-4 py-3 ${pkg.status === 'COMPLETED' ? 'bg-leaf-soft' : 'bg-s2'}`}>
               <span className="flex-1 text-[13px] font-medium">
                 {pkg.status === 'COMPLETED' ? `Month ${pkg.number} is finished. Continuing? Start month ${pkg.number + 1}.` : `Renewing early? Month ${pkg.number + 1} starts after this pack's last day.`}
@@ -284,7 +284,7 @@ export default async function CustomerProfile({ params, searchParams }: { params
           </form>
         </Drawer>
       )}
-      {sales && sp.start && (
+      {(sales || pkg) && sp.start && (
         <Drawer title={pkg ? `Start month ${lead.packages.length + 1}` : 'Start monthly pack'} sub={lead.name} close={self}>
           <form action={startPackageAction} className="space-y-3.5">
             <input type="hidden" name="leadId" value={lead.id} />
