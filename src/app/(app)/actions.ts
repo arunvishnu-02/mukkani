@@ -359,7 +359,7 @@ export async function saveAttendanceAction(form: FormData) {
 // The renewal answer, taken by sales (the kitchen's day 26 call stores the same answer).
 // No: the customer moves to Not interested; the current month still runs to its last box.
 export async function saveRenewalDecisionAction(form: FormData) {
-  const user = await requireUser(['SALES'])
+  const user = await requireUser(['SALES', 'KITCHEN'])
   const packageId = z.string().uuid().parse(s(form, 'packageId'))
   const decision = z.enum(['YES', 'NO', 'UNDECIDED']).parse(s(form, 'decision'))
   const reason = s(form, 'reason') === 'Other' ? s(form, 'reasonOther') ?? 'Other' : s(form, 'reason')
@@ -369,7 +369,8 @@ export async function saveRenewalDecisionAction(form: FormData) {
   await log(pkg.leadId, 'call', decision === 'YES' ? 'Renewal: continuing' : decision === 'NO' ? 'Renewal: not continuing' : 'Renewal: not decided', decision === 'NO' ? reason : null, user.id)
   if (decision === 'NO') await markNotInterested(pkg.leadId, user.id, reason)
   revalidatePath('/', 'layout')
-  redirect(decision === 'YES' ? `/customers/${pkg.leadId}?start=1` : back(form, '/renewals'))
+  // Sales goes straight on to start next month; the kitchen manager only records the answer.
+  redirect(decision === 'YES' && user.role !== 'KITCHEN' ? `/customers/${pkg.leadId}?start=1` : back(form, '/renewals'))
 }
 
 export async function sendReminderAction(form: FormData) {

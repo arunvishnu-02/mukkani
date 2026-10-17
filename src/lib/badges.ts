@@ -29,7 +29,7 @@ export async function navBadges(role: string): Promise<Badges> {
     admin ? db.due.count({ where: { paidAt: null, dueDate: { lte: day(1) } } }) : none,
     admin ? db.dayRequest.count({ where: { status: 'PENDING' } }) : none,
     admin ? db.adminNotice.count({ where: { seenAt: null } }) : none,
-    sales ? renewalList(today).then((x) => x.filter((r) => r.finished && (r.decision == null || r.decision === 'UNDECIDED' || r.decision === 'YES')).length) : none,
+    sales || kitchen ? renewalList(today).then((x) => x.filter((r) => r.finished && (r.decision == null || r.decision === 'UNDECIDED' || r.decision === 'YES')).length) : none,
   ])
   const reminders = running.filter((r) => r.plan.end && r.plan.end >= today && r.plan.end <= day(3) && !r.pkg.reminderSentAt).length
   const toEnter = sheet ? sheet.rows.length + sheet.trials.length - sheet.entered : 0
