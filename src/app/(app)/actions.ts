@@ -21,6 +21,7 @@ import {
   log,
   logLeadCall,
   markLeave,
+  markNotInterested,
   saveAttendance,
   startPackage,
   trialFeedback,
@@ -355,6 +356,22 @@ export async function saveAttendanceAction(form: FormData) {
 }
 
 // End-date reminder: record it, then open WhatsApp with the message ready.
+// The renewal answer, taken by sales (the kitchen's day 26 call stores the same answer).
+// No: the customer moves to Not interested; the current month still runs to its last box.
+export async function saveRenewalDecisionAction(form: FormData) {
+  const user = await requireUser(['SALES'])
+  const packageId = z.string().uuid().parse(s(form, 'packageId'))
+  const decision = z.enum(['YES', 'NO', 'UNDECIDED']).parse(s(form, 'decision'))
+  const reason = s(form, 'reason') === 'Other' ? s(form, 'reasonOther') ?? 'Other' : s(form, 'reason')
+  const pkg = await db.package.findUniqueOrThrow({ where: { id: packageId } })
+  const data = { outcome: 'RENEWAL', renewal: decision, reason: decision === 'NO' ? reason : null, note: s(form, 'note'), byId: user.id }
+  await db.customerCall.upsert({ where: { packageId_dayNo: { packageId, dayNo: 26 } }, create: { packageId, dayNo: 26, leadId: pkg.leadId, ...data }, update: data })
+  await log(pkg.leadId, 'call', decision === 'YES' ? 'Renewal: continuing' : decision === 'NO' ? 'Renewal: not continuing' : 'Renewal: not decided', decision === 'NO' ? reason : null, user.id)
+  if (decision === 'NO') await markNotInterested(pkg.leadId, user.id, reason)
+  revalidatePath('/', 'layout')
+  redirect(decision === 'YES' ? `/customers/${pkg.leadId}?start=1` : back(form, '/renewals'))
+}
+
 export async function sendReminderAction(form: FormData) {
   const user = await requireUser(['SALES'])
   const id = z.string().uuid().parse(s(form, 'packageId'))

@@ -3,12 +3,14 @@ import { db } from '@/lib/db'
 import { day } from '@/lib/dates'
 import { callDays, type PackagePlan } from '@/lib/plan'
 import { runningPackages, type Running } from '@/lib/queries'
+import { finishedWithoutNext } from '@/lib/renewals'
 
 export type DueCall = Running & { dayNo: number; date: Date; renewal: boolean }
 
 // Kitchen manager calls due today or in the last few days and not logged yet (one per customer: the latest due).
 export async function dueCalls(today = day(0)) {
-  const running = await runningPackages(today)
+  // A pack whose 26th box is entered is Completed; its renewal call must still show until it is made.
+  const running = [...(await runningPackages(today)), ...(await finishedWithoutNext(today, 14))]
   // A renewal call marked Not decided stays on the list until the customer decides.
   const logged = await db.customerCall.findMany({
     where: { packageId: { in: running.map((r) => r.pkg.id) }, OR: [{ renewal: null }, { renewal: { in: ['YES', 'NO'] } }] },

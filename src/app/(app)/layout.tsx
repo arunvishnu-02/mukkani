@@ -17,6 +17,7 @@ const SALES: NavItem[] = [
   { href: '/menu', label: 'Daily menu', icon: 'menu' },
   { href: '/attendance', label: 'Delivery attendance', icon: 'attendance' },
   { href: '/reminders', label: 'Reminders', icon: 'bell' },
+  { href: '/renewals', label: 'Renewals', icon: 'calendar' },
   { href: '/issues', label: 'Daily issues', icon: 'alert' },
   { href: '/reports', label: 'Monthly reports', icon: 'report' },
 ]
