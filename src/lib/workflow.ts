@@ -152,6 +152,7 @@ export type AttendanceInput = {
   boxBack: boolean | null
   altBox: number | null
   remarks: string | null
+  boxes?: number | null // left out = keep what is stored
 }
 
 // A customer tells us in advance that they will not take the box on some days. Each day is saved as
@@ -178,7 +179,7 @@ export async function cancelLeave(leadId: string, date: Date, byId: string) {
 // Sales enters the day's attendance from the paper sheet after 9 AM.
 export async function saveAttendance(date: Date, rows: AttendanceInput[], byId: string) {
   for (const r of rows) {
-    const data = { status: r.status, buttermilk: r.buttermilk, boxBack: r.boxBack, remarks: r.remarks, byId }
+    const data = { status: r.status, buttermilk: r.buttermilk, boxBack: r.boxBack, remarks: r.remarks, byId, ...(r.boxes !== undefined ? { boxes: r.boxes } : {}) }
     await db.attendance.upsert({ where: { leadId_date: { leadId: r.leadId, date } }, create: { leadId: r.leadId, date, ...data }, update: data })
     const alt = await db.altBox.findFirst({ where: { leadId: r.leadId, givenOn: date } })
     if (r.altBox && !alt) await db.altBox.create({ data: { leadId: r.leadId, boxNo: r.altBox, givenOn: date } })

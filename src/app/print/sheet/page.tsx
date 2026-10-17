@@ -55,6 +55,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
           tags: [
             ...(r.swap?.swapTo ? ([[`No ${r.swap.avoids.join(', ')} → ${r.swap.swapTo}`, 'red']] as [string, string][]) : []),
             ...(r.isNew ? ([['New', 'leaf']] as [string, string][]) : []),
+            ...(r.boxes > 1 ? ([[`${r.boxes} boxes`, 'red']] as [string, string][]) : []),
             ...(r.dayNo && r.dayNo >= 25 ? ([[`Day ${r.dayNo}`, 'warn']] as [string, string][]) : []),
           ],
           bm: r.bm,

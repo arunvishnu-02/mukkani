@@ -10,7 +10,8 @@ export type DayKind = 'delivered' | 'leave' | 'notDelivered' | 'paused' | 'holid
 export type PlanDay = {
   date: Date
   kind: DayKind
-  dayNo: number | null // delivery day number (1..26) for counted days
+  dayNo: number | null // boxes counted by the end of this day (1..26); equals the day number at 1 box a day
+  boxes: number // boxes counted on this day
   carried: boolean // a counted day that falls after the original end date (pushed by leave)
   entered: boolean // attendance has been entered for this day
 }
@@ -19,7 +20,7 @@ export type PackagePlan = {
   days: PlanDay[]
   end: Date | null // null while paused with no return date
   originalEnd: Date
-  delivered: number
+  delivered: number // boxes delivered
   leave: number
   dateOfDay: (n: number) => Date | null
   dayOn: (d: Date) => PlanDay | undefined
@@ -30,18 +31,20 @@ export type PackagePlan = {
 export function planPackage(opts: {
   start: Date
   total?: number
-  attendance: { date: Date; status: AttendanceStatus }[]
+  attendance: { date: Date; status: AttendanceStatus; boxes?: number | null }[]
+  boxesPerDay?: number
   pause?: { from: Date; until: Date | null } | null
   stopped?: boolean
   today: Date
 }): PackagePlan {
   const total = opts.total ?? 26
-  const att = new Map(opts.attendance.map((a) => [keyOf(a.date), a.status]))
+  const perDay = Math.max(1, opts.boxesPerDay ?? 1)
+  const att = new Map(opts.attendance.map((a) => [keyOf(a.date), a]))
   const days: PlanDay[] = []
   let originalEnd = opts.start
   for (let d = opts.start, n = 0; n < total; d = addDays(d, 1)) {
     if (!isSunday(d)) {
-      n++
+      n += perDay
       originalEnd = d
     }
   }
@@ -53,25 +56,30 @@ export function planPackage(opts: {
   // A package can stretch at most 4 months (long leave); beyond that the end is unknown.
   for (let d = opts.start, i = 0; count < total && i < 120; d = addDays(d, 1), i++) {
     const k = keyOf(d)
-    const st = att.get(k)
-    const base = { date: d, carried: false, entered: st != null }
+    const a = att.get(k)
+    const st = a?.status
+    // The last day only takes the boxes that are left.
+    const take = (n: number) => Math.min(Math.max(1, n), total - count)
+    const base = { date: d, carried: false, entered: st != null, boxes: 0 }
     if (isSunday(d)) {
       days.push({ ...base, kind: 'holiday', dayNo: null })
     } else if (st === 'ABSENT' || st === 'NOT_DELIVERED') {
       days.push({ ...base, kind: st === 'ABSENT' ? 'leave' : 'notDelivered', dayNo: null })
       leave++
     } else if (st === 'DELIVERED') {
-      count++
-      delivered++
-      days.push({ ...base, kind: 'delivered', dayNo: count, carried: d > originalEnd })
+      const n = take(a?.boxes ?? perDay)
+      count += n
+      delivered += n
+      days.push({ ...base, kind: 'delivered', dayNo: count, boxes: n, carried: d > originalEnd })
     } else if (opts.stopped && d >= opts.today) {
       break
     } else if (d >= opts.today && pausedOn(d)) {
       days.push({ ...base, kind: 'paused', dayNo: null })
       if (opts.pause!.until == null) break
     } else {
-      count++
-      days.push({ ...base, kind: 'planned', dayNo: count, carried: d > originalEnd })
+      const n = take(perDay)
+      count += n
+      days.push({ ...base, kind: 'planned', dayNo: count, boxes: n, carried: d > originalEnd })
     }
     if (count === total) end = d
   }
@@ -83,7 +91,8 @@ export function planPackage(opts: {
     originalEnd,
     delivered,
     leave,
-    dateOfDay: (n) => days.find((x) => x.dayNo === n)?.date ?? null,
+    // The day on which box n goes out (with 2 a day, box 5 goes with box 6).
+    dateOfDay: (n) => days.find((x) => x.dayNo != null && x.dayNo >= n)?.date ?? null,
     dayOn: (d) => byKey.get(keyOf(d)),
     todayNo: todayDay?.dayNo ?? null,
     done: delivered >= total,

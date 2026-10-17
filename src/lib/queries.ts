@@ -48,7 +48,7 @@ const runningAt = cache(async (at: number): Promise<Running[]> => {
   const minStart = list.reduce((m, p) => (p.startDate < m ? p.startDate : m), list[0].startDate)
   const att = await db.attendance.findMany({
     where: { leadId: { in: list.map((p) => p.leadId) }, date: { gte: minStart } },
-    select: { leadId: true, date: true, status: true },
+    select: { leadId: true, date: true, status: true, boxes: true },
   })
   const byLead = new Map<string, typeof att>()
   for (const a of att) byLead.set(a.leadId, [...(byLead.get(a.leadId) ?? []), a])
@@ -56,13 +56,14 @@ const runningAt = cache(async (at: number): Promise<Running[]> => {
 })
 
 export function planFor(
-  pkg: { startDate: Date; status: string; lead: { customerStatus: string; pausedUntil: Date | null } },
-  attendance: { date: Date; status: 'DELIVERED' | 'ABSENT' | 'NOT_DELIVERED' }[],
+  pkg: { startDate: Date; status: string; boxesPerDay?: number; lead: { customerStatus: string; pausedUntil: Date | null } },
+  attendance: { date: Date; status: 'DELIVERED' | 'ABSENT' | 'NOT_DELIVERED'; boxes?: number | null }[],
   today = day(0),
 ) {
   return planPackage({
     start: pkg.startDate,
     attendance: attendance.filter((a) => a.date >= pkg.startDate),
+    boxesPerDay: pkg.boxesPerDay,
     pause: pkg.lead.customerStatus === 'PAUSED' ? { from: today, until: pkg.lead.pausedUntil } : null,
     stopped: pkg.lead.customerStatus === 'INACTIVE' || pkg.status === 'CANCELLED',
     today,
@@ -71,7 +72,7 @@ export function planFor(
 
 export async function packagePlan(packageId: string, today = day(0)) {
   const pkg = await db.package.findUniqueOrThrow({ where: { id: packageId }, include: pkgInclude })
-  const att = await db.attendance.findMany({ where: { leadId: pkg.leadId, date: { gte: pkg.startDate } }, select: { date: true, status: true } })
+  const att = await db.attendance.findMany({ where: { leadId: pkg.leadId, date: { gte: pkg.startDate } }, select: { date: true, status: true, boxes: true } })
   return { pkg, plan: planFor(pkg, att, today) }
 }
 
@@ -79,12 +80,13 @@ export type SheetRow = {
   pkg: PkgWithLead
   lead: PkgWithLead['lead']
   dayNo: number | null
+  boxes: number // boxes going out that day (the pack's boxes per day, or what was entered)
   absent: boolean
   bm: number
   altBox: number | null
   swap: Swap | null
   isNew: boolean
-  attendance: { status: string; boxBack: boolean | null; remarks: string | null; buttermilk: boolean } | null
+  attendance: { status: string; boxBack: boolean | null; remarks: string | null; buttermilk: boolean; boxes: number | null } | null
 }
 
 // Everyone on the attendance sheet for a date: monthly customers due that day plus trial boxes.
@@ -116,15 +118,16 @@ export async function daySheet(date: Date) {
       pkg,
       lead: pkg.lead,
       dayNo: d.dayNo,
+      boxes: d.kind === 'leave' ? 0 : d.boxes || pkg.boxesPerDay,
       absent: d.kind === 'leave',
       bm: isButtermilkDay(date) ? pkg.buttermilkQty : 0,
       altBox: alt.get(pkg.leadId) ?? null,
       swap: swaps.get(pkg.leadId) ?? null,
-      isNew: pkg.number === 1 && d.dayNo === 1,
-      attendance: a ? { status: a.status, boxBack: a.boxBack, remarks: a.remarks, buttermilk: a.buttermilk } : null,
+      isNew: pkg.number === 1 && d.dayNo != null && d.dayNo === d.boxes,
+      attendance: a ? { status: a.status, boxBack: a.boxBack, remarks: a.remarks, buttermilk: a.buttermilk, boxes: a.boxes } : null,
     }
   })
-  const boxes = rows.filter((r) => !r.absent).length + trials.length
+  const boxes = rows.reduce((n, r) => n + (r.absent ? 0 : r.boxes), 0) + trials.length
   return {
     menu,
     rows,

@@ -16,8 +16,9 @@ export type AttendanceRow = {
   boxBack: boolean | null
   remarks: string | null
   buttermilk: boolean
+  boxes: number | null // boxes delivered that day; null for a trial
 }
-type Entry = { status: string | null; buttermilk: boolean; altBox: string; boxBack: boolean | null; remarks: string }
+type Entry = { status: string | null; buttermilk: boolean; altBox: string; boxBack: boolean | null; remarks: string; boxes: number | null }
 type Mark = 'idle' | 'saving' | 'saved' | 'failed'
 
 const STATUS: [string, string, string][] = [
@@ -30,7 +31,7 @@ const TAG = { warn: 'bg-tur-soft text-warn', leaf: 'bg-leaf-soft text-leaf', sky
 // Attendance entry that saves by itself: tapping Delivered, Absent or Not delivered stores that row at once,
 // and the drink tick, alternative box number, empty box and remarks are stored as soon as they change.
 export function AttendanceList({ date, region, rows }: { date: string; region: string; rows: AttendanceRow[] }) {
-  const [entries, setEntries] = useState<Record<string, Entry>>(() => Object.fromEntries(rows.map((r) => [r.leadId, { status: r.status, buttermilk: r.buttermilk, altBox: r.altBox ? String(r.altBox) : '', boxBack: r.boxBack, remarks: r.remarks ?? '' }])))
+  const [entries, setEntries] = useState<Record<string, Entry>>(() => Object.fromEntries(rows.map((r) => [r.leadId, { status: r.status, buttermilk: r.buttermilk, altBox: r.altBox ? String(r.altBox) : '', boxBack: r.boxBack, remarks: r.remarks ?? '', boxes: r.boxes }])))
   const [marks, setMarks] = useState<Record<string, Mark>>({})
   const [, start] = useTransition()
   const mark = (id: string, m: Mark) => setMarks((x) => ({ ...x, [id]: m }))
@@ -41,7 +42,7 @@ export function AttendanceList({ date, region, rows }: { date: string; region: s
     start(async () => {
       try {
         const box = Number(e.altBox)
-        const r = await saveAttendanceRowAction(date, { leadId, status: e.status!, buttermilk: e.buttermilk, boxBack: e.boxBack, altBox: e.altBox && box >= 1 && box <= 100 ? Math.round(box) : null, remarks: e.remarks.trim() || null })
+        const r = await saveAttendanceRowAction(date, { leadId, status: e.status!, buttermilk: e.buttermilk, boxBack: e.boxBack, altBox: e.altBox && box >= 1 && box <= 100 ? Math.round(box) : null, remarks: e.remarks.trim() || null, ...(e.boxes ? { boxes: e.boxes } : {}) })
         mark(leadId, r.ok ? 'saved' : 'failed')
       } catch {
         mark(leadId, 'failed')
@@ -91,6 +92,11 @@ export function AttendanceList({ date, region, rows }: { date: string; region: s
                 <td className="td">
                   <div className="flex flex-wrap gap-1.5" role="group" aria-label={`Attendance for ${r.name}`}>
                     {STATUS.map(([v, l, on]) => <button key={v} type="button" aria-pressed={e.status === v} onClick={() => change(r.leadId, { status: v })} className={`${pill} ${e.status === v ? on : 'border-line bg-surface'}`}>{l}</button>)}
+                    {e.boxes != null && e.status === 'DELIVERED' && (
+                      <select value={e.boxes} onChange={(ev) => change(r.leadId, { boxes: Number(ev.target.value) })} aria-label={`Boxes for ${r.name}`} title="Each box counts in the 26" className={`rounded-md border px-1.5 py-1 text-[13px] font-semibold ${e.boxes > 1 ? 'border-brand bg-brand-soft text-brand' : 'border-line bg-surface'}`}>
+                        <option value={1}>1 box</option><option value={2}>2 boxes</option><option value={3}>3 boxes</option>
+                      </select>
+                    )}
                   </div>
                 </td>
                 <td className="td">{r.bm > 0 ? <label className="flex items-center gap-1.5 text-[13px] font-semibold"><input type="checkbox" checked={e.buttermilk} onChange={(ev) => change(r.leadId, { buttermilk: ev.target.checked })} className="size-4 accent-leaf" />{r.bm}</label> : ''}</td>

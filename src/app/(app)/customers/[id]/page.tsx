@@ -40,7 +40,7 @@ export default async function CustomerProfile({ params, searchParams }: { params
         calls: { orderBy: { createdAt: 'desc' } },
         followUps: { orderBy: { createdAt: 'desc' }, take: 5 },
         altBoxes: { orderBy: { givenOn: 'desc' }, take: 5 },
-        attendance: { select: { date: true, status: true } },
+        attendance: { select: { date: true, status: true, boxes: true } },
       },
     }),
     db.activity.findMany({ where: { leadId: id }, include: { by: { select: { name: true } } }, orderBy: { createdAt: 'desc' }, take: 15 }),
@@ -93,14 +93,14 @@ export default async function CustomerProfile({ params, searchParams }: { params
           {pkg && plan ? (
             <Card
               title={`Package ${pkg.number} of ${lead.packages.length}`}
-              sub={`${rupees(pkg.price)} · 26 deliveries · Mon to Sat${pkg.buttermilkQty ? ` · add-on drink ${pkg.buttermilkQty} bottle${pkg.buttermilkQty > 1 ? 's' : ''}` : ''}`}
+              sub={`${rupees(pkg.price)} · 26 boxes · Mon to Sat${pkg.boxesPerDay > 1 ? ` · ${pkg.boxesPerDay} boxes a day` : ''}${pkg.buttermilkQty ? ` · add-on drink ${pkg.buttermilkQty} bottle${pkg.buttermilkQty > 1 ? 's' : ''}` : ''}`}
               right={<div className="flex gap-1.5"><StatusChip map={PACKAGE_STATUS} value={pkg.status} />{pkg.paid ? <Chip label="Paid" tone="leaf" /> : <Chip label="Not paid" tone="muted" />}</div>}
             >
               <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
                 {[
                   ['Start', fmtDay(pkg.startDate)],
                   ['End (leave carried forward)', plan.end ? fmtDay(plan.end) : 'Paused'],
-                  ['Delivered', plan.delivered],
+                  [pkg.boxesPerDay > 1 ? 'Boxes delivered' : 'Delivered', plan.delivered],
                   ['Leave', plan.leave],
                   ['Left', 26 - plan.delivered],
                 ].map(([k, v]) => (
@@ -120,6 +120,12 @@ export default async function CustomerProfile({ params, searchParams }: { params
                     <label className="label">Add-on drink (Mon, Wed, Fri) · Rs {pkg.buttermilkPrice}/month a bottle</label>
                     <select name="qty" className="input" defaultValue={String(pkg.buttermilkQty)}>
                       <option value="0">No add-on drink</option><option value="1">1 bottle</option><option value="2">2 bottles</option><option value="3">3 bottles</option>
+                    </select>
+                  </div>
+                  <div className="w-44">
+                    <label className="label">Boxes each day · each box counts in the 26</label>
+                    <select name="boxes" className="input" defaultValue={String(pkg.boxesPerDay)}>
+                      <option value="1">1 box</option><option value="2">2 boxes</option><option value="3">3 boxes</option>
                     </select>
                   </div>
                   <button className="btn-secondary">Save</button>

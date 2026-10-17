@@ -198,6 +198,8 @@ model Package {
   paid           Boolean       @default(false)
   paidAt         DateTime?
   buttermilkQty  Int           @default(0)
+  // Boxes the customer takes each day. Every box counts toward the 26, so 2 a day ends the pack in 13 days.
+  boxesPerDay    Int           @default(1)
   buttermilkPrice Int          @default(299)
   reminderSentAt DateTime?
   reportNote     String? @db.Text
@@ -216,6 +218,8 @@ model Attendance {
   leadId      String @db.Uuid
   lead        Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
   status      AttendanceStatus
+  // Boxes delivered that day when it differs from the pack's boxes per day. Empty = the pack's number.
+  boxes       Int?
   buttermilk  Boolean          @default(false)
   boxBack     Boolean?
   remarks     String?

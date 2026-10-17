@@ -22,6 +22,7 @@ type Row = {
   remarks: string | null
   buttermilk: boolean
   region: string | null
+  boxes: number | null
 }
 
 // After 9 AM, sales copies the kitchen manager's paper sheet into the dashboard. Compulsory every day.
@@ -40,13 +41,14 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
       tags: [
         ...(r.isNew ? ([['NEW', 'leaf']] as Row['tags']) : []),
         ...(r.swap?.swapTo ? ([[`Customization: ${r.swap.swapTo}`, 'warn']] as Row['tags']) : []),
-        [`Day ${r.dayNo ?? '-'}`, 'brand'],
+        [r.pkg.boxesPerDay > 1 ? `${r.pkg.boxesPerDay} boxes a day · box ${r.dayNo ?? '-'} of 26` : `Day ${r.dayNo ?? '-'}`, 'brand'],
       ] as Row['tags'],
       bm: r.bm,
       altBox: r.altBox,
       status: r.attendance?.status ?? (r.absent ? 'ABSENT' : null),
       boxBack: r.attendance?.boxBack ?? null,
       remarks: r.attendance?.remarks ?? null,
+      boxes: r.attendance?.boxes ?? r.pkg.boxesPerDay,
       buttermilk: r.attendance ? r.attendance.buttermilk : r.bm > 0,
       region: r.lead.region?.name ?? null,
     })),
@@ -61,6 +63,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
       status: t.attendance?.status ?? null,
       boxBack: t.attendance?.boxBack ?? null,
       remarks: t.attendance?.remarks ?? null,
+      boxes: null,
       buttermilk: false,
       region: t.trial.lead.region?.name ?? null,
     })),

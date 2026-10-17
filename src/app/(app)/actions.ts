@@ -221,8 +221,11 @@ export async function setButtermilkAction(form: FormData) {
   const user = await requireUser(['SALES', 'KITCHEN'])
   const id = z.string().uuid().parse(s(form, 'packageId'))
   const qty = z.coerce.number().int().min(0).max(5).parse(s(form, 'qty') ?? 0)
-  const p = await db.package.update({ where: { id }, data: { buttermilkQty: qty } })
-  await log(p.leadId, 'package', qty ? `Add-on drink: ${qty} bottle${qty > 1 ? 's' : ''}` : 'Add-on drink stopped', null, user.id)
+  const boxes = z.coerce.number().int().min(1).max(3).optional().parse(s(form, 'boxes') ?? undefined)
+  const before = await db.package.findUniqueOrThrow({ where: { id } })
+  const p = await db.package.update({ where: { id }, data: { buttermilkQty: qty, ...(boxes ? { boxesPerDay: boxes } : {}) } })
+  if (qty !== before.buttermilkQty) await log(p.leadId, 'package', qty ? `Add-on drink: ${qty} bottle${qty > 1 ? 's' : ''}` : 'Add-on drink stopped', null, user.id)
+  if (boxes && boxes !== before.boxesPerDay) await log(p.leadId, 'package', `Boxes each day: ${boxes}`, null, user.id)
   revalidatePath('/', 'layout')
   redirect(back(form, `/customers/${p.leadId}`))
 }
@@ -279,7 +282,7 @@ export async function cancelLeaveAction(form: FormData) {
 }
 
 // One row of the attendance screen, stored the moment it is tapped. Answers instead of moving to another page.
-export async function saveAttendanceRowAction(dateKey: string, row: { leadId: string; status: string; buttermilk: boolean; boxBack: boolean | null; altBox: number | null; remarks: string | null }) {
+export async function saveAttendanceRowAction(dateKey: string, row: { leadId: string; status: string; buttermilk: boolean; boxBack: boolean | null; altBox: number | null; remarks: string | null; boxes?: number | null }) {
   const user = await requireUser(['SALES'])
   const parsed = z.object({
     leadId: z.string().uuid(),
@@ -288,6 +291,7 @@ export async function saveAttendanceRowAction(dateKey: string, row: { leadId: st
     boxBack: z.boolean().nullable(),
     altBox: z.number().int().min(1).max(100).nullable(),
     remarks: z.string().max(300).nullable(),
+    boxes: z.number().int().min(1).max(3).nullable().optional(),
   }).safeParse(row)
   if (!parsed.success || !isDay(dateKey)) return { ok: false }
   if (!(await dayOpen(user, parseDay(dateKey)))) return { ok: false }
