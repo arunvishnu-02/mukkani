@@ -98,6 +98,7 @@ export async function startPackage(leadId: string, byId: string, p: PackageStart
       startDate,
       buttermilkQty: p.buttermilkQty ?? last?.buttermilkQty ?? 0,
       buttermilkPrice: s.buttermilkPrice,
+      boxesPerDay: last?.boxesPerDay ?? 1,
       paid: p.paid ?? false,
       paidAt: p.paid ? new Date() : null,
     },

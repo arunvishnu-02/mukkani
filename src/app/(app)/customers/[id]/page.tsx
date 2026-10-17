@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { day, fmtDay, fmtTime, fmtWeekday } from '@/lib/dates'
+import { addDays, day, deliveryDayFrom, fmtDay, fmtTime, fmtWeekday } from '@/lib/dates'
 import { CUSTOMER_CALL, CUSTOMER_STATUS, LEAD_STATUS, LOCATION_STATUS, PACKAGE_STATUS, RENEWAL, SOURCE, TRIAL_RESULT, TRIAL_STATUS, rupees, sourceLabel } from '@/lib/labels'
 import { holidaySet, planFor, regionsList } from '@/lib/queries'
 import { appSettings, getSettings } from '@/lib/settings'
@@ -60,6 +60,9 @@ export default async function CustomerProfile({ params, searchParams }: { params
     lead.customerStatus === 'INACTIVE' ? 'INACTIVE' : lead.customerStatus === 'PAUSED' && (!lead.pausedUntil || lead.pausedUntil >= today) ? 'PAUSED' : absentToday ? 'ABSENT' : 'ACTIVE'
   const birthday = lead.dob && lead.dob.getUTCDate() === today.getUTCDate() && lead.dob.getUTCMonth() === today.getUTCMonth()
   const self = `/customers/${lead.id}`
+  // Next month: the delivery day after this pack's last day, never before tomorrow.
+  const latest = pkg ? !lead.packages.some((p) => p.number > pkg.number) : false
+  const nextStart = deliveryDayFrom(plan?.end && addDays(plan.end, 1) > day(1) ? addDays(plan.end, 1) : day(1))
   const proofs = pkg && sales && pkg.paymentProofIds.length ? await db.upload.findMany({ where: { id: { in: pkg.paymentProofIds } }, select: { id: true, mime: true } }) : []
   const shots = (pkg?.paymentProofIds ?? []).map((id) => proofs.find((x) => x.id === id)).filter((x) => !!x).map((x) => ({ id: x.id, isImage: x.mime.startsWith('image/') }))
   return (
@@ -173,7 +176,15 @@ export default async function CustomerProfile({ params, searchParams }: { params
               </Card>
             )
           )}
-          {sales && pkg && pkg.status !== 'ACTIVE' && lead.status !== 'MONTHLY' && (
+          {sales && pkg && latest && pkg.status !== 'CANCELLED' && (
+            <div className={`flex flex-wrap items-center gap-3 rounded-[10px] px-4 py-3 ${pkg.status === 'COMPLETED' ? 'bg-leaf-soft' : 'bg-s2'}`}>
+              <span className="flex-1 text-[13px] font-medium">
+                {pkg.status === 'COMPLETED' ? `Month ${pkg.number} is finished. Continuing? Start month ${pkg.number + 1}.` : `Renewing early? Month ${pkg.number + 1} starts after this pack's last day.`}
+              </span>
+              <Link href={`${self}?start=1`} scroll={false} className={pkg.status === 'COMPLETED' ? 'btn' : 'btn-secondary btn-sm'}>Start month {pkg.number + 1}</Link>
+            </div>
+          )}
+          {sales && pkg && pkg.status === 'CANCELLED' && (
             <Link href={`${self}?start=1`} className="btn-secondary">Start a new monthly pack</Link>
           )}
           <Card title="Customer details">
@@ -274,12 +285,12 @@ export default async function CustomerProfile({ params, searchParams }: { params
         </Drawer>
       )}
       {sales && sp.start && (
-        <Drawer title="Start monthly pack" sub={lead.name} close={self}>
+        <Drawer title={pkg ? `Start month ${lead.packages.length + 1}` : 'Start monthly pack'} sub={lead.name} close={self}>
           <form action={startPackageAction} className="space-y-3.5">
             <input type="hidden" name="leadId" value={lead.id} />
             <input type="hidden" name="back" value={self} />
             <input type="hidden" name="self" value={`${self}?start=1`} />
-            <PackageFields start={day(1)} regions={regions} slots={st.slots} regionId={lead.regionId} slot={lead.slot} price={st.monthlyPrice} bmPrice={st.buttermilkPrice} />
+            <PackageFields start={pkg ? nextStart : day(1)} regions={regions} slots={st.slots} regionId={lead.regionId} slot={lead.slot} price={st.monthlyPrice} bmPrice={st.buttermilkPrice} />
             <div className="grid grid-cols-2 gap-2.5"><Link href={self} className="btn-secondary">Cancel</Link><button className="btn">Start</button></div>
           </form>
         </Drawer>
