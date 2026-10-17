@@ -48,9 +48,8 @@ export async function markNotInterested(leadId: string, byId: string, reason: st
   await log(leadId, 'status', 'Moved to Not interested', reason, byId)
 }
 
-// One trial per customer, ever. Delivery date defaults to tomorrow; the time slot is required.
+// One trial per customer, ever. Delivery date defaults to tomorrow; the time slot is optional.
 export async function bookTrial(leadId: string, byId: string, date: Date, slot: string | null) {
-  if (!slot) throw new FlowError('Pick a delivery time slot for the trial')
   if (await db.trialBox.findFirst({ where: { leadId } })) throw new FlowError('This customer has already had a trial box')
   const s = await appSettings()
   await db.trialBox.create({ data: { leadId, deliveryDate: date, slot, price: s.trialPrice } })
@@ -91,7 +90,6 @@ export async function startPackage(leadId: string, byId: string, p: PackageStart
   const last = await db.package.findFirst({ where: { leadId }, orderBy: { number: 'desc' } })
   const startDate = deliveryDayFrom(p.startDate ?? day(1))
   const lead = await db.lead.findUniqueOrThrow({ where: { id: leadId } })
-  if (!(p.slot ?? lead.slot)) throw new FlowError('Pick a delivery time slot')
   const pkg = await db.package.create({
     data: {
       leadId,

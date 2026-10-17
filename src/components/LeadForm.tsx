@@ -31,8 +31,8 @@ export function LeadFields({ lead, regions, slots }: { lead?: Lead | null; regio
           <select name="regionId" required className="input" defaultValue={lead?.regionId ?? ''}><option value="">Pick a region</option>{regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select>
         </div>
         <div>
-          <label className="label">Time slot *</label>
-          <select name="slot" required className="input" defaultValue={lead?.slot ?? ''}><option value="">Pick a slot</option>{slots.map((x) => <option key={x}>{x}</option>)}</select>
+          <label className="label">Time slot</label>
+          <select name="slot" className="input" defaultValue={lead?.slot ?? ''}><option value="">Pick a slot</option>{slots.map((x) => <option key={x}>{x}</option>)}</select>
         </div>
         <div><label className="label">Delivery time</label><input type="time" name="deliveryTime" className="input" defaultValue={lead?.deliveryTime ?? ''} /></div>
       </div>

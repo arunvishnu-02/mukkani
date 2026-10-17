@@ -119,7 +119,7 @@ export default async function CallRegister({ searchParams }: { searchParams: Pro
               <div className="grid grid-cols-2 gap-2.5">
                 <div><label className="label">Delivery date</label><DateField name="trialDate" defaultValue={dayInput(day(1))} /></div>
                 <div>
-                  <label className="label">Time slot *</label>
+                  <label className="label">Time slot</label>
                   <select name="trialSlot" className="input" defaultValue=""><option value="">Pick a slot</option>{st.slots.map((x) => <option key={x}>{x}</option>)}</select>
                 </div>
               </div>

@@ -137,7 +137,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                 </Reveal>
                 <Reveal name="startAs" values={['TRIAL']} initial="FOLLOW_UP">
                   <div><label className="label">Trial delivery date</label><DateField name="trialDate" defaultValue={dayInput(day(1))} /></div>
-                  <p className="text-xs text-muted">Books the trial box (Rs {st.trialPrice}) for the Time slot picked above. The time slot is needed.</p>
+                  <p className="text-xs text-muted">Books the trial box (Rs {st.trialPrice}) for the Time slot picked above, if any.</p>
                 </Reveal>
                 <Reveal name="startAs" values={['MONTHLY']} initial="FOLLOW_UP">
                   <div className="grid grid-cols-2 gap-2.5">
@@ -145,7 +145,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                     <div><label className="label" htmlFor="new-drink">Add-on drink</label><select id="new-drink" name="buttermilkQty" className="input" defaultValue="0"><option value="0">No add-on drink</option><option value="1">1 bottle</option><option value="2">2 bottles</option><option value="3">3 bottles</option></select></div>
                   </div>
                   <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" name="pkgPaid" className="size-4 accent-brand" /> Paid (Rs {st.monthlyPrice.toLocaleString('en-IN')})</label>
-                  <p className="text-xs text-muted">Starts the 26-day monthly pack without a trial, for the Time slot picked above. The time slot is needed.</p>
+                  <p className="text-xs text-muted">Starts the 26-day monthly pack without a trial, for the Time slot picked above, if any.</p>
                 </Reveal>
               </div>
             </div>

@@ -5,7 +5,6 @@ const NEED = [
   ['phone', 'phone'],
   ['address', 'address'],
   ['regionId', 'region'],
-  ['slot', 'time slot'],
   ['dob', 'date of birth'],
   ['avoidFoods', 'foods to avoid'],
   ['healthNotes', 'health issues'],
@@ -20,5 +19,5 @@ export function missingDetails(l: WithDetails) {
 
 // Everyone with at least one detail missing.
 export const missingWhere: Prisma.LeadWhereInput = {
-  OR: [{ phone: '' }, { address: null }, { address: '' }, { regionId: null }, { slot: null }, { slot: '' }, { dob: null }, { avoidFoods: null }, { avoidFoods: '' }, { healthNotes: null }, { healthNotes: '' }],
+  OR: [{ phone: '' }, { address: null }, { address: '' }, { regionId: null }, { dob: null }, { avoidFoods: null }, { avoidFoods: '' }, { healthNotes: null }, { healthNotes: '' }],
 }

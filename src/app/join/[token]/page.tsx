@@ -48,8 +48,8 @@ export default async function JoinPage({ params, searchParams }: { params: Promi
                 <select id="j-region" name="regionId" required className="input" defaultValue=""><option value="">Pick your area</option>{regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select>
               </div>
               <div>
-                <label className="label" htmlFor="j-slot">Delivery time *</label>
-                <select id="j-slot" name="slot" required className="input" defaultValue=""><option value="">Pick a time</option>{(st?.slots ?? []).map((x) => <option key={x}>{x}</option>)}</select>
+                <label className="label" htmlFor="j-slot">Delivery time</label>
+                <select id="j-slot" name="slot" className="input" defaultValue=""><option value="">Pick a time</option>{(st?.slots ?? []).map((x) => <option key={x}>{x}</option>)}</select>
               </div>
             </div>
             <div><label className="label">Date of birth *</label><DateField name="dob" required birthday /></div>

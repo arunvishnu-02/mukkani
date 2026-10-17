@@ -86,7 +86,6 @@ export async function createLead(form: FormData) {
   const data = leadFields(form)
   // A new person can go straight to a trial box or a monthly pack instead of Follow up.
   const startAs = s(form, 'startAs') === 'TRIAL' ? 'TRIAL' : s(form, 'startAs') === 'MONTHLY' ? 'MONTHLY' : 'FOLLOW_UP'
-  if (startAs !== 'FOLLOW_UP' && !data.slot) redirect(`/leads?f=all&new=1&error=${encodeURIComponent(`Pick the time slot: a ${startAs === 'TRIAL' ? 'trial box' : 'monthly pack'} needs one. The lead was not saved.`)}`)
   const lead = await db.lead.create({ data: { ...data, ownerId: user.id, nextFollowUpAt: startAs === 'FOLLOW_UP' ? (date(form, 'nextFollowUpAt') ?? day(0)) : null } })
   await log(lead.id, 'lead', 'Lead added', `Source: ${data.source.toLowerCase().replace('_', ' ')}`, user.id)
   if (startAs === 'TRIAL') await bookTrial(lead.id, user.id, date(form, 'trialDate') ?? day(1), data.slot)

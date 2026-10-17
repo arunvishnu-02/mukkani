@@ -85,7 +85,7 @@ export default async function TrialsPage({ searchParams }: { searchParams: Promi
         )}
       </section>
       {sp.book && (
-        <Drawer title="Book trial" sub="Delivery date is tomorrow unless you change it. The time slot is required." close={list}>
+        <Drawer title="Book trial" sub="Delivery date is tomorrow unless you change it." close={list}>
           <form action={bookTrialAction} className="space-y-3.5">
             <input type="hidden" name="back" value="/trials?tab=booked" />
             <input type="hidden" name="self" value={`${list}&book=1`} />
@@ -99,8 +99,8 @@ export default async function TrialsPage({ searchParams }: { searchParams: Promi
             <div className="grid grid-cols-2 gap-2.5">
               <div><label className="label">Delivery date</label><DateField name="trialDate" defaultValue={dayInput(day(1))} /></div>
               <div>
-                <label className="label">Time slot *</label>
-                <select name="slot" className="input" required defaultValue=""><option value="">Pick a slot</option>{st.slots.map((x) => <option key={x}>{x}</option>)}</select>
+                <label className="label">Time slot</label>
+                <select name="slot" className="input" defaultValue=""><option value="">Pick a slot</option>{st.slots.map((x) => <option key={x}>{x}</option>)}</select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2.5"><Link href={list} className="btn-secondary">Cancel</Link><button className="btn">Book trial</button></div>
