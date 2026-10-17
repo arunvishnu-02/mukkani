@@ -77,6 +77,17 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
   const delivered = list.filter((r) => r.status === 'DELIVERED').length
   const off = list.filter((r) => r.status === 'ABSENT').length
   const notDel = list.filter((r) => r.status === 'NOT_DELIVERED').length
+  // The whole day across every region, so the overall picture is at the top.
+  const count = (rs: Row[]) => ({
+    total: rs.length,
+    entered: rs.filter((r) => r.status).length,
+    delivered: rs.filter((r) => r.status === 'DELIVERED').length,
+    absent: rs.filter((r) => r.status === 'ABSENT').length,
+    notDel: rs.filter((r) => r.status === 'NOT_DELIVERED').length,
+    boxes: rs.filter((r) => r.status === 'DELIVERED').reduce((n, r) => n + (r.boxes ?? 1), 0),
+  })
+  const overall = count(rows)
+  const byRegion = groups.map(([name, rs]) => ({ name, ...count(rs) }))
   return (
     <>
       <PageHeader title="Enter today's attendance" crumb="Delivery attendance" sub={`After 9 AM, copy the kitchen manager's paper sheet into the dashboard. ${fmtWeekday(date)}`}>
@@ -92,6 +103,39 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
       {sp.leave === '1' && <LeaveDrawer customers={running.map((r) => ({ id: r.pkg.lead.id, name: r.pkg.lead.name, phone: r.pkg.lead.phone, region: r.pkg.lead.region?.name ?? null }))} date={dayInput(date > day(0) ? date : isSunday(day(1)) ? day(2) : day(1))} close={self} self={`${self}&leave=1`} />}
       {date.getTime() === day(0).getTime() && nowHourIST() < 9 && !sp.saved && (
         <Callout tone="warn">Attendance is entered after 9 AM, once the kitchen manager has written it on the paper sheet.</Callout>
+      )}
+      {rows.length > 0 && (
+        <section className="card overflow-x-auto">
+          <div className="flex flex-wrap items-baseline gap-x-3 px-5 pt-4 pb-2">
+            <h2 className="font-display text-lg font-semibold">{date.getTime() === day(0).getTime() ? 'Today' : fmtWeekday(date)} · all regions</h2>
+            <span className="text-[13px] text-muted">{overall.entered === overall.total ? 'All entered' : `${overall.total - overall.entered} still to enter`}</span>
+          </div>
+          <table className="w-full" data-no-tools>
+            <thead><tr><th className="th">Region</th><th className="th text-right">Customers</th><th className="th text-right">Entered</th><th className="th text-right">Delivered</th><th className="th text-right">Boxes out</th><th className="th text-right">Absent</th><th className="th text-right">Not delivered</th></tr></thead>
+            <tbody>
+              {byRegion.map((g) => (
+                <tr key={g.name} className={g.name === region?.[0] ? 'bg-brand-soft/60' : ''}>
+                  <td className="td"><Link href={`/attendance?date=${dayInput(date)}&region=${encodeURIComponent(g.name)}`} className="font-semibold hover:underline">{g.name}</Link></td>
+                  <td className="td text-right">{g.total}</td>
+                  <td className={`td text-right font-semibold ${g.entered < g.total ? 'text-warn' : 'text-leaf'}`}>{g.entered} of {g.total}</td>
+                  <td className="td text-right text-leaf">{g.delivered}</td>
+                  <td className="td text-right">{g.boxes}</td>
+                  <td className="td text-right text-warn">{g.absent}</td>
+                  <td className="td text-right text-red">{g.notDel}</td>
+                </tr>
+              ))}
+              <tr className="border-t-2 border-line font-bold">
+                <td className="td">Total</td>
+                <td className="td text-right">{overall.total}</td>
+                <td className={`td text-right ${overall.entered < overall.total ? 'text-warn' : 'text-leaf'}`}>{overall.entered} of {overall.total}</td>
+                <td className="td text-right text-leaf">{overall.delivered}</td>
+                <td className="td text-right">{overall.boxes}</td>
+                <td className="td text-right text-warn">{overall.absent}</td>
+                <td className="td text-right text-red">{overall.notDel}</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
       )}
       {groups.length > 1 && <Tabs items={groups.map(([name, rs]) => ({ label: `${name} ${rs.length}`, href: `/attendance?date=${dayInput(date)}&region=${encodeURIComponent(name)}`, active: name === region?.[0] }))} />}
       <Tiles cols={5}>
