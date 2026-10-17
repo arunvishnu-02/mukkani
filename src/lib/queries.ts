@@ -1,7 +1,7 @@
 import 'server-only'
 import { cache } from 'react'
 import { db } from '@/lib/db'
-import { day, isSunday } from '@/lib/dates'
+import { addDays, day, isSunday } from '@/lib/dates'
 import { matchSwaps, splitList, type Swap } from '@/lib/menu'
 import { isButtermilkDay, planPackage, type PackagePlan } from '@/lib/plan'
 import type { Prisma } from '@/generated/prisma/client'
@@ -55,6 +55,19 @@ const runningAt = cache(async (at: number): Promise<Running[]> => {
   return list.map((pkg) => ({ pkg, plan: planFor(pkg, byLead.get(pkg.leadId) ?? [], today) }))
 })
 
+// Packs that finished (26 boxes) but had a delivery or leave on this date, so a finished customer still shows
+// on the sheet of their last days. Without this the row vanished the moment its 26th box was entered.
+const finishedOn = cache(async (at: number): Promise<Running[]> => {
+  const date = new Date(at)
+  const pkgs = await db.package.findMany({ where: { status: 'COMPLETED', startDate: { lte: date, gte: addDays(date, -120) } }, include: pkgInclude })
+  if (pkgs.length === 0) return []
+  const minStart = pkgs.reduce((m, p) => (p.startDate < m ? p.startDate : m), pkgs[0].startDate)
+  const att = await db.attendance.findMany({ where: { leadId: { in: pkgs.map((p) => p.leadId) }, date: { gte: minStart } }, select: { leadId: true, date: true, status: true, boxes: true } })
+  return pkgs
+    .map((pkg) => ({ pkg, plan: planFor(pkg, att.filter((a) => a.leadId === pkg.leadId), day(0)) }))
+    .filter(({ plan }) => { const k = plan.dayOn(date)?.kind; return k === 'delivered' || k === 'leave' || k === 'notDelivered' })
+})
+
 export function planFor(
   pkg: { startDate: Date; status: string; boxesPerDay?: number; lead: { customerStatus: string; pausedUntil: Date | null } },
   attendance: { date: Date; status: 'DELIVERED' | 'ABSENT' | 'NOT_DELIVERED'; boxes?: number | null }[],
@@ -100,7 +113,11 @@ export async function daySheet(date: Date) {
     db.trialBox.findMany({ where: { deliveryDate: date }, include: { lead: { include: { region: true } } }, orderBy: { lead: { deliveryTime: 'asc' } } }),
     db.lead.findMany({ where: { customerStatus: 'PAUSED', packages: { some: { status: 'ACTIVE' } } }, include: { region: true }, orderBy: { name: 'asc' } }),
   ])
-  const running = all.filter((r) => r.pkg.startDate <= date)
+  const covering = all.filter((r) => r.pkg.startDate <= date)
+  const have = new Set(covering.map((r) => r.pkg.leadId))
+  const finished = (await finishedOn(date.getTime())).filter((r) => !have.has(r.pkg.leadId))
+  // Keep the hand-set route order with the finished customers in their places.
+  const running = finished.length ? [...covering, ...finished].sort((a, b) => (a.pkg.lead.sheetOrder ?? 9999) - (b.pkg.lead.sheetOrder ?? 9999)) : covering
   const att = new Map(attendance.map((a) => [a.leadId, a]))
   const alt = new Map(altBoxes.map((a) => [a.leadId, a.boxNo]))
   const due = isSunday(date)
