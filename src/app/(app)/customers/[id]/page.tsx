@@ -11,7 +11,7 @@ import { Avatar, Callout, Card, Chip, Drawer, ErrorNote, Progress, StatusChip, W
 import { PackageCalendar } from '@/components/PackageCalendar'
 import { PackageFields } from '@/components/PackageFields'
 import { MapPin } from '@/components/MapPin'
-import { setButtermilkAction, startPackageAction } from '../../actions'
+import { setButtermilkAction, setPackagePaidAction, startPackageAction } from '../../actions'
 
 function Row({ k, v }: { k: string; v: React.ReactNode }) {
   return (
@@ -94,7 +94,19 @@ export default async function CustomerProfile({ params, searchParams }: { params
             <Card
               title={`Package ${pkg.number} of ${lead.packages.length}`}
               sub={`${rupees(pkg.price)} · 26 boxes · Mon to Sat${pkg.boxesPerDay > 1 ? ` · ${pkg.boxesPerDay} boxes a day` : ''}${pkg.buttermilkQty ? ` · add-on drink ${pkg.buttermilkQty} bottle${pkg.buttermilkQty > 1 ? 's' : ''}` : ''}`}
-              right={<div className="flex gap-1.5"><StatusChip map={PACKAGE_STATUS} value={pkg.status} />{pkg.paid ? <Chip label="Paid" tone="leaf" /> : <Chip label="Not paid" tone="muted" />}</div>}
+              right={
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <StatusChip map={PACKAGE_STATUS} value={pkg.status} />
+                  {pkg.paid ? <Chip label={`Paid${pkg.paidAt ? ` ${fmtDay(pkg.paidAt)}` : ''}`} tone="leaf" /> : <Chip label="Not paid" tone="muted" />}
+                  {sales && (
+                    <form action={setPackagePaidAction}>
+                      <input type="hidden" name="packageId" value={pkg.id} />
+                      <input type="hidden" name="back" value={self} />
+                      {pkg.paid ? <button name="paid" value="no" className="text-xs font-semibold text-muted hover:text-red">Undo</button> : <button name="paid" value="yes" className="btn btn-sm">Mark paid</button>}
+                    </form>
+                  )}
+                </div>
+              }
             >
               <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
                 {[

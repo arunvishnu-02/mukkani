@@ -229,6 +229,17 @@ export async function setButtermilkAction(form: FormData) {
   redirect(back(form, `/customers/${p.leadId}`))
 }
 
+// Monthly pack payment: marked paid when the money comes in, or back to not paid if it was a mistake.
+export async function setPackagePaidAction(form: FormData) {
+  const user = await requireUser(['SALES'])
+  const id = z.string().uuid().parse(s(form, 'packageId'))
+  const paid = s(form, 'paid') === 'yes'
+  const p = await db.package.update({ where: { id }, data: { paid, paidAt: paid ? new Date() : null } })
+  await log(p.leadId, 'package', paid ? `Month ${p.number} paid` : `Month ${p.number} marked not paid`, paid ? `Rs ${p.price + p.buttermilkQty * p.buttermilkPrice}` : null, user.id)
+  revalidatePath('/', 'layout')
+  redirect(back(form, `/customers/${p.leadId}`))
+}
+
 // Daily menu, added by sales the day before.
 export async function saveMenuAction(form: FormData) {
   const user = await requireUser(['SALES'])
