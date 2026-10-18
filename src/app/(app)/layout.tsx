@@ -52,6 +52,7 @@ const NAV: Record<string, NavItem[]> = {
     { href: '/admin/requests', label: 'Past-day requests', icon: 'bell', group: 'Business' },
     { href: '/admin/notices', label: 'Deleted by team', icon: 'alert', group: 'Business' },
     { href: '/admin/users', label: 'Team + regions', icon: 'team', group: 'Business' },
+    { href: '/admin/backups', label: 'Backups', icon: 'stock', group: 'Business' },
     { href: '/admin/settings', label: 'Settings', icon: 'settings', group: 'Business' },
   ],
 }

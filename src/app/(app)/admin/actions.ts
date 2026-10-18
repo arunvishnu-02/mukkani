@@ -65,6 +65,19 @@ export async function savePackagePayment(form: FormData) {
   done(`/customers/${old.leadId}?paid=1`)
 }
 
+export async function backupNow() {
+  await requireUser(['ADMIN'])
+  const { makeBackup } = await import('@/lib/backup')
+  let to = '/admin/backups'
+  try {
+    const r = await makeBackup('by admin')
+    to = `/admin/backups?made=${encodeURIComponent(r.name)}`
+  } catch (e) {
+    to = `/admin/backups?error=${encodeURIComponent(`Backup failed: ${(e as Error).message}`)}`
+  }
+  redirect(to)
+}
+
 // Team + regions
 export async function saveUser(form: FormData) {
   await requireUser(['ADMIN'])
