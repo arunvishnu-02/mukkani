@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { NavIcon, type IconName } from './NavIcon'
 
-export type NavItem = { href: string; label: string; icon: IconName; group?: string }
+export type NavItem = { href: string; label: string; icon: IconName; group?: string; plain?: boolean }
 
 export function Sidebar({ section, items, badges = {}, user, logout }: { section: string; items: NavItem[]; badges?: Record<string, { n: number; tip: string }>; user: { name: string; role: string }; logout: () => Promise<void> }) {
   const path = usePathname()
@@ -44,6 +44,8 @@ export function Sidebar({ section, items, badges = {}, user, logout }: { section
             <div key={it.href}>
               {head && <div className="px-2 pt-3 pb-1.5 text-[11px] font-semibold tracking-widest text-side-muted uppercase">{it.group}</div>}
               <Link
+                prefetch={it.plain ? false : undefined}
+                {...(it.plain ? { target: '_blank', rel: 'noreferrer' } : {})}
                 href={it.href}
                 onClick={() => setOpen(false)}
                 className={`flex items-center gap-2.5 rounded-lg px-3 ${dense ? 'py-1.5' : 'py-2.5'} text-sm ${on ? 'bg-side-active font-semibold text-brand' : 'font-medium text-side-muted hover:bg-s2 hover:text-ink'}`}

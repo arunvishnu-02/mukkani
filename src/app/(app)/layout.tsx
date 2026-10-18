@@ -36,10 +36,11 @@ const KITCHEN: NavItem[] = [
 ]
 const REPORTS: NavItem = { href: '/reports', label: 'Monthly reports', icon: 'report' }
 const ALL_REPORTS: NavItem = { href: '/report', label: 'All reports', icon: 'chart' }
+const GUIDE: NavItem = { href: '/guide', label: 'Guide', icon: 'report', plain: true }
 
 const NAV: Record<string, NavItem[]> = {
-  SALES: [{ href: '/dashboard', label: 'Dashboard', icon: 'dashboard' }, { href: '/calendar', label: 'Calendar', icon: 'calendar' }, ...SALES, ALL_REPORTS],
-  KITCHEN: [{ href: '/kitchen', label: 'Dashboard', icon: 'dashboard' }, { href: '/calendar', label: 'Calendar', icon: 'calendar' }, ...KITCHEN, REPORTS, ALL_REPORTS],
+  SALES: [{ href: '/dashboard', label: 'Dashboard', icon: 'dashboard' }, { href: '/calendar', label: 'Calendar', icon: 'calendar' }, ...SALES, ALL_REPORTS, GUIDE],
+  KITCHEN: [{ href: '/kitchen', label: 'Dashboard', icon: 'dashboard' }, { href: '/calendar', label: 'Calendar', icon: 'calendar' }, ...KITCHEN, REPORTS, ALL_REPORTS, GUIDE],
   ADMIN: [
     { href: '/admin', label: 'Overview', icon: 'chart' },
     { href: '/calendar', label: 'Calendar', icon: 'calendar' },
@@ -54,6 +55,7 @@ const NAV: Record<string, NavItem[]> = {
     { href: '/admin/users', label: 'Team + regions', icon: 'team', group: 'Business' },
     { href: '/admin/backups', label: 'Backups', icon: 'stock', group: 'Business' },
     { href: '/admin/settings', label: 'Settings', icon: 'settings', group: 'Business' },
+    { ...GUIDE, group: 'Business' },
   ],
 }
 
