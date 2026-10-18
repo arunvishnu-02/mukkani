@@ -77,7 +77,7 @@ export function planPackage(opts: {
       days.push({ ...base, kind: 'delivered', dayNo: count, boxes: n, carried: d > originalEnd })
     } else if (opts.stopped && d >= opts.today) {
       break
-    } else if (d >= opts.today && pausedOn(d)) {
+    } else if (pausedOn(d)) {
       days.push({ ...base, kind: 'paused', dayNo: null })
       if (opts.pause!.until == null) break
     } else {

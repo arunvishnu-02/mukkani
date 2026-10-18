@@ -73,6 +73,12 @@ const finishedOn = cache(async (at: number): Promise<Running[]> => {
 // Office holidays as YYYY-MM-DD keys, loaded once per request.
 export const holidaySet = cache(async () => new Set((await db.holiday.findMany({ select: { date: true } })).map((h) => keyOf(h.date))))
 
+function pausedFrom(attendance: { date: Date }[], start: Date, today: Date) {
+  const last = attendance.reduce<Date | null>((m, a) => (a.date >= start && (!m || a.date > m) ? a.date : m), null)
+  const from = last ? addDays(last, 1) : start
+  return from < today ? from : today
+}
+
 export function planFor(
   pkg: { startDate: Date; status: string; boxesPerDay?: number; lead: { customerStatus: string; pausedUntil: Date | null } },
   attendance: { date: Date; status: 'DELIVERED' | 'ABSENT' | 'NOT_DELIVERED'; boxes?: number | null }[],
@@ -84,7 +90,9 @@ export function planFor(
     start: pkg.startDate,
     attendance: attendance.filter((a) => a.date >= pkg.startDate),
     boxesPerDay: pkg.boxesPerDay,
-    pause: pkg.lead.customerStatus === 'PAUSED' ? { from: today, until: pkg.lead.pausedUntil } : null,
+    // A paused customer is off from the day after their last entered day (not only from today), so days
+    // nobody entered after they went on leave do not count as boxes delivered.
+    pause: pkg.lead.customerStatus === 'PAUSED' ? { from: pausedFrom(attendance, pkg.startDate, today), until: pkg.lead.pausedUntil } : null,
     stopped: pkg.lead.customerStatus === 'INACTIVE' || pkg.status === 'CANCELLED',
     today,
   })
