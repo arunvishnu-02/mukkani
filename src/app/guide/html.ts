@@ -196,6 +196,16 @@ footer { color: var(--muted); font-size: 13px; padding-block: 24px 40px; border-
       <div class="note"><b>Holiday tomorrow?</b> No menu is needed. Holidays are on the Calendar.</div>
     </div></div>
 
+    <div class="step"><div class="when">Every day</div><div>
+      <h3>Close the day (compulsory)</h3>
+      <span class="path">Dashboard › checklist</span>
+      <ol>
+        <li>Before you leave, every item on your dashboard checklist must be green: attendance, next day menu, reminders, renewal answers, follow-up calls, trial feedback.</li>
+        <li>Tap an orange item to go straight to it.</li>
+      </ol>
+      <div class="note"><b>Not finished?</b> Next morning, today's attendance stays locked and shows what is missing. Admin is told. A missed attendance day needs admin to open it.</div>
+    </div></div>
+
     <div class="step"><div class="when">Day 25</div><div>
       <h3>Monthly report one day early</h3>
       <span class="path">Monthly reports › Day 25 · last box next</span>

@@ -9,6 +9,9 @@ import { dayOpen } from '@/lib/lock'
 import { DateField } from '@/components/DateField'
 import { LeaveDrawer } from '@/components/Leave'
 import { SheetOrder } from '@/components/SheetOrder'
+import { DayClose } from '@/components/DayClose'
+import { salesClose, salesDayToFinish } from '@/lib/salesclose'
+import { db } from '@/lib/db'
 
 type Row = {
   key: string
@@ -32,6 +35,21 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
   const sp = await searchParams
   const date = sp.date ? parseDay(sp.date) : day(0)
   const open = await dayOpen(user, date)
+  // From 24 Oct: today's attendance opens for sales only after the last working day is fully finished.
+  const finish = user.role === 'SALES' && date.getTime() === day(0).getTime() ? await salesDayToFinish() : null
+  const prevClose = finish ? await salesClose(finish) : null
+  if (prevClose && !prevClose.done) {
+    const text = `Sales did not finish ${fmtWeekday(prevClose.work)}`
+    if (!(await db.adminNotice.findFirst({ where: { text } })))
+      await db.adminNotice.create({ data: { text, detail: prevClose.items.filter((i) => !i.done).map((i) => `${i.label}: ${i.detail}`).join('\n'), byId: user.id, byName: user.name, byRole: user.role } })
+    return (
+      <>
+        <PageHeader title="Finish yesterday first" crumb="Delivery attendance" sub={`Today's attendance opens when ${fmtWeekday(prevClose.work)} is finished. Admin has been told what is missing.`} />
+        <DayClose work={prevClose.work} sheetDate={date} items={prevClose.items} what="attendance" />
+        <Callout tone="warn">A past day's attendance is locked. To enter it, ask admin to open {fmtWeekday(prevClose.work)} (Past-day requests).</Callout>
+      </>
+    )
+  }
   const [sheet, running] = await Promise.all([daySheet(date), runningPackages(day(0))])
   const rows: Row[] = [
     ...sheet.rows.map((r) => ({

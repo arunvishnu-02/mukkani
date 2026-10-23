@@ -5,6 +5,8 @@ import { day, fmtWeekday, isSunday, longToday, nowHourIST } from '@/lib/dates'
 import { LEAD_STATUS } from '@/lib/labels'
 import { birthdaysToday, daySheet, runningPackages } from '@/lib/queries'
 import { getSettings } from '@/lib/settings'
+import { salesClose } from '@/lib/salesclose'
+import { DayClose } from '@/components/DayClose'
 import { fill, firstName, waLink } from '@/lib/whatsapp'
 import { Card, Chip, PageHeader, StatusChip, Tile, Tiles, WaLink, Who } from '@/components/ui'
 
@@ -39,11 +41,13 @@ export default async function SalesDashboard() {
   ])
   const total = sheet.rows.length + sheet.trials.length
   const reminders = running.filter((r) => r.plan.end && r.plan.end >= today && r.plan.end <= day(3) && !r.pkg.reminderSentAt).length
+  const close = await salesClose(today)
   return (
     <>
       <PageHeader title={`Good ${nowHourIST() < 12 ? 'morning' : 'afternoon'}, ${firstName(user.name)}`} sub={longToday()}>
         <Link href="/leads?f=all&new=1" className="btn">Add lead</Link>
       </PageHeader>
+      <DayClose work={today} sheetDate={close.next} items={close.items} what="attendance" />
       <Tiles cols={5}>
         <Tile label="Calls today" value={callsToday} sub={overdue ? `${overdue} overdue` : 'none overdue'} tone="warn" />
         <Tile label="Trial feedback calls" value={feedback} sub="after 10 AM on the trial day" tone="sky" />

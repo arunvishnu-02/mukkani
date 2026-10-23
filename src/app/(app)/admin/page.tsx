@@ -9,6 +9,7 @@ import { figures, pct, period, teamFigures } from '@/lib/report'
 import { appSettings } from '@/lib/settings'
 import { stockToday } from '@/lib/stock'
 import { dayClose } from '@/lib/dayclose'
+import { salesClose } from '@/lib/salesclose'
 import { DayClose } from '@/components/DayClose'
 import { Bar, Card, PageHeader, Tabs, Tile, Tiles, Who } from '@/components/ui'
 import { DateField } from '@/components/DateField'
@@ -61,6 +62,7 @@ export default async function AdminOverview({ searchParams }: { searchParams: Pr
   const maxReason = Math.max(1, ...f.notInterested.map((r) => r[1]))
   const nextSheet = isSunday(day(1)) ? day(2) : day(1)
   const close = await dayClose(nextSheet)
+  const sClose = await salesClose(day(0))
   return (
     <>
       <PageHeader title="Business overview" sub={`${longToday()} · showing ${month.label}`}>
@@ -68,6 +70,7 @@ export default async function AdminOverview({ searchParams }: { searchParams: Pr
         <Link href="/admin/reports" className="btn">Reports</Link>
       </PageHeader>
       {!close.done && <DayClose work={close.work} sheetDate={nextSheet} items={close.items} />}
+      {!sClose.done && <DayClose work={sClose.work} sheetDate={sClose.next} items={sClose.items} what="attendance" />}
       <div className="flex flex-wrap items-center gap-2.5">
         <Tabs items={[['day', 'Today'], ['week', 'This week'], ['month', 'This month']].map(([k, l]) => ({ label: l, href: `/admin?period=${k}`, active: !picked && base.kind === k }))} />
         <div className="flex-1" />

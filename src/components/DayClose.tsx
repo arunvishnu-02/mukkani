@@ -3,13 +3,13 @@ import { fmtWeekday } from '@/lib/dates'
 import type { CloseItem } from '@/lib/dayclose'
 
 // Checklist shown before the next day's sheet: what is filled and what is still missing.
-export function DayClose({ work, sheetDate, items }: { work: Date; sheetDate: Date; items: CloseItem[] }) {
+export function DayClose({ work, sheetDate, items, what = 'sheet' }: { work: Date; sheetDate: Date; items: CloseItem[]; what?: string }) {
   const left = items.filter((i) => !i.done)
   return (
     <section className={`card px-5 py-4 ${left.length ? 'border-tur' : ''}`}>
       <div className="mb-3 flex flex-wrap items-baseline gap-x-3">
-        <h2 className="font-display text-lg font-semibold">{left.length ? `Finish ${fmtWeekday(work)} before the ${fmtWeekday(sheetDate)} sheet` : `${fmtWeekday(work)} is closed`}</h2>
-        <span className="text-[13px] text-muted">{left.length ? `${left.length} still to fill. The sheet prints when all are done.` : 'Everything is filled. The sheet is ready to print.'}</span>
+        <h2 className="font-display text-lg font-semibold">{left.length ? `Finish ${fmtWeekday(work)} before the ${fmtWeekday(sheetDate)} ${what}` : `${fmtWeekday(work)} is closed`}</h2>
+        <span className="text-[13px] text-muted">{left.length ? `${left.length} still to fill. ${what === 'sheet' ? 'The sheet prints when all are done.' : 'Tomorrow’s attendance opens when all are done.'}` : what === 'sheet' ? 'Everything is filled. The sheet is ready to print.' : 'Everything is done for the day.'}</span>
       </div>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {items.map((i) => (
