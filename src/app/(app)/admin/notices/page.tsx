@@ -13,7 +13,7 @@ export default async function NoticesPage() {
   const unseen = notices.filter((n) => !n.seenAt)
   return (
     <>
-      <PageHeader title="Deleted by the team" crumb="Business" sub="Every time sales or the kitchen manager deletes something or takes an entry back, it is listed here with what it was.">
+      <PageHeader title="Team notices" crumb="Business" sub="What sales or the kitchen manager deleted or took back, and when the kitchen could not print the next sheet because the day was not finished.">
         {unseen.length > 0 && <form action={markNoticesSeen}><button className="btn btn-sm">Mark all as seen</button></form>}
       </PageHeader>
       <Tiles cols={2}>

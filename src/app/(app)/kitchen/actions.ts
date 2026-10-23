@@ -97,6 +97,18 @@ export async function addStockAction(form: FormData) {
   done(back(form, '/kitchen/stock'))
 }
 
+// "Nothing today" for stock (no fruit came in) or wastage (nothing wasted), so the day can be closed.
+export async function dayMarkAction(form: FormData) {
+  const user = await requireUser(['KITCHEN'])
+  const kind = z.enum(['NO_STOCK', 'NO_WASTAGE']).parse(s(form, 'kind'))
+  const d = date(form, 'date') ?? day(0)
+  const to = back(form, kind === 'NO_STOCK' ? '/kitchen/stock' : '/kitchen/wastage')
+  if (!(await dayOpen(user, d))) locked(to, d)
+  if (s(form, 'undo')) await db.dayMark.deleteMany({ where: { date: d, kind } })
+  else await db.dayMark.upsert({ where: { date_kind: { date: d, kind } }, create: { date: d, kind, byId: user.id }, update: {} })
+  done(to)
+}
+
 export async function deleteStockAction(form: FormData) {
   const user = await requireUser(['KITCHEN'])
   const entry = await db.stockEntry.findUniqueOrThrow({ where: { id: z.string().uuid().parse(s(form, 'id')) } })

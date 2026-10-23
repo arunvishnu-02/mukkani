@@ -54,7 +54,7 @@ export function Sidebar({ section, items, badges = {}, user, logout }: { section
                 <span className="flex-1">{it.label}</span>
                 {badges[it.href] && (
                   <span title={badges[it.href].tip} aria-label={`${badges[it.href].n} · ${badges[it.href].tip}`} className="min-w-5 rounded-full bg-red px-1.5 py-px text-center text-[11px] font-bold text-white">
-                    {it.href === '/menu' ? '!' : badges[it.href].n > 99 ? '99+' : badges[it.href].n}
+                    {['/menu', '/kitchen/stock', '/kitchen/wastage', '/kitchen/staff'].includes(it.href) ? '!' : badges[it.href].n > 99 ? '99+' : badges[it.href].n}
                   </span>
                 )}
               </Link>

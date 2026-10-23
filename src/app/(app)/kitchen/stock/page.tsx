@@ -4,7 +4,7 @@ import { day, dayInput, fmtWeekday } from '@/lib/dates'
 import { appSettings } from '@/lib/settings'
 import { stockToday } from '@/lib/stock'
 import { Callout, Card, Chip, Empty, ErrorNote, PageHeader, Pills, Tabs, Tile, Tiles } from '@/components/ui'
-import { addStockAction, deleteStockAction } from '../actions'
+import { addStockAction, dayMarkAction, deleteStockAction } from '../actions'
 import { DateField } from '@/components/DateField'
 
 // Record the fruit that comes in and see what is left at the end of each day.
@@ -14,11 +14,13 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
   const tab = sp.tab === 'week' ? 'week' : 'today'
   const today = day(0)
   const st = await appSettings()
-  const [rows, entries, sheetBoxes] = await Promise.all([
+  const [rows, entries, sheetBoxes, noStock] = await Promise.all([
     stockToday(today, st.fruits, st.lowStockKg),
     db.stockEntry.findMany({ where: { date: { gte: tab === 'week' ? day(-6) : today } }, orderBy: [{ date: 'desc' }, { createdAt: 'desc' }] }),
     db.attendance.count({ where: { date: today, status: 'DELIVERED' } }),
+    db.dayMark.findUnique({ where: { date_kind: { date: today, kind: 'NO_STOCK' } } }),
   ])
+  const enteredToday = entries.some((e) => e.date.getTime() === today.getTime())
   const cameIn = rows.reduce((a, r) => a + r.cameIn, 0)
   const used = rows.reduce((a, r) => a + r.used, 0)
   const back = `/kitchen/stock${tab === 'week' ? '?tab=week' : ''}`
@@ -29,6 +31,19 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
         <Tabs items={[{ label: 'Today', href: '/kitchen/stock', active: tab === 'today' }, { label: 'This week', href: '/kitchen/stock?tab=week', active: tab === 'week' }]} />
       </PageHeader>
       <ErrorNote error={sp.error} />
+      {enteredToday ? <Callout>Stock for today is entered.</Callout> : noStock ? (
+        <form action={dayMarkAction} className="flex flex-wrap items-center gap-3 rounded-[10px] bg-leaf-soft px-4 py-3 text-[13px] font-medium text-leaf">
+          <input type="hidden" name="kind" value="NO_STOCK" /><input type="hidden" name="undo" value="1" />
+          <span className="flex-1">Marked for today: no stock came in.</span>
+          <button className="text-xs font-semibold text-muted underline">Undo</button>
+        </form>
+      ) : (
+        <form action={dayMarkAction} className="flex flex-wrap items-center gap-3 rounded-[10px] bg-tur-soft px-4 py-3 text-[13px] font-medium">
+          <input type="hidden" name="kind" value="NO_STOCK" />
+          <span className="flex-1">Stock for today is not entered yet. Add what came in (right side), or if no fruit came in today, tap the button.</span>
+          <button className="btn btn-sm">No stock came in today</button>
+        </form>
+      )}
       <Tiles cols={4}>
         <Tile label="Fruits in stock" value={rows.filter((r) => r.left > 0).length} sub="items tracked" />
         <Tile label="Low stock" value={rows.filter((r) => r.low).length} sub={`under ${st.lowStockKg} kg · order before tomorrow`} tone="red" />

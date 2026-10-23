@@ -4,7 +4,7 @@ import { addDays, day, dayInput, fmtWeekday, parseDay } from '@/lib/dates'
 import { WASTE_REASONS } from '@/lib/labels'
 import { appSettings } from '@/lib/settings'
 import { Bar, Callout, Card, PageHeader, Pills, Tile, Tiles } from '@/components/ui'
-import { saveWastageAction } from '../actions'
+import { dayMarkAction, saveWastageAction } from '../actions'
 import { DateField } from '@/components/DateField'
 import { DayLock } from '@/components/DayLock'
 import { Reveal } from '@/components/Reveal'
@@ -19,11 +19,12 @@ export default async function WastagePage({ searchParams }: { searchParams: Prom
   const monday = addDays(date, -((date.getUTCDay() + 6) % 7))
   const monthStart = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1))
   const st = await appSettings()
-  const [rows, week, month, used] = await Promise.all([
+  const [rows, week, month, used, noWaste] = await Promise.all([
     db.wastage.findMany({ where: { date } }),
     db.wastage.findMany({ where: { date: { gte: monday, lt: addDays(monday, 7) } } }),
     db.wastage.aggregate({ where: { date: { gte: monthStart, lte: date } }, _sum: { wasteKg: true } }),
     db.stockEntry.findMany({ where: { date, kind: 'USED' } }),
+    db.dayMark.findUnique({ where: { date_kind: { date, kind: 'NO_WASTAGE' } } }),
   ])
   const by = new Map(rows.map((r) => [r.fruit, r]))
   const total = rows.reduce((a, r) => a + r.wasteKg, 0)
@@ -40,6 +41,13 @@ export default async function WastagePage({ searchParams }: { searchParams: Prom
       </PageHeader>
       {sp.error && <div className="rounded-[10px] bg-red-soft px-3.5 py-2.5 text-[13px] font-medium text-red">{sp.error}</div>}
       <DayLock user={user} date={date} area="Wastage" back={`/kitchen/wastage?date=${dayInput(date)}`} />
+      {rows.length === 0 && (
+        <form action={dayMarkAction} className={`flex flex-wrap items-center gap-3 rounded-[10px] px-4 py-3 text-[13px] font-medium ${noWaste ? 'bg-leaf-soft text-leaf' : 'bg-tur-soft'}`}>
+          <input type="hidden" name="kind" value="NO_WASTAGE" /><input type="hidden" name="date" value={dayInput(date)} /><input type="hidden" name="back" value={`/kitchen/wastage?date=${dayInput(date)}`} />
+          {noWaste ? <><input type="hidden" name="undo" value="1" /><span className="flex-1">Marked: no wastage on {fmtWeekday(date)}.</span><button className="text-xs font-semibold text-muted underline">Undo</button></>
+            : <><span className="flex-1">Wastage for {fmtWeekday(date)} is not entered. Fill the table, or if nothing was wasted, tap the button.</span><button className="btn btn-sm">No wastage today</button></>}
+        </form>
+      )}
       <Tiles cols={4}>
         <Tile label={date.getTime() === day(0).getTime() ? 'Wastage today' : `Wastage ${fmtWeekday(date)}`} value={`${r1(total)} kg`} sub={cut ? `${Math.round((total / cut) * 100)}% of fruit cut` : undefined} tone="red" />
         <Tile label="Cutting waste" value={`${r1(sumReason('Cutting waste'))} kg`} sub="peel, seeds, ends" />

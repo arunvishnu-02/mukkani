@@ -1,13 +1,15 @@
 import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { addDays, day, dayInput, fmtWeekday, isDay, longToday, nowHourIST, parseDay } from '@/lib/dates'
+import { addDays, day, dayInput, fmtWeekday, isDay, isSunday, longToday, nowHourIST, parseDay } from '@/lib/dates'
 import { LEAD_STATUS, rupees, SOURCE } from '@/lib/labels'
 import { dueCalls, waitingPayment } from '@/lib/kitchen'
 import { daySheet, runningPackages } from '@/lib/queries'
 import { figures, pct, period, teamFigures } from '@/lib/report'
 import { appSettings } from '@/lib/settings'
 import { stockToday } from '@/lib/stock'
+import { dayClose } from '@/lib/dayclose'
+import { DayClose } from '@/components/DayClose'
 import { Bar, Card, PageHeader, Tabs, Tile, Tiles, Who } from '@/components/ui'
 import { DateField } from '@/components/DateField'
 
@@ -57,12 +59,15 @@ export default async function AdminOverview({ searchParams }: { searchParams: Pr
   const attendanceDue = nowHourIST() >= 9 ? Math.max(0, sheet.rows.length + sheet.trials.length - sheet.entered) : 0
   const lowStock = stock.filter((s) => s.low).length
   const maxReason = Math.max(1, ...f.notInterested.map((r) => r[1]))
+  const nextSheet = isSunday(day(1)) ? day(2) : day(1)
+  const close = await dayClose(nextSheet)
   return (
     <>
       <PageHeader title="Business overview" sub={`${longToday()} · showing ${month.label}`}>
         <a href="/api/export/leads" download className="btn-secondary">Download Excel</a>
         <Link href="/admin/reports" className="btn">Reports</Link>
       </PageHeader>
+      {!close.done && <DayClose work={close.work} sheetDate={nextSheet} items={close.items} />}
       <div className="flex flex-wrap items-center gap-2.5">
         <Tabs items={[['day', 'Today'], ['week', 'This week'], ['month', 'This month']].map(([k, l]) => ({ label: l, href: `/admin?period=${k}`, active: !picked && base.kind === k }))} />
         <div className="flex-1" />

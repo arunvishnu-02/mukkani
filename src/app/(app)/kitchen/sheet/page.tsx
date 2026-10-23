@@ -7,6 +7,8 @@ import { Callout, Chip, Empty, ErrorNote, PageHeader, StatusChip, Tabs, Tile, Ti
 import { CancelLeave, LeaveDrawer } from '@/components/Leave'
 import { lateAdds } from '@/lib/kitchen'
 import { SheetOrder } from '@/components/SheetOrder'
+import { DayClose } from '@/components/DayClose'
+import { dayClose } from '@/lib/dayclose'
 import { DateField } from '@/components/DateField'
 
 // Print at 3 AM. After delivery, write the attendance on the paper. Sales enters it after 9 AM.
@@ -14,7 +16,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
   await requireUser(['KITCHEN'])
   const sp = await searchParams
   const date = sp.date ? parseDay(sp.date) : day(0)
-  const [sheet, running, late] = await Promise.all([daySheet(date), runningPackages(day(0)), lateAdds()])
+  const [sheet, running, late, close] = await Promise.all([daySheet(date), runningPackages(day(0)), lateAdds(), dayClose(date)])
   const rows = sheet.rows.filter((r) => !r.absent)
   const onLeave = sheet.rows.filter((r) => r.absent)
   const groups = groupByRegion(rows, (r) => r.lead.region?.name)
@@ -31,6 +33,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
         <a href={`/print/sheet?${q}`} target="_blank" rel="noreferrer" className="btn">Print all regions</a>
       </PageHeader>
       {sheet.holiday && <Callout tone="warn">Office holiday: {sheet.holiday.name}. No monthly boxes go out.</Callout>}
+      {date >= day(0) && <DayClose work={close.work} sheetDate={date} items={close.items} />}
       <ErrorNote error={sp.error} />
       {sp.leave && sp.leave !== '1' && <Callout>{sp.leave}</Callout>}
       {sp.ordered && (

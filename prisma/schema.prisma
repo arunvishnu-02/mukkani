@@ -492,3 +492,15 @@ model Holiday {
   byId      String?  @db.Uuid
   createdAt DateTime @default(now())
 }
+
+// "Nothing today" for a daily kitchen entry: NO_STOCK (no fruit came in), NO_WASTAGE (nothing wasted).
+// Counts as done in the day-close checklist the same as an entry.
+model DayMark {
+  id        String   @id @default(uuid()) @db.Uuid
+  date      DateTime @db.Date
+  kind      String
+  byId      String?  @db.Uuid
+  createdAt DateTime @default(now())
+
+  @@unique([date, kind])
+}

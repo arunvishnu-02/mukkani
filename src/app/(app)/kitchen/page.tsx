@@ -6,6 +6,8 @@ import { daySheet, groupByRegion, swapTotals } from '@/lib/queries'
 import { lateAdds, dueCalls } from '@/lib/kitchen'
 import { appSettings } from '@/lib/settings'
 import { stockToday } from '@/lib/stock'
+import { dayClose } from '@/lib/dayclose'
+import { DayClose } from '@/components/DayClose'
 import { Bar, Card, Chip, Empty, PageHeader, Tile, Tiles } from '@/components/ui'
 
 // Kitchen dashboard: big count tiles across the top (Arun, 3 Oct), then today's work.
@@ -21,12 +23,15 @@ export default async function KitchenDashboard() {
   const swaps = swapTotals([...going.map((r) => r.swap), ...sheet.trials.map((t) => t.swap)])
   const slots = st.slots.map((s) => [s, [...going.map((r) => r.lead.slot), ...sheet.trials.map((t) => t.trial.slot)].filter((x) => x === s).length] as const)
   const low = stock.filter((s) => s.low)
+  const nextSheet = isSunday(day(1)) ? day(2) : day(1)
+  const close = await dayClose(nextSheet)
   return (
     <>
       <PageHeader title="Today's kitchen" sub={`${longToday()} · boxes to prepare`}>
         <a href="/print/sheet" target="_blank" rel="noreferrer" className="btn-secondary">Print attendance sheet</a>
         <Link href="/kitchen/boxes" className="btn">Today's boxes</Link>
       </PageHeader>
+      <DayClose work={close.work} sheetDate={nextSheet} items={close.items} />
       {late.length > 0 && (
         <section className="rounded-[10px] border border-tur bg-tur-soft px-4 py-3">
           <div className="text-sm font-bold text-warn">Added after 2 PM today · {late.length}</div>

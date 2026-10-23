@@ -2,6 +2,10 @@ import Image from 'next/image'
 import { day, fmtDay, parseDay } from '@/lib/dates'
 import { daySheet, groupByRegion } from '@/lib/queries'
 import { getSettings } from '@/lib/settings'
+import Link from 'next/link'
+import { requireUser } from '@/lib/auth'
+import { dayClose } from '@/lib/dayclose'
+import { db } from '@/lib/db'
 
 type Line = { time: string | null; name: string; tags: [string, string][]; bm: number; box: number | null; alt: boolean; status: string | null; back: boolean | null }
 
@@ -44,6 +48,33 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
   const date = sp.date ? parseDay(sp.date) : day(0)
   // filled=1: the attendance as entered (delivered, not delivered, box back), to print after delivery.
   const filled = sp.filled === '1'
+  // The kitchen manager takes the next sheet only after the day's work is filled (stock, wastage, staff, menu).
+  const user = await requireUser()
+  if (user.role === 'KITCHEN' && !filled && date >= day(0)) {
+    const close = await dayClose(date)
+    if (!close.done) {
+      // Admin is told once a day which items stopped the sheet.
+      const text = `Kitchen could not print the ${fmtDay(date)} sheet`
+      if (!(await db.adminNotice.findFirst({ where: { text, createdAt: { gte: new Date(Date.now() - 12 * 3_600_000) } } })))
+        await db.adminNotice.create({ data: { text, detail: close.items.filter((i) => !i.done).map((i) => `${i.label} (${i.who}): ${i.detail}`).join('\n'), byId: user.id, byName: user.name, byRole: user.role } })
+      return (
+        <div className="mx-auto max-w-[560px] space-y-4 rounded-xl bg-white p-6 text-ink shadow">
+          <h1 className="font-display text-2xl font-bold">Finish the day first</h1>
+          <p className="text-sm text-muted">The {fmtDay(date)} sheet prints after these are filled for {fmtDay(close.work)}:</p>
+          <ul className="space-y-2">
+            {close.items.map((i) => (
+              <li key={i.key} className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${i.done ? 'bg-leaf-soft' : 'bg-tur-soft'}`}>
+                <span className="font-bold">{i.done ? '✓' : '!'}</span>
+                <span className="flex-1"><b>{i.label}</b> · {i.who} · {i.detail}</span>
+                {!i.done && <Link href={i.href} className="text-[13px] font-semibold text-sky underline">Fill now</Link>}
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-muted">The menu is added by sales. If it is missing, ask sales or admin. Admin has been told what is missing.</p>
+        </div>
+      )
+    }
+  }
   const [sheet, st] = await Promise.all([daySheet(date), getSettings()])
   const monthly = sheet.rows.filter((r) => !r.absent)
   const grouped = new Map(groupByRegion(monthly, (r) => r.lead.region?.name))

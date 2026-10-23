@@ -224,6 +224,18 @@ footer { color: var(--muted); font-size: 13px; padding-block: 24px 40px; border-
     <h2>Kitchen manager</h2>
     <p class="who">The 3 AM sheet, boxes, customer calls, stock and staff.</p>
 
+    <div class="step"><div class="when">Before night</div><div>
+      <h3>Close the day (compulsory)</h3>
+      <span class="path">Stock · Wastage · Staff tracking</span>
+      <ol>
+        <li><b>Stock</b>: add the fruit that came in. If no fruit came in, tap <span class="btn">No stock came in today</span>.</li>
+        <li><b>Wastage</b>: fill the waste for each fruit. If nothing was wasted, tap <span class="btn">No wastage today</span>.</li>
+        <li><b>Staff tracking</b>: fill every staff member for today.</li>
+        <li>Sales adds tomorrow's menu.</li>
+      </ol>
+      <div class="note"><b>The next day's sheet will not print</b> until all four are done. The dashboard and the print page show what is missing, and admin is told.</div>
+    </div></div>
+
     <div class="step"><div class="when">3:00 AM</div><div>
       <h3>Print the attendance sheet</h3>
       <span class="path">Delivery attendance › Print all regions</span>
