@@ -20,6 +20,7 @@ import {
   createLocationRequest,
   log,
   logLeadCall,
+  completeFinished,
   markLeave,
   markNotInterested,
   saveAttendance,
@@ -244,6 +245,20 @@ export async function setPackagePaidAction(form: FormData) {
   redirect(back(form, `/customers/${p.leadId}`))
 }
 
+// Day 25: the last box is entered as delivered ahead of time, so the monthly report is ready to send with it.
+export async function lastBoxAheadAction(form: FormData) {
+  const user = await requireUser(['SALES', 'KITCHEN'])
+  const id = z.string().uuid().parse(s(form, 'packageId'))
+  const { pkg, plan } = await packagePlan(id)
+  const left = plan.days.filter((d) => d.kind === 'planned')
+  if (pkg.status !== 'ACTIVE' || left.length !== 1) redirect(`/reports?tab=soon&error=${encodeURIComponent(`${pkg.lead.name} does not have just one box left`)}`)
+  const last = left[0]
+  await saveAttendance(last.date, [{ leadId: pkg.leadId, status: 'DELIVERED', buttermilk: pkg.buttermilkQty > 0 && [1, 3, 5].includes(last.date.getUTCDay()), boxBack: null, altBox: null, remarks: 'Last box, entered on day 25' }], user.id)
+  await log(pkg.leadId, 'package', `Last box (${fmtWeekday(last.date)}) entered ahead`, 'Monthly report made on day 25', user.id)
+  revalidatePath('/', 'layout')
+  redirect(`/reports?made=${encodeURIComponent(pkg.lead.name)}`)
+}
+
 // Daily menu, added by sales the day before.
 export async function saveMenuAction(form: FormData) {
   const user = await requireUser(['SALES'])
@@ -326,6 +341,7 @@ export async function clearAttendanceRowAction(dateKey: string, leadId: string) 
   if (!(await dayOpen(user, parseDay(dateKey)))) return { ok: false }
   const gone = await db.attendance.findFirst({ where: { leadId, date: parseDay(dateKey) }, include: { lead: { select: { name: true } } } })
   await db.attendance.deleteMany({ where: { leadId, date: parseDay(dateKey) } })
+  await completeFinished([leadId])
   if (gone) await notifyAdmin(user, 'Cleared an attendance entry', `${gone.lead.name} · ${fmtWeekday(parseDay(dateKey))} · was ${gone.status.replace('_', ' ').toLowerCase()}`)
   revalidatePath('/', 'layout')
   return { ok: true }

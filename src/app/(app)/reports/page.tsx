@@ -1,20 +1,20 @@
 import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { day, fmtDay } from '@/lib/dates'
+import { day, fmtDay, fmtWeekday } from '@/lib/dates'
 import { PACKAGE_STATUS } from '@/lib/labels'
 import { holidaySet, packagePlan, planFor, runningPackages } from '@/lib/queries'
 import { getSettings } from '@/lib/settings'
 import { fill, firstName, waLink } from '@/lib/whatsapp'
-import { Drawer, Empty, PageHeader, Progress, StatusChip, Tabs, Tile, Tiles, Who } from '@/components/ui'
-import { saveReportNoteAction } from '../actions'
+import { Callout, Drawer, Empty, ErrorNote, PageHeader, Progress, StatusChip, Tabs, Tile, Tiles, Who } from '@/components/ui'
+import { lastBoxAheadAction, saveReportNoteAction } from '../actions'
 import { SendReport } from '@/components/SendReport'
 
 // Monthly report for each customer: created after the 26th delivery, can be edited, then printed or sent.
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   await requireUser(['SALES', 'KITCHEN'])
   const sp = await searchParams
-  const tab = sp.tab === 'progress' ? 'progress' : 'ready'
+  const tab = sp.tab === 'progress' ? 'progress' : sp.tab === 'soon' ? 'soon' : 'ready'
   const today = day(0)
   const [done, running, st, selected] = await Promise.all([
     db.package.findMany({ where: { status: 'COMPLETED' }, include: { lead: { include: { region: true } } }, orderBy: { updatedAt: 'desc' }, take: 200 }),
@@ -26,18 +26,55 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const hol = await holidaySet()
   const endOf = new Map(done.map((p) => [p.id, planFor(p, att.filter((a) => a.leadId === p.leadId), today, hol).end]))
   const list = `/reports?tab=${tab}`
+  // Day 25: only the last box is left. Entering it ahead makes the report ready to send with that box.
+  const soon = running
+    .map((r) => ({ ...r, left: r.plan.days.filter((d) => d.kind === 'planned') }))
+    .filter((r) => r.left.length === 1 && r.left[0].date.getTime() - today.getTime() <= 3 * 86_400_000)
+    .sort((a, b) => a.left[0].date.getTime() - b.left[0].date.getTime())
   const sendText = (name: string, from: Date, to: Date | null) => fill(st.msgReport, { name: firstName(name), from: fmtDay(from), to: fmtDay(to) })
   return (
     <>
       <PageHeader title="Monthly reports" sub="Made after the 26th delivery. Edit the note if needed, then print or send it on WhatsApp.">
-        <Tabs items={[{ label: `Ready ${done.length}`, href: '/reports', active: tab === 'ready' }, { label: `In progress ${running.length}`, href: '/reports?tab=progress', active: tab === 'progress' }]} />
+        <Tabs items={[{ label: `Ready ${done.length}`, href: '/reports', active: tab === 'ready' }, { label: `Day 25 · last box next ${soon.length}`, href: '/reports?tab=soon', active: tab === 'soon' }, { label: `In progress ${running.length}`, href: '/reports?tab=progress', active: tab === 'progress' }]} />
       </PageHeader>
+      <ErrorNote error={sp.error} />
+      {sp.made && <Callout>Last box entered for {sp.made}. The report is ready below: send it with the last box.</Callout>}
+      {tab === 'soon' && (
+        <section className="card overflow-x-auto">
+          <div className="px-5 py-4">
+            <h2 className="font-display text-lg font-semibold">One box left</h2>
+            <p className="text-[13px] text-muted">On day 25, tap Make report now. The last box is entered as delivered for its day, the month completes and the report moves to Ready. If the customer then misses that box, change it to Absent on that day and the month runs on.</p>
+          </div>
+          {soon.length === 0 ? <Empty>Nobody has just one box left.</Empty> : (
+            <table className="w-full">
+              <thead><tr><th className="th">Customer</th><th className="th">Region</th><th className="th">Month</th><th className="th">Last box</th><th className="th"></th></tr></thead>
+              <tbody>
+                {soon.map((r) => (
+                  <tr key={r.pkg.id}>
+                    <td className="td"><Who name={r.pkg.lead.name} sub={r.pkg.lead.phone} href={`/customers/${r.pkg.leadId}`} /></td>
+                    <td className="td">{r.pkg.lead.region?.name ?? '—'}</td>
+                    <td className="td">Month {r.pkg.number} · {r.plan.delivered}/26</td>
+                    <td className="td whitespace-nowrap font-semibold">{fmtWeekday(r.left[0].date)}</td>
+                    <td className="td">
+                      <form action={lastBoxAheadAction} className="flex flex-wrap justify-end gap-1.5">
+                        <input type="hidden" name="packageId" value={r.pkg.id} />
+                        <a href={`/print/report/${r.pkg.id}`} target="_blank" rel="noreferrer" className="btn-secondary btn-sm">Preview</a>
+                        <button className="btn btn-sm">Make report now</button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
+      )}
       <Tiles cols={3}>
         <Tile label="Reports ready" value={done.length} sub="26 of 26 delivered" tone="leaf" />
-        <Tile label="Ending this week" value={running.filter((r) => r.plan.end && r.plan.end <= day(6)).length} sub="reports come next" tone="warn" />
+        <Tile label="Last box next" value={soon.length} sub="make the report on day 25" tone="warn" />
         <Tile label="In progress" value={running.length} sub="packages running" tone="brand" />
       </Tiles>
-      <section className="card overflow-x-auto">
+      {tab !== 'soon' && <section className="card overflow-x-auto">
         {(tab === 'ready' ? done.length : running.length) === 0 ? <Empty>No reports here yet.</Empty> : (
           <table className="w-full">
             <thead><tr><th className="th">Customer</th><th className="th">Region</th><th className="th">Package</th><th className="th">Dates</th><th className="th">Status</th><th className="th">Report</th></tr></thead>
@@ -72,7 +109,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             </tbody>
           </table>
         )}
-      </section>
+      </section>}
       {selected && (
         <Drawer title="Edit monthly report" sub={`${selected.pkg.lead.name} · month ${selected.pkg.number} · ${fmtDay(selected.pkg.startDate)} to ${fmtDay(selected.plan.end)}`} close={list}>
           <form action={saveReportNoteAction} className="space-y-3.5">

@@ -200,6 +200,20 @@ export async function completeFinished(leadIds: string[]) {
       await log(p.leadId, 'package', `Monthly pack ${p.number} completed`, 'Monthly report is ready', null)
     }
   }
+  // The last box can be entered a day early (to send the report on day 25). If that day is then changed to
+  // Absent or cleared, the customer's latest pack is short of 26 again and goes back to running.
+  const latest = await db.package.findMany({ where: { leadId: { in: leadIds }, status: 'COMPLETED' }, orderBy: { number: 'desc' } })
+  const seen = new Set<string>()
+  for (const p of latest) {
+    if (seen.has(p.leadId)) continue
+    seen.add(p.leadId)
+    if (await db.package.findFirst({ where: { leadId: p.leadId, number: { gt: p.number } } })) continue
+    const { plan } = await packagePlan(p.id)
+    if (!plan.done && plan.delivered >= 20) {
+      await db.package.update({ where: { id: p.id }, data: { status: 'ACTIVE' } })
+      await log(p.leadId, 'package', `Monthly pack ${p.number} running again`, 'A box of the last days was changed, so it is short of 26', null)
+    }
+  }
 }
 
 // Kitchen manager calls monthly customers on delivery day 1, 5, 15, 26 (first month) or 15, 26.
