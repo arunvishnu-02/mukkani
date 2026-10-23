@@ -30,7 +30,7 @@ const TAG = { warn: 'bg-tur-soft text-warn', leaf: 'bg-leaf-soft text-leaf', sky
 
 // Attendance entry that saves by itself: tapping Delivered, Absent or Not delivered stores that row at once,
 // and the drink tick, alternative box number, empty box and remarks are stored as soon as they change.
-export function AttendanceList({ date, region, rows }: { date: string; region: string; rows: AttendanceRow[] }) {
+export function AttendanceList({ date, region, rows, future }: { date: string; region: string; rows: AttendanceRow[]; future?: boolean }) {
   const [entries, setEntries] = useState<Record<string, Entry>>(() => Object.fromEntries(rows.map((r) => [r.leadId, { status: r.status, buttermilk: r.buttermilk, altBox: r.altBox ? String(r.altBox) : '', boxBack: r.boxBack, remarks: r.remarks ?? '', boxes: r.boxes }])))
   const [marks, setMarks] = useState<Record<string, Mark>>({})
   const [, start] = useTransition()
@@ -73,7 +73,8 @@ export function AttendanceList({ date, region, rows }: { date: string; region: s
           <p className="text-[13px] text-muted">Tap one option per row. Each row is saved as soon as you tap it.</p>
         </div>
         {failed > 0 && <span className="text-[13px] font-semibold text-red">{failed} not saved, tap again</span>}
-        {blank.length > 0 && <button type="button" onClick={() => blank.forEach((r) => change(r.leadId, { status: 'DELIVERED' }))} className="btn">Mark the other {blank.length} delivered</button>}
+        {/* On a later day (a last box entered ahead) everyone else has not had their box yet: one by one only. */}
+        {blank.length > 0 && !future && <button type="button" onClick={() => blank.forEach((r) => change(r.leadId, { status: 'DELIVERED' }))} className="btn">Mark the other {blank.length} delivered</button>}
       </div>
       <table className="w-full">
         <thead><tr><th className="th">#</th><th className="th">Customer</th><th className="th">Time</th><th className="th">Attendance</th><th className="th">Drink</th><th className="th">Alt box no.</th><th className="th">Empty box back</th><th className="th">Remarks</th><th className="th"></th></tr></thead>

@@ -104,6 +104,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
       {sheet.holiday && <Callout tone="warn">Office holiday: {sheet.holiday.name}. No monthly boxes go out today.</Callout>}
       {sp.leave && sp.leave !== '1' && <Callout>{sp.leave}</Callout>}
       {sp.leave === '1' && <LeaveDrawer customers={running.map((r) => ({ id: r.pkg.lead.id, name: r.pkg.lead.name, phone: r.pkg.lead.phone, region: r.pkg.lead.region?.name ?? null }))} date={dayInput(date > day(0) ? date : isSunday(day(1)) ? day(2) : day(1))} close={self} self={`${self}&leave=1`} />}
+      {date > day(0) && <Callout tone="warn">{fmtWeekday(date)} is a later day. Enter only a customer's last box ahead (day 26), so their monthly report is ready today. Everyone else is entered on the day.</Callout>}
       {date.getTime() === day(0).getTime() && nowHourIST() < 9 && !sp.saved && (
         <Callout tone="warn">Attendance is entered after 9 AM, once the kitchen manager has written it on the paper sheet.</Callout>
       )}
@@ -166,7 +167,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
       {sp.arrange ? null : list.length === 0 ? (
         <section className="card"><Empty>No deliveries on this day.</Empty></section>
       ) : (
-        !open ? <section className="card"><Empty>This past day is locked, so its attendance cannot be changed here. You can still see it in All reports &rsaquo; Delivery attendance.</Empty></section> : <AttendanceList key={`${dayInput(date)}-${region?.[0]}`} date={dayInput(date)} region={region?.[0] ?? 'No region'} rows={list} />
+        !open ? <section className="card"><Empty>This past day is locked, so its attendance cannot be changed here. You can still see it in All reports &rsaquo; Delivery attendance.</Empty></section> : <AttendanceList key={`${dayInput(date)}-${region?.[0]}`} date={dayInput(date)} region={region?.[0] ?? 'No region'} rows={list} future={date > day(0)} />
       )}
     </>
   )
