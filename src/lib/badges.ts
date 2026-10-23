@@ -4,7 +4,7 @@ import { day, isSunday, nowHourIST } from '@/lib/dates'
 import { dueCalls, lateAdds } from '@/lib/kitchen'
 import { daySheet, runningPackages } from '@/lib/queries'
 import { renewalList } from '@/lib/renewals'
-import { dayClose } from '@/lib/dayclose'
+import { dayClose, kitchenLate } from '@/lib/dayclose'
 
 // Work waiting on each sidebar page, shown as a small count next to the menu item.
 export type Badge = { n: number; tip: string }
@@ -33,6 +33,7 @@ export async function navBadges(role: string): Promise<Badges> {
     kitchen ? dayClose(tomorrow) : Promise.resolve(null),
     sales || kitchen ? renewalList(today).then((x) => x.filter((r) => r.finished && (r.decision == null || r.decision === 'UNDECIDED' || r.decision === 'YES')).length) : none,
   ])
+  await kitchenLate(today).catch(() => [])
   const reminders = running.filter((r) => r.plan.end && r.plan.end >= today && r.plan.end <= day(3) && !r.pkg.reminderSentAt).length
   const toEnter = sheet ? sheet.rows.length + sheet.trials.length - sheet.entered : 0
   const b: Badges = {

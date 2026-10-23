@@ -9,7 +9,7 @@ export function DayClose({ work, sheetDate, items, what = 'sheet' }: { work: Dat
     <section className={`card px-5 py-4 ${left.length ? 'border-tur' : ''}`}>
       <div className="mb-3 flex flex-wrap items-baseline gap-x-3">
         <h2 className="font-display text-lg font-semibold">{left.length ? `Finish ${fmtWeekday(work)} before the ${fmtWeekday(sheetDate)} ${what}` : `${fmtWeekday(work)} is closed`}</h2>
-        <span className="text-[13px] text-muted">{left.length ? `${left.length} still to fill. ${what === 'sheet' ? 'The sheet prints when all are done.' : 'Tomorrow’s attendance opens when all are done.'}` : what === 'sheet' ? 'Everything is filled. The sheet is ready to print.' : 'Everything is done for the day.'}</span>
+        <span className="text-[13px] text-muted">{left.length ? `${left.length} still to fill. ${what === 'sheet' ? 'The sheet prints when all are done.' : what === 'menu' ? 'Sales can add the menu when all are done.' : 'Tomorrow’s attendance opens when all are done.'}` : what === 'sheet' ? 'Everything is filled. The sheet is ready to print.' : 'Everything is done for the day.'}</span>
       </div>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {items.map((i) => (

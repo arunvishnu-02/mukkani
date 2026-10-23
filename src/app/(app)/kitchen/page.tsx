@@ -6,7 +6,7 @@ import { daySheet, groupByRegion, swapTotals } from '@/lib/queries'
 import { lateAdds, dueCalls } from '@/lib/kitchen'
 import { appSettings } from '@/lib/settings'
 import { stockToday } from '@/lib/stock'
-import { dayClose } from '@/lib/dayclose'
+import { dayClose, kitchenLate, KITCHEN_BY } from '@/lib/dayclose'
 import { DayClose } from '@/components/DayClose'
 import { Bar, Card, Chip, Empty, PageHeader, Tile, Tiles } from '@/components/ui'
 
@@ -25,12 +25,14 @@ export default async function KitchenDashboard() {
   const low = stock.filter((s) => s.low)
   const nextSheet = isSunday(day(1)) ? day(2) : day(1)
   const close = await dayClose(nextSheet)
+  const lateData = await kitchenLate(day(0))
   return (
     <>
       <PageHeader title="Today's kitchen" sub={`${longToday()} · boxes to prepare`}>
         <a href="/print/sheet" target="_blank" rel="noreferrer" className="btn-secondary">Print attendance sheet</a>
         <Link href="/kitchen/boxes" className="btn">Today's boxes</Link>
       </PageHeader>
+      {lateData.length > 0 && <div className="rounded-[10px] bg-red-soft px-4 py-3 text-[13px] font-semibold text-red">Late: {lateData.map((i) => i.label).join(', ')} should be entered by {KITCHEN_BY}. Sales is waiting to add tomorrow's menu. Admin has been told.</div>}
       <DayClose work={close.work} sheetDate={nextSheet} items={close.items} />
       {late.length > 0 && (
         <section className="rounded-[10px] border border-tur bg-tur-soft px-4 py-3">

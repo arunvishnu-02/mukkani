@@ -268,6 +268,11 @@ export async function saveMenuAction(form: FormData) {
   const self = back(form, '/menu')
   if (fruits.length === 0) redirect(withError(self, new FlowError('Pick at least one fruit')))
   if (!(await dayOpen(user, d))) redirect(withError(self, new FlowError(lockedText(d))))
+  if (user.role !== 'ADMIN') {
+    const { kitchenBeforeMenu } = await import('@/lib/dayclose')
+    const k = await kitchenBeforeMenu(d, day(0))
+    if (k.missing.length) redirect(withError(self, new FlowError(`The kitchen has not entered ${k.missing.map((i) => i.label).join(', ')} for today. The menu can be saved after that. Ask the kitchen manager.`)))
+  }
   const data = { fruits: fruits.join(', '), swapFruits: swaps.join(', '), salad: s(form, 'salad'), note: s(form, 'note'), byId: user.id }
   await db.menu.upsert({ where: { date: d }, create: { date: d, ...data }, update: data })
   revalidatePath('/', 'layout')

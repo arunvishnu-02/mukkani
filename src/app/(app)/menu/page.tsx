@@ -8,6 +8,8 @@ import { appSettings } from '@/lib/settings'
 import { isButtermilkDay } from '@/lib/plan'
 import { Callout, Card, Checks, Chip, Empty, ErrorNote, PageHeader, Tabs, Tile, Tiles, Who } from '@/components/ui'
 import { saveMenuAction } from '../actions'
+import { kitchenBeforeMenu, KITCHEN_BY } from '@/lib/dayclose'
+import { DayClose } from '@/components/DayClose'
 
 // Sales adds tomorrow's menu today. The app checks it against every customer's foods to avoid.
 export default async function MenuPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -22,6 +24,7 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
     appSettings(),
     tab === 'tomorrow' ? [] : db.menu.findMany({ where: tab === 'week' ? { date: { gte: day(0), lte: day(7) } } : { date: { lt: day(0) } }, orderBy: { date: tab === 'week' ? 'asc' : 'desc' }, take: 30 }),
   ])
+  const kitchenWait = tab === 'tomorrow' && user.role !== 'ADMIN' ? await kitchenBeforeMenu(date, day(0)) : null
   const menu = sheet.menu
   const swaps = [...sheet.rows.filter((r) => r.swap && !r.absent).map((r) => ({ lead: r.lead, swap: r.swap! })), ...sheet.trials.filter((t) => t.swap).map((t) => ({ lead: t.trial.lead, swap: t.swap! }))]
   const totals = swapTotals(swaps.map((s) => s.swap))
@@ -72,6 +75,12 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
             <Tile label="No customization" value={Math.max(0, sheet.boxes - swaps.length)} sub="get the menu as it is" tone="leaf" />
             <Tile label="Add-on drink" value={sheet.buttermilk} sub={isButtermilkDay(date) ? 'bottles that day' : 'Mon, Wed, Fri only'} tone="sky" />
           </Tiles>
+          {kitchenWait && kitchenWait.missing.length > 0 && (
+            <>
+              <Callout tone="warn">Waiting for the kitchen: {kitchenWait.missing.map((i) => i.label).join(', ')} not entered for today (due by {KITCHEN_BY}). The menu for {fmtWeekday(date)} can be saved after the kitchen enters it.</Callout>
+              <DayClose work={kitchenWait.work} sheetDate={date} items={kitchenWait.items} what="menu" />
+            </>
+          )}
           <div className="grid items-start gap-4 lg:grid-cols-[440px_1fr]">
             <Card title={`Menu for ${fmtWeekday(date)}`} sub={canEdit ? "Pick the fruits and salad going in the box" : 'Added by sales'}>
               {canEdit ? (
@@ -86,7 +95,7 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
                     <p className="mt-1.5 text-xs text-muted">Tick a few fruits that are NOT in step 1. A customer who can&apos;t eat a menu fruit gets one of these instead.</p>
                   </div>
                   <div><label className="label">4. Note for kitchen (optional)</label><textarea name="note" rows={2} className="input" defaultValue={menu?.note ?? ''} /></div>
-                  <button className="btn w-full">Save menu</button>
+                  {kitchenWait && kitchenWait.missing.length > 0 ? <button type="button" disabled className="btn w-full opacity-50">Waiting for the kitchen</button> : <button className="btn w-full">Save menu</button>}
                 </form>
               ) : menu ? (
                 <div className="space-y-2 text-sm">
