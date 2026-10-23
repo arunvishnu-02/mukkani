@@ -196,6 +196,18 @@ footer { color: var(--muted); font-size: 13px; padding-block: 24px 40px; border-
       <div class="note"><b>Holiday tomorrow?</b> No menu is needed. Holidays are on the Calendar.</div>
     </div></div>
 
+    <div class="step"><div class="when">Day 25</div><div>
+      <h3>Monthly report one day early</h3>
+      <span class="path">Monthly reports › Day 25 · last box next</span>
+      <ol>
+        <li>The tab lists every customer with one box left, and the date of that last box.</li>
+        <li>Tap <b>Preview</b> to see the report. Tap <span class="btn">Make report now</span>.</li>
+        <li>The last box is saved as Delivered for its day. The customer moves to the <b>Ready</b> tab.</li>
+        <li>On <b>Ready</b>, tap <span class="btn g">Send PDF</span> and send it on WhatsApp, or Print it to go with the last box.</li>
+      </ol>
+      <div class="note"><b>Customer missed the last box?</b> On that day in Delivery attendance, change them to <b>Absent</b>. The month goes back to running and the last day moves one day later.</div>
+    </div></div>
+
     <div class="step"><div class="when">Any time</div><div>
       <h3>Also in your menu</h3>
       <ul>
