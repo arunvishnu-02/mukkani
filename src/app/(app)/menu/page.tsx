@@ -43,7 +43,7 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
         <section className="card overflow-x-auto">
           {menus.length === 0 ? <Empty>No menus here yet.</Empty> : (
             <table className="w-full">
-              <thead><tr><th className="th">Date</th><th className="th">Fruits</th><th className="th">Salad</th><th className="th">Customization fruits</th><th className="th"></th></tr></thead>
+              <thead><tr><th className="th">Date</th><th className="th">1. Today&apos;s fruit</th><th className="th">2. Salad</th><th className="th">3. Customization</th><th className="th"></th></tr></thead>
               <tbody>
                 {menus.map((m) => (
                   <tr key={m.id}>
@@ -87,21 +87,21 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
                 <form action={saveMenuAction} className="space-y-4">
                   <input type="hidden" name="date" value={dayInput(date)} />
                   <input type="hidden" name="back" value={self} />
-                  <div><span className="label">1. Fruits going in the box *</span><Checks name="fruits" options={st.fruits} values={splitList(menu?.fruits)} /></div>
+                  <div><span className="label">1. Today's fruit *</span><Checks name="fruits" options={st.fruits} values={splitList(menu?.fruits)} /></div>
                   <div><label className="label">2. Salad</label><input name="salad" className="input" defaultValue={menu?.salad ?? ''} placeholder="For example: sprouts salad with cucumber and carrot" /></div>
                   <div>
-                    <span className="label">3. Fruits to give instead (optional)</span>
+                    <span className="label">3. Customization fruit (optional)</span>
                     <Checks name="swapFruits" options={st.fruits} values={splitList(menu?.swapFruits)} />
-                    <p className="mt-1.5 text-xs text-muted">Tick a few fruits that are NOT in step 1. A customer who can&apos;t eat a menu fruit gets one of these instead.</p>
+                    <p className="mt-1.5 text-xs text-muted">Tick a few fruits that are NOT in step 1. A customer who can&apos;t eat today&apos;s fruit gets one of these instead (customization).</p>
                   </div>
                   <div><label className="label">4. Note for kitchen (optional)</label><textarea name="note" rows={2} className="input" defaultValue={menu?.note ?? ''} /></div>
                   {kitchenWait && kitchenWait.missing.length > 0 ? <button type="button" disabled className="btn w-full opacity-50">Waiting for the kitchen</button> : <button className="btn w-full">Save menu</button>}
                 </form>
               ) : menu ? (
                 <div className="space-y-2 text-sm">
-                  <div><span className="font-semibold">Fruits:</span> {menu.fruits}</div>
-                  <div><span className="font-semibold">Salad:</span> {menu.salad ?? '—'}</div>
-                  <div><span className="font-semibold">Customization fruits:</span> {menu.swapFruits || '—'}</div>
+                  <div><span className="font-semibold">1. Today&apos;s fruit:</span> {menu.fruits}</div>
+                  <div><span className="font-semibold">2. Salad:</span> {menu.salad ?? '—'}</div>
+                  <div><span className="font-semibold">3. Customization:</span> {menu.swapFruits || '—'}</div>
                   {menu.note && <div><span className="font-semibold">Note:</span> {menu.note}</div>}
                 </div>
               ) : (

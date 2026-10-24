@@ -63,9 +63,9 @@ export default async function WastagePage({ searchParams }: { searchParams: Prom
         <div className="mb-1 text-xs font-bold tracking-wide text-leaf uppercase">Menu · {fmtWeekday(date)}</div>
         {menu ? (
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-            <span><b>Fruits:</b> {menu.fruits}</span>
-            <span><b>Salad:</b> {menu.salad || '—'}</span>
-            {menu.swapFruits && <span><b>Given instead:</b> {menu.swapFruits}</span>}
+            <span><b>1. Today&apos;s fruit:</b> {menu.fruits}</span>
+            <span><b>2. Salad:</b> {menu.salad || '—'}</span>
+            {menu.swapFruits && <span><b>3. Customization:</b> {menu.swapFruits}</span>}
           </div>
         ) : <span className="font-semibold text-red">Menu not added for this day yet. Ask sales.</span>}
       </div>
@@ -94,7 +94,7 @@ export default async function WastagePage({ searchParams }: { searchParams: Prom
                 const c = cutDefault(f)
                 return (
                   <tr key={f} className={onMenu.has(f) ? "bg-leaf-soft/40" : ""}>
-                    <td className="td font-semibold">{f}{onMenu.has(f) ? <span className="ml-2 rounded-full bg-leaf-soft px-2 py-0.5 text-[11px] font-semibold text-leaf">On menu</span> : swapOnly.has(f) ? <span className="ml-2 rounded-full bg-tur-soft px-2 py-0.5 text-[11px] font-semibold text-warn">Given instead</span> : null}<input type="hidden" name="fruit" value={f} /></td>
+                    <td className="td font-semibold">{f}{onMenu.has(f) ? <span className="ml-2 rounded-full bg-leaf-soft px-2 py-0.5 text-[11px] font-semibold text-leaf">On menu</span> : swapOnly.has(f) ? <span className="ml-2 rounded-full bg-tur-soft px-2 py-0.5 text-[11px] font-semibold text-warn">Customization</span> : null}<input type="hidden" name="fruit" value={f} /></td>
                     <td className="td"><input name={`cut_${f}`} type="number" step="0.1" min="0" defaultValue={c || ''} className="input w-20 px-2 py-1.5" aria-label={`${f} cut`} /></td>
                     <td className="td"><input name={`waste_${f}`} type="number" step="0.1" min="0" defaultValue={w?.wasteKg ?? ''} className="input w-20 px-2 py-1.5" aria-label={`${f} waste`} /></td>
                     <td className="td">{w && w.cutKg ? `${Math.round((w.wasteKg / w.cutKg) * 100)}%` : '–'}</td>

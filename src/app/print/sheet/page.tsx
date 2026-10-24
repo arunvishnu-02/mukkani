@@ -140,9 +140,9 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
             <div className="mb-1 text-xs font-bold uppercase">Menu</div>
             {sheet.menu ? (
               <div className="space-y-0.5">
-                <div><b>Fruits:</b> {sheet.menu.fruits}</div>
-                <div><b>Salad:</b> {sheet.menu.salad || '—'}</div>
-                <div><b>Customization:</b> {swapsAll.length ? swapsAll.map(([f, n]) => `${f} ${n}`).join(' · ') : 'none'}{sheet.menu.swapFruits ? ` (fruits to give instead: ${sheet.menu.swapFruits})` : ''}</div>
+                <div><b>1. Today&apos;s fruit:</b> {sheet.menu.fruits}</div>
+                <div><b>2. Salad:</b> {sheet.menu.salad || '—'}</div>
+                <div><b>3. Customization:</b> {sheet.menu.swapFruits || 'none'}{swapsAll.length ? ` · boxes: ${swapsAll.map(([f, n]) => `${f} ${n}`).join(', ')}` : ''}</div>
                 {sheet.menu.note && <div><b>Note:</b> {sheet.menu.note}</div>}
               </div>
             ) : <div className="text-red">Menu not added yet</div>}
