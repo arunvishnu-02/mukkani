@@ -402,11 +402,18 @@ model StaffDay {
   staffId      String   @db.Uuid
   staff        Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
   date         DateTime @db.Date
-  idCard       Boolean?
-  uniform      Boolean?
+  // PRESENT or ABSENT. An absent person needs nothing else.
+  attendance   String?
+  // YES, NO or NONE (does not have one)
+  idCard       String?
+  uniform      String?
   onTimePickup Boolean?
+  // Kitchen: first shift (3-7 AM) in and out. Delivery: in time (5:30) and the time the deliveries were complete.
   inTime       String?
   outTime      String?
+  // Kitchen second shift (11 AM - 2 PM)
+  inTime2      String?
+  outTime2     String?
   startKm      Int?
   endKm        Int?
   remarks      String?

@@ -31,6 +31,7 @@ export type Kpi = { value: string | number; label: string; sub: string; tone: To
 const MAX = 3000
 const d = (x: Date | null | undefined) => (x ? keyOf(x) : null)
 const yes = (b: boolean | null | undefined) => (b == null ? null : b ? 'Yes' : 'No')
+const three = (v: string | null | undefined) => (v === 'YES' ? 'Yes' : v === 'NO' ? 'No' : v === 'NONE' ? "Don't have" : null)
 const label = <T extends string>(map: Record<T, [string, unknown]>, v: T | null | undefined) => (v ? (map[v]?.[0] ?? v) : null)
 // A date column holds a calendar day; a timestamp is compared from the start of that day in India.
 const days = (f: Filters) => (f.from || f.to ? { ...(f.from ? { gte: f.from } : {}), ...(f.to ? { lt: f.to } : {}) } : undefined)
@@ -254,18 +255,18 @@ export const REPORTS: Record<string, Report> = {
     date: 'Date',
     status: [['KITCHEN', 'Kitchen staff'], ['DELIVERY', 'Delivery persons']],
     columns: [
-      { key: 'date', label: 'Date', type: 'date' }, { key: 'name', label: 'Name' }, { key: 'work', label: 'Work' }, { key: 'idCard', label: 'ID card' }, { key: 'uniform', label: 'Uniform / dress code' }, { key: 'pickup', label: 'On-time pick-up' },
-      { key: 'in', label: 'In time' }, { key: 'out', label: 'Out time' }, { key: 'startKm', label: 'Starting km', type: 'number' }, { key: 'endKm', label: 'Ending km', type: 'number' }, { key: 'km', label: 'Total km', type: 'number' }, { key: 'remarks', label: 'Remarks' },
+      { key: 'date', label: 'Date', type: 'date' }, { key: 'name', label: 'Name' }, { key: 'work', label: 'Work' }, { key: 'present', label: 'Present' }, { key: 'idCard', label: 'ID card' }, { key: 'uniform', label: 'Uniform / dress code' }, { key: 'pickup', label: 'On-time pick-up' },
+      { key: 'in', label: 'In time (shift 1)' }, { key: 'out', label: 'Out time (shift 1) / deliveries complete' }, { key: 'in2', label: 'In time (shift 2)' }, { key: 'out2', label: 'Out time (shift 2)' }, { key: 'startKm', label: 'Starting km', type: 'number' }, { key: 'endKm', label: 'Ending km', type: 'number' }, { key: 'km', label: 'Total km', type: 'number' }, { key: 'remarks', label: 'Remarks' },
     ],
     kpi: async (r) => {
-      const rows = await db.staffDay.findMany({ where: { date: within(r) }, select: { startKm: true, endKm: true, idCard: true, uniform: true, onTimePickup: true } })
+      const rows = await db.staffDay.findMany({ where: { date: within(r) }, select: { startKm: true, endKm: true, idCard: true, uniform: true, onTimePickup: true, attendance: true } })
       const km = rows.reduce((a, x) => a + (x.startKm != null && x.endKm != null ? x.endKm - x.startKm : 0), 0)
-      const no = rows.filter((x) => x.idCard === false || x.uniform === false || x.onTimePickup === false).length
+      const no = rows.filter((x) => x.idCard === 'NO' || x.uniform === 'NO' || x.onTimePickup === false).length
       return { value: `${km} km`, label: 'delivery distance', sub: `${rows.length} staff days recorded · ${no} with a No`, tone: 'sky' }
     },
     load: async (f) =>
       (await db.staffDay.findMany({ where: { date: days(f), ...(f.status ? { staff: { kind: f.status } } : {}) }, include: { staff: true }, orderBy: [{ date: 'desc' }], take: MAX })).map((s) => ({
-        date: d(s.date), name: s.staff.name, work: s.staff.kind === 'DELIVERY' ? 'Delivery' : 'Kitchen', idCard: yes(s.idCard), uniform: yes(s.uniform), pickup: yes(s.onTimePickup), in: s.inTime, out: s.outTime,
+        date: d(s.date), name: s.staff.name, work: s.staff.kind === 'DELIVERY' ? 'Delivery' : 'Kitchen', present: s.attendance === 'ABSENT' ? 'Absent' : 'Present', idCard: three(s.idCard), uniform: three(s.uniform), pickup: yes(s.onTimePickup), in: s.inTime, out: s.outTime, in2: s.inTime2, out2: s.outTime2,
         startKm: s.startKm, endKm: s.endKm, km: s.startKm != null && s.endKm != null ? s.endKm - s.startKm : null, remarks: s.remarks,
       })),
   },

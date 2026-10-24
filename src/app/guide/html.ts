@@ -240,7 +240,7 @@ footer { color: var(--muted); font-size: 13px; padding-block: 24px 40px; border-
       <ol>
         <li><b>Stock</b>: add the fruit that came in. If no fruit came in, tap <span class="btn">No stock came in today</span>.</li>
         <li><b>Wastage</b>: fill the waste for each fruit. If nothing was wasted, tap <span class="btn">No wastage today</span>.</li>
-        <li><b>Staff tracking</b>: fill every staff member for today.</li>
+        <li><b>Staff tracking</b>: for every person choose <b>Present</b> or <b>Absent</b>. For those present fill everything. ID card and uniform (or dress code): Yes, No or Don't have. Kitchen staff: in and out of shift 1 (3 to 7 AM) and shift 2 (11 AM to 2 PM). Delivery persons: on-time pick-up, in time (due 5:30), time the deliveries were complete, and starting and ending km. The total km shows by itself. Save works only when all are filled.</li>
         <li>Do all three <b>by 11:30 AM</b>. Sales cannot add tomorrow's menu until they are entered, and after 11:30 admin is told they are late.</li>
         <li>Sales then adds tomorrow's menu.</li>
       </ol>

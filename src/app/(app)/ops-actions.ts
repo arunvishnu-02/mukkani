@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
+import type { Prisma } from '@/generated/prisma/client'
+import { SHIFT1, SHIFT2 } from '@/lib/shifts'
 import { db } from '@/lib/db'
 import { requireUser } from '@/lib/auth'
 import { day, isDay, parseDay } from '@/lib/dates'
@@ -116,19 +118,48 @@ export async function saveStaffDay(form: FormData) {
   const d = date(form, 'date') ?? day(0)
   const self = back(form, '/kitchen/staff')
   if (!(await dayOpen(user, d))) fail(self, lockedText(d))
-  let saved = 0
-  for (const staffId of form.getAll('staff').map(String)) {
-    const g = (k: string) => s(form, `${k}_${staffId}`)
-    const startKm = whole(g('startKm'), 999_999)
-    const endKm = whole(g('endKm'), 999_999)
-    if (startKm != null && endKm != null && endKm < startKm) fail(self, 'An ending km is lower than the starting km. Check the two numbers.')
-    const data = { idCard: yesNo(g('idCard')), uniform: yesNo(g('uniform')), onTimePickup: yesNo(g('pickup')), inTime: g('in'), outTime: g('out'), startKm, endKm, remarks: g('remarks'), byId: user.id }
-    const touched = Object.entries(data).some(([k, v]) => k !== 'byId' && v != null)
-    const where = { staffId_date: { staffId: z.string().uuid().parse(staffId), date: d } }
-    if (touched) { await db.staffDay.upsert({ where, create: { staffId, date: d, ...data }, update: data }); saved++ }
-    else await db.staffDay.deleteMany({ where: { staffId, date: d } })
+  const ids = form.getAll('staff').map(String)
+  const people = await db.staff.findMany({ where: { id: { in: ids.filter((x) => z.string().uuid().safeParse(x).success) }, active: true } })
+  const THREE = ['YES', 'NO', 'NONE']
+  const inside = (t: string, [from, to]: readonly [string, string]) => t >= from && t <= to
+  // Everything is checked first; nothing is saved unless every person is complete.
+  const rows: { staffId: string; data: Prisma.StaffDayUncheckedCreateInput }[] = []
+  for (const p of people) {
+    const g = (k: string) => s(form, `${k}_${p.id}`)
+    const who = p.name
+    const att = g('att')
+    if (att !== 'PRESENT' && att !== 'ABSENT') fail(self, `Choose Present or Absent for ${who}`)
+    const base = { staffId: p.id, date: d, byId: user.id, attendance: att as string, remarks: g('remarks') }
+    if (att === 'ABSENT') { rows.push({ staffId: p.id, data: { ...base, idCard: null, uniform: null, onTimePickup: null, inTime: null, outTime: null, inTime2: null, outTime2: null, startKm: null, endKm: null } }); continue }
+    const idCard = g('idCard'); const uniform = g('uniform')
+    if (!idCard || !THREE.includes(idCard)) fail(self, `${who}: choose ID card Yes, No or Don't have`)
+    if (!uniform || !THREE.includes(uniform)) fail(self, `${who}: choose ${p.kind === 'DELIVERY' ? 'dress code' : 'uniform'} Yes, No or Don't have`)
+    if (p.kind === 'KITCHEN') {
+      const t = { inTime: g('in'), outTime: g('out'), inTime2: g('in2'), outTime2: g('out2') }
+      for (const [k, v] of Object.entries(t)) if (!v) fail(self, `${who}: fill all four shift times`)
+      if (!inside(t.inTime!, SHIFT1) || !inside(t.outTime!, SHIFT1)) fail(self, `${who}: the first shift is between 3:00 AM and 7:00 AM`)
+      if (t.outTime! < t.inTime!) fail(self, `${who}: the first shift out time is before the in time`)
+      if (!inside(t.inTime2!, SHIFT2) || !inside(t.outTime2!, SHIFT2)) fail(self, `${who}: the second shift is between 11:00 AM and 2:00 PM`)
+      if (t.outTime2! < t.inTime2!) fail(self, `${who}: the second shift out time is before the in time`)
+      rows.push({ staffId: p.id, data: { ...base, idCard, uniform, onTimePickup: null, ...t, startKm: null, endKm: null } })
+    } else {
+      const pickup = g('pickup')
+      if (pickup !== 'yes' && pickup !== 'no') fail(self, `${who}: choose On-time pick-up Yes or No`)
+      const inTime = g('in'); const outTime = g('out')
+      if (!inTime) fail(self, `${who}: fill the in time`)
+      if (!outTime) fail(self, `${who}: fill the time the deliveries were complete`)
+      const startKm = whole(g('startKm'), 999_999); const endKm = whole(g('endKm'), 999_999)
+      if (startKm == null || endKm == null) fail(self, `${who}: fill the starting and ending km`)
+      if (endKm! < startKm!) fail(self, `${who}: the ending km is lower than the starting km`)
+      rows.push({ staffId: p.id, data: { ...base, idCard, uniform, onTimePickup: pickup === 'yes', inTime, outTime, inTime2: null, outTime2: null, startKm, endKm } })
+    }
   }
-  done(`${self}${self.includes('?') ? '&' : '?'}saved=${saved}`)
+  if (rows.length === 0) fail(self, 'No staff to save')
+  for (const r of rows) {
+    const { staffId, date: _d, ...rest } = r.data as Prisma.StaffDayUncheckedCreateInput & { date: Date }
+    await db.staffDay.upsert({ where: { staffId_date: { staffId, date: d } }, create: r.data, update: rest })
+  }
+  done(`${self}${self.includes('?') ? '&' : '?'}saved=${rows.length}`)
 }
 
 // Dues
