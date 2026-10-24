@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { day, fmtDay, fmtTime, fmtWeekday } from '@/lib/dates'
+import { day, dayInput, fmtDay, fmtTime, fmtWeekday } from '@/lib/dates'
 import { CUSTOMER_CALL, CUSTOMER_STATUS, LEAD_STATUS, LOCATION_STATUS, PACKAGE_STATUS, RENEWAL, SOURCE, TRIAL_RESULT, TRIAL_STATUS, rupees } from '@/lib/labels'
 import { planFor, regionsList } from '@/lib/queries'
 import { appSettings, getSettings } from '@/lib/settings'
@@ -11,7 +11,7 @@ import { Avatar, Callout, Card, Chip, Drawer, ErrorNote, Progress, StatusChip, W
 import { PackageCalendar } from '@/components/PackageCalendar'
 import { PackageFields } from '@/components/PackageFields'
 import { MapPin } from '@/components/MapPin'
-import { setButtermilkAction, startPackageAction } from '../../actions'
+import { cancelLeaveAction, markLeaveAction, setButtermilkAction, startPackageAction } from '../../actions'
 
 function Row({ k, v }: { k: string; v: React.ReactNode }) {
   return (
@@ -59,6 +59,7 @@ export default async function CustomerProfile({ params, searchParams }: { params
     lead.customerStatus === 'INACTIVE' ? 'INACTIVE' : lead.customerStatus === 'PAUSED' && (!lead.pausedUntil || lead.pausedUntil >= today) ? 'PAUSED' : absentToday ? 'ABSENT' : 'ACTIVE'
   const birthday = lead.dob && lead.dob.getUTCDate() === today.getUTCDate() && lead.dob.getUTCMonth() === today.getUTCMonth()
   const self = `/customers/${lead.id}`
+  const upcomingLeave = lead.attendance.filter((a) => a.status === 'ABSENT' && a.date >= today).sort((a, b) => a.date.getTime() - b.date.getTime())
   return (
     <>
       <div className="text-[13px] font-medium text-muted">
@@ -126,6 +127,31 @@ export default async function CustomerProfile({ params, searchParams }: { params
                   <span className="flex-1" />
                   <Link href={`/reports?pkg=${pkg.id}`} className="text-[13px] font-semibold text-sky">Monthly report</Link>
                 </form>
+              )}
+              {pkg.status === 'ACTIVE' && (
+                <div className="mt-4 border-t border-line pt-4">
+                  <form action={markLeaveAction} className="flex flex-wrap items-end gap-2.5">
+                    <input type="hidden" name="leadId" value={lead.id} />
+                    <input type="hidden" name="back" value={self} />
+                    <div><label className="label">Leave from</label><input type="date" name="from" required className="input" min={dayInput(today)} defaultValue={dayInput(day(1))} /></div>
+                    <div><label className="label">To (leave empty for one day)</label><input type="date" name="to" className="input" min={dayInput(today)} /></div>
+                    <button className="btn-secondary">Mark leave</button>
+                  </form>
+                  <p className="mt-1.5 text-xs text-muted">When the customer tells you the day before. Sundays are skipped. The box is not packed that day and the end date moves forward.</p>
+                  {upcomingLeave.length > 0 && (
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      {upcomingLeave.map((a) => (
+                        <form key={a.date.toISOString()} action={cancelLeaveAction} className="inline-flex items-center gap-1.5 rounded-full bg-tur-soft py-0.5 pl-2.5 pr-1 text-xs font-semibold text-warn">
+                          <input type="hidden" name="leadId" value={lead.id} />
+                          <input type="hidden" name="date" value={dayInput(a.date)} />
+                          <input type="hidden" name="back" value={self} />
+                          Leave {fmtWeekday(a.date)}
+                          <button className="rounded-full px-1.5 text-muted hover:text-red" aria-label={`Cancel leave on ${fmtWeekday(a.date)}`}>×</button>
+                        </form>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </Card>
           ) : (
