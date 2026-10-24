@@ -96,8 +96,8 @@ export async function markNoticesSeen() {
 
 // Staff tracking
 export async function saveStaff(form: FormData) {
-  await requireUser(['KITCHEN'])
-  const self = back(form, '/kitchen/staff')
+  await requireUser(['ADMIN'])
+  const self = back(form, '/admin/staff')
   const name = s(form, 'name')
   if (!name) fail(`${self}${self.includes('?') ? '&' : '?'}team=1`, 'Enter the name')
   const kind = s(form, 'kind') === 'DELIVERY' ? 'DELIVERY' : 'KITCHEN'
@@ -109,9 +109,9 @@ export async function saveStaff(form: FormData) {
 
 // A person who has left stays in old days' records but is no longer listed.
 export async function setStaffActive(form: FormData) {
-  await requireUser(['KITCHEN'])
+  await requireUser(['ADMIN'])
   await db.staff.update({ where: { id: id(form) }, data: { active: s(form, 'active') === 'yes' } })
-  done(back(form, '/kitchen/staff'))
+  done(back(form, '/admin/staff'))
 }
 
 export async function saveStaffDay(form: FormData) {

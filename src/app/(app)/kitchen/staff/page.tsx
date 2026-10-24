@@ -2,10 +2,10 @@ import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { day, dayInput, fmtWeekday, parseDay } from '@/lib/dates'
-import { Callout, Drawer, Empty, ErrorNote, PageHeader, Tile, Tiles } from '@/components/ui'
+import { Callout, Empty, ErrorNote, PageHeader, Tile, Tiles } from '@/components/ui'
 import { DateField } from '@/components/DateField'
 import { DayLock } from '@/components/DayLock'
-import { saveStaff, saveStaffDay, setStaffActive } from '../../ops-actions'
+import { saveStaffDay } from '../../ops-actions'
 import type { StaffDay } from '@/generated/prisma/client'
 import { StaffTable, type StaffInit } from '@/components/StaffRows'
 
@@ -16,11 +16,10 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
   const sp = await searchParams
   const date = sp.date ? parseDay(sp.date) : day(0)
   const monthStart = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1))
-  const [staff, days, month, left] = await Promise.all([
+  const [staff, days, month] = await Promise.all([
     db.staff.findMany({ where: { active: true }, orderBy: [{ kind: 'desc' }, { name: 'asc' }] }),
     db.staffDay.findMany({ where: { date } }),
     db.staffDay.findMany({ where: { date: { gte: monthStart, lte: date }, startKm: { not: null }, endKm: { not: null } }, select: { staffId: true, startKm: true, endKm: true } }),
-    sp.team ? db.staff.findMany({ where: { active: false }, orderBy: { name: 'asc' } }) : [],
   ])
   const of = new Map<string, StaffDay>(days.map((d) => [d.staffId, d]))
   const kitchen = staff.filter((s) => s.kind === 'KITCHEN')
@@ -33,11 +32,10 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
   const flags = days.filter((d) => d.attendance !== 'ABSENT' && (d.idCard === 'NO' || d.uniform === 'NO' || d.onTimePickup === false)).length
   const init = (list: typeof staff): StaffInit[] => list.map((x) => { const d = of.get(x.id); return { id: x.id, name: x.name, shift2: x.shift2, d: d ? { attendance: d.attendance, idCard: d.idCard, uniform: d.uniform, onTimePickup: d.onTimePickup, inTime: d.inTime, outTime: d.outTime, inTime2: d.inTime2, outTime2: d.outTime2, startKm: d.startKm, endKm: d.endKm, remarks: d.remarks } : null } })
   const self = `/kitchen/staff?date=${dayInput(date)}`
-  const edit = sp.edit ? staff.find((s) => s.id === sp.edit) : null
   return (
     <>
       <PageHeader title="Staff tracking" sub={`Daily check of kitchen staff and delivery persons · ${fmtWeekday(date)}`}>
-        <Link href={`${self}&team=1`} scroll={false} className="btn-secondary btn-sm">Add or remove staff</Link>
+        {user.role === 'ADMIN' && <Link href="/admin/staff" className="btn-secondary btn-sm">Staff list and month</Link>}
         <form action="/kitchen/staff" className="flex items-center gap-2"><DateField name="date" defaultValue={dayInput(date)} max={dayInput(day(0))} compact /><button className="btn-secondary btn-sm">Go</button></form>
       </PageHeader>
       <ErrorNote error={sp.error} />
@@ -50,7 +48,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
         <Tile label="Delivery km this month" value={`${kmMonth} km`} sub={`1st to ${fmtWeekday(date)}`} tone="brand" />
       </Tiles>
       {staff.length === 0 ? (
-        <section className="card"><Empty>No staff added yet. Tap &quot;Add or remove staff&quot; to add your kitchen staff and delivery persons.</Empty></section>
+        <section className="card"><Empty>No staff on the list yet. Ask admin to add the kitchen staff and delivery persons (Admin › Staff attendance).</Empty></section>
       ) : (
         <form action={saveStaffDay} className="space-y-[18px]">
           <input type="hidden" name="date" value={dayInput(date)} />
@@ -69,37 +67,6 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
           )}
           <div className="flex justify-end"><button className="btn">Save {fmtWeekday(date)}</button></div>
         </form>
-      )}
-      {sp.team && (
-        <Drawer title="Staff list" sub="The people you check every day" close={self}>
-          <form action={saveStaff} className="space-y-3.5">
-            {edit && <input type="hidden" name="id" value={edit.id} />}
-            <input type="hidden" name="back" value={`${self}&team=1`} />
-            <div><label className="label" htmlFor="staff-name">{edit ? 'Name' : 'Add a person'} *</label><input id="staff-name" name="name" required className="input" defaultValue={edit?.name} placeholder="Name" /></div>
-            <div className="grid grid-cols-2 gap-2.5">
-              <div><label className="label" htmlFor="staff-kind">Work</label><select id="staff-kind" name="kind" className="input" defaultValue={edit?.kind ?? 'KITCHEN'}><option value="KITCHEN">Kitchen staff</option><option value="DELIVERY">Delivery person</option></select></div>
-              <div><label className="label" htmlFor="staff-phone">Phone *</label><input id="staff-phone" name="phone" required inputMode="tel" className="input" defaultValue={edit?.phone ?? ''} /></div>
-            </div>
-            <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" name="shift2" defaultChecked={edit?.shift2} className="size-4 accent-brand" /> Works the second shift too (11 AM to 2 PM). Kitchen staff only.</label>
-            <button className="btn w-full">{edit ? 'Save changes' : 'Add to the list'}</button>
-          </form>
-          <div className="mt-5 space-y-1.5">
-            {staff.map((s) => (
-              <div key={s.id} className="flex items-center gap-2 rounded-[10px] bg-s2 px-3 py-2 text-sm">
-                <span className="min-w-0 flex-1"><span className="font-semibold">{s.name}</span> <span className="text-xs text-muted">· {s.kind === 'DELIVERY' ? 'Delivery' : 'Kitchen'}{s.shift2 ? ' · shift 2' : ''}{s.phone ? ` · ${s.phone}` : ''}</span></span>
-                <Link href={`${self}&team=1&edit=${s.id}`} scroll={false} className="text-xs font-semibold text-brand">Edit</Link>
-                <form action={setStaffActive}><input type="hidden" name="id" value={s.id} /><input type="hidden" name="back" value={`${self}&team=1`} /><button name="active" value="no" className="text-xs font-semibold text-red">Remove</button></form>
-              </div>
-            ))}
-            {left.map((s) => (
-              <div key={s.id} className="flex items-center gap-2 rounded-[10px] border border-dashed border-line px-3 py-2 text-sm text-muted">
-                <span className="flex-1">{s.name} · removed</span>
-                <form action={setStaffActive}><input type="hidden" name="id" value={s.id} /><input type="hidden" name="back" value={`${self}&team=1`} /><button name="active" value="yes" className="text-xs font-semibold text-brand">Add back</button></form>
-              </div>
-            ))}
-          </div>
-          <p className="mt-3 text-xs text-muted">Removing a person keeps their old records.</p>
-        </Drawer>
       )}
     </>
   )

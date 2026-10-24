@@ -315,6 +315,7 @@ footer { color: var(--muted); font-size: 13px; padding-block: 24px 40px; border-
       <h3>Money, reports and backups</h3>
       <ul>
         <li><b>Purchase + expenses</b>: every bill with its photos.</li>
+        <li><b>Staff attendance</b>: a month table of present and absent for every person, and the list of people. Only admin adds or removes people (and sets who works shift 2). The kitchen manager fills each day in Staff tracking.</li>
         <li><b>Reports</b> and <b>All reports</b>: sort and filter any column.</li>
         <li><b>Backups</b>: a full copy is made every night after 1 AM; the last 30 are kept. Once a week, tap <b>Download</b> on the newest one and keep it in Google Drive or on a pen drive.</li>
       </ul>
