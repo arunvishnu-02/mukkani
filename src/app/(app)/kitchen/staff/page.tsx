@@ -17,7 +17,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
   const date = sp.date ? parseDay(sp.date) : day(0)
   const monthStart = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1))
   const [staff, days, month] = await Promise.all([
-    db.staff.findMany({ where: { active: true }, orderBy: [{ kind: 'desc' }, { name: 'asc' }] }),
+    db.staff.findMany({ where: { active: true, kind: { in: ['KITCHEN', 'DELIVERY'] } }, orderBy: [{ kind: 'desc' }, { name: 'asc' }] }),
     db.staffDay.findMany({ where: { date } }),
     db.staffDay.findMany({ where: { date: { gte: monthStart, lte: date }, startKm: { not: null }, endKm: { not: null } }, select: { staffId: true, startKm: true, endKm: true } }),
   ])

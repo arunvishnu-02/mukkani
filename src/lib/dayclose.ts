@@ -26,8 +26,8 @@ export async function dayClose(sheetDate: Date) {
     db.dayMark.findUnique({ where: { date_kind: { date: work, kind: 'NO_STOCK' } } }),
     db.wastage.count({ where: { date: work } }),
     db.dayMark.findUnique({ where: { date_kind: { date: work, kind: 'NO_WASTAGE' } } }),
-    db.staff.count({ where: { active: true } }),
-    db.staffDay.count({ where: { date: work, staff: { active: true } } }),
+    db.staff.count({ where: { active: true, kind: { in: ['KITCHEN', 'DELIVERY'] } } }),
+    db.staffDay.count({ where: { date: work, staff: { active: true, kind: { in: ['KITCHEN', 'DELIVERY'] } } } }),
     db.menu.findUnique({ where: { date: sheetDate } }),
   ])
   const w = keyOf(work)

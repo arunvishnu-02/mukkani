@@ -88,6 +88,32 @@ export async function removeHoliday(form: FormData) {
   done(back(form, '/calendar'))
 }
 
+// Office staff (the admin's own team): attendance entered by admin only, never shown to the kitchen manager.
+export async function saveOfficeAttendance(form: FormData) {
+  const user = await requireUser(['ADMIN'])
+  const d = date(form, 'date') ?? day(0)
+  const self = back(form, '/admin/staff')
+  const ids = form.getAll('staff').map(String).filter((x) => z.string().uuid().safeParse(x).success)
+  const people = await db.staff.findMany({ where: { id: { in: ids }, active: true, kind: 'OFFICE' } })
+  const rows: { staffId: string; attendance: string; inTime: string | null; outTime: string | null; remarks: string | null }[] = []
+  for (const p of people) {
+    const g = (k: string) => s(form, `${k}_${p.id}`)
+    const att = g('att')
+    if (att !== 'PRESENT' && att !== 'ABSENT') fail(self, `Choose Present or Absent for ${p.name}`)
+    const present = att === 'PRESENT'
+    const inTime = present ? g('in') : null; const outTime = present ? g('out') : null
+    if (present && (!inTime || !outTime)) fail(self, `${p.name}: fill the in time and out time`)
+    if (present && outTime! < inTime!) fail(self, `${p.name}: the out time is before the in time`)
+    rows.push({ staffId: p.id, attendance: att!, inTime, outTime, remarks: g('remarks') })
+  }
+  if (rows.length === 0) fail(self, 'No office staff to save')
+  for (const r of rows) {
+    const data = { attendance: r.attendance, inTime: r.inTime, outTime: r.outTime, remarks: r.remarks, idCard: null, uniform: null, onTimePickup: null, inTime2: null, outTime2: null, startKm: null, endKm: null, byId: user.id }
+    await db.staffDay.upsert({ where: { staffId_date: { staffId: r.staffId, date: d } }, create: { staffId: r.staffId, date: d, ...data }, update: data })
+  }
+  done(`${self}${self.includes('?') ? '&' : '?'}saved=${rows.length}`)
+}
+
 export async function markNoticesSeen() {
   await requireUser(['ADMIN'])
   await db.adminNotice.updateMany({ where: { seenAt: null }, data: { seenAt: new Date() } })
@@ -100,7 +126,7 @@ export async function saveStaff(form: FormData) {
   const self = back(form, '/admin/staff')
   const name = s(form, 'name')
   if (!name) fail(`${self}${self.includes('?') ? '&' : '?'}team=1`, 'Enter the name')
-  const kind = s(form, 'kind') === 'DELIVERY' ? 'DELIVERY' : 'KITCHEN'
+  const kind = s(form, 'kind') === 'DELIVERY' ? 'DELIVERY' : s(form, 'kind') === 'OFFICE' ? 'OFFICE' : 'KITCHEN'
   const data = { name: name!, kind, phone: s(form, 'phone'), shift2: kind === 'KITCHEN' && form.get('shift2') === 'on' }
   if (s(form, 'id')) await db.staff.update({ where: { id: id(form) }, data })
   else await db.staff.create({ data })
@@ -120,7 +146,7 @@ export async function saveStaffDay(form: FormData) {
   const self = back(form, '/kitchen/staff')
   if (!(await dayOpen(user, d))) fail(self, lockedText(d))
   const ids = form.getAll('staff').map(String)
-  const people = await db.staff.findMany({ where: { id: { in: ids.filter((x) => z.string().uuid().safeParse(x).success) }, active: true } })
+  const people = await db.staff.findMany({ where: { id: { in: ids.filter((x) => z.string().uuid().safeParse(x).success) }, active: true, kind: { in: ['KITCHEN', 'DELIVERY'] } } })
   const THREE = ['YES', 'NO', 'NONE']
   const inside = (t: string, [from, to]: readonly [string, string]) => t >= from && t <= to
   // Everything is checked first; nothing is saved unless every person is complete.
