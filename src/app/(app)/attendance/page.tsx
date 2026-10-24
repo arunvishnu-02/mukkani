@@ -6,6 +6,7 @@ import { Callout, Chip, Empty, ErrorNote, PageHeader, Pills, Tabs, Tile, Tiles }
 import { AttendanceList } from '@/components/AttendanceList'
 import { DayLock } from '@/components/DayLock'
 import { dayOpen } from '@/lib/lock'
+import { isButtermilkDay } from '@/lib/plan'
 import { DateField } from '@/components/DateField'
 import { LeaveDrawer } from '@/components/Leave'
 import { SheetOrder } from '@/components/SheetOrder'
@@ -60,7 +61,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
       tags: [
         ...(r.isNew ? ([['NEW', 'leaf']] as Row['tags']) : []),
         ...(r.swap?.swapTo ? ([[`Customization: ${r.swap.swapTo}`, 'warn']] as Row['tags']) : []),
-        ...(r.pkg.buttermilkQty > 0 ? ([[`Butter milk ×${r.pkg.buttermilkQty}${r.bm ? '' : ' · Mon, Wed, Fri'}`, 'sky']] as Row['tags']) : []),
+        ...(r.bm > 0 ? ([[`Butter milk ×${r.bm}`, 'sky']] as Row['tags']) : []),
         [r.pkg.boxesPerDay > 1 ? `${r.pkg.boxesPerDay} boxes a day · box ${r.dayNo ?? '-'} of 26` : `Day ${r.dayNo ?? '-'}`, 'brand'],
       ] as Row['tags'],
       bm: r.bm,
@@ -162,12 +163,12 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
         </section>
       )}
       {groups.length > 1 && <Tabs items={groups.map(([name, rs]) => ({ label: `${name} ${rs.length}`, href: `/attendance?date=${dayInput(date)}&region=${encodeURIComponent(name)}`, active: name === region?.[0] }))} />}
-      <Tiles cols={6}>
+      <Tiles cols={isButtermilkDay(date) ? 6 : 5}>
         <Tile label="Customers" value={list.length} sub={`${region?.[0] ?? 'No'} region`} />
         <Tile label="Entered" value={`${entered} of ${list.length}`} sub={entered < list.length ? 'keep going' : 'all done'} tone="brand" />
         <Tile label="Delivered" value={delivered} tone="leaf" />
         <Tile label="Absent / Not delivered" value={`${off} / ${notDel}`} sub="pushes the end date" tone="warn" />
-        <Tile label="Butter milk" value={list.reduce((n, r) => n + r.bm, 0)} sub={`${sheet.rows.filter((x) => !x.absent && x.pkg.buttermilkQty > 0 && (x.lead.region?.name ?? null) === (region?.[0] ?? null)).length} take it · Mon, Wed, Fri`} tone="sky" />
+        {isButtermilkDay(date) && <Tile label="Butter milk" value={list.reduce((n, r) => n + r.bm, 0)} sub={`${list.filter((r) => r.bm > 0).length} customers today`} tone="sky" />}
         <Tile label="Alternative boxes" value={list.filter((r) => r.altBox).length} sub="blue rows" tone="sky" />
       </Tiles>
       <Callout tone="sky">Blue rows got an alternative box. Write its number and whether the empty box came back. Attendance must be entered every day.</Callout>

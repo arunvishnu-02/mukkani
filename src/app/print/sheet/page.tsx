@@ -2,6 +2,7 @@ import Image from 'next/image'
 import { day, fmtDay, parseDay } from '@/lib/dates'
 import { daySheet, groupByRegion, swapTotals } from '@/lib/queries'
 import { getSettings } from '@/lib/settings'
+import { isButtermilkDay } from '@/lib/plan'
 import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { dayClose } from '@/lib/dayclose'
@@ -14,12 +15,12 @@ const MARK: Record<string, [string, string]> = { DELIVERED: ['✓ Delivered', 't
 const TAG: Record<string, string> = { red: 'bg-red-soft text-red', leaf: 'bg-leaf-soft text-leaf', warn: 'bg-tur-soft text-warn' }
 const D = new Intl.DateTimeFormat('en-IN', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
 
-function Column({ rows, start, filled }: { rows: Line[]; start: number; filled?: boolean }) {
+function Column({ rows, start, filled, drink }: { rows: Line[]; start: number; filled?: boolean; drink?: boolean }) {
   return (
     <table className="w-full border-collapse overflow-hidden rounded-lg border border-ink text-[11px]">
       <thead>
         <tr className="bg-brand text-left text-[9px] font-bold text-white uppercase">
-          <th className="w-6 px-1.5 py-1.5">#</th><th className="w-9 px-1">Time</th><th className="px-1">Customer</th><th className="w-10 px-1 text-center">Milk</th><th className="w-11 px-1 text-center">Box no.</th><th className="w-7 px-1 text-center">Ret.</th>{filled && <th className="w-20 px-1">Status</th>}
+          <th className="w-6 px-1.5 py-1.5">#</th><th className="w-9 px-1">Time</th><th className="px-1">Customer</th>{drink && <th className="w-10 px-1 text-center">Milk</th>}<th className="w-11 px-1 text-center">Box no.</th><th className="w-7 px-1 text-center">Ret.</th>{filled && <th className="w-20 px-1">Status</th>}
         </tr>
       </thead>
       <tbody>
@@ -31,7 +32,7 @@ function Column({ rows, start, filled }: { rows: Line[]; start: number; filled?:
               {r.name}
               {r.tags.map(([t, c]) => <span key={t} className={`ml-1 rounded px-1 py-px text-[8px] font-bold uppercase ${TAG[c]}`}>{t}</span>)}
             </td>
-            <td className="px-1 text-center">{r.bm ? <span className="rounded bg-leaf px-1 text-[8px] font-bold text-white">{r.bm}</span> : ''}</td>
+            {drink && <td className="px-1 text-center">{r.bm ? <span className="rounded bg-leaf px-1 text-[8px] font-bold text-white">{r.bm}</span> : ''}</td>}
             <td className="px-1 text-center"><span className={`inline-block h-[18px] w-9 rounded border ${r.alt ? 'border-sky font-bold text-sky' : 'border-brand/40'}`}>{r.box ?? ''}</span></td>
             <td className="px-1 text-center">{filled && r.back != null ? <span className={`text-[10px] font-bold ${r.back ? 'text-leaf' : 'text-red'}`}>{r.back ? 'Yes' : 'No'}</span> : <span className="inline-block size-3.5 rounded-sm border border-ink/60" />}</td>
             {filled && <td className={`px-1 text-[10px] font-bold ${r.status ? MARK[r.status]?.[1] : 'text-muted'}`}>{r.status ? MARK[r.status]?.[0] : 'Not entered'}</td>}
@@ -95,6 +96,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
   const kg = (n: number) => `${Math.round(n * 10) / 10} kg`
   const sum = (rows: [string, number][]) => rows.reduce((a, r) => a + r[1], 0)
   const allRegions = [...grouped.keys()].sort()
+  const drinkDay = isButtermilkDay(date)
   const perRegion = allRegions.map((name) => {
     const rs = sheet.rows.filter((r) => (r.lead.region?.name ?? 'No region') === name)
     const on = rs.filter((r) => !r.absent)
@@ -130,10 +132,10 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
           </div>
           {sheet.holiday && <div className="mt-3 rounded-lg bg-red-soft px-3 py-2 text-sm font-bold text-red">Office holiday: {sheet.holiday.name}. No boxes go out.</div>}
           <table className="mt-4 w-full border-collapse overflow-hidden rounded-lg border border-ink text-[12px]">
-            <thead><tr className="bg-brand text-left text-[10px] font-bold text-white uppercase"><th className="px-2 py-1.5">Region</th><th className="px-2 text-right">Customers</th><th className="px-2 text-right">Boxes</th><th className="px-2 text-right">Trial</th><th className="px-2 text-right">Total boxes</th><th className="px-2 text-right">Butter milk today</th><th className="px-2 text-right">Take it</th><th className="px-2 text-right">On leave</th></tr></thead>
+            <thead><tr className="bg-brand text-left text-[10px] font-bold text-white uppercase"><th className="px-2 py-1.5">Region</th><th className="px-2 text-right">Customers</th><th className="px-2 text-right">Boxes</th><th className="px-2 text-right">Trial</th><th className="px-2 text-right">Total boxes</th>{drinkDay && <th className="px-2 text-right">Butter milk</th>}<th className="px-2 text-right">On leave</th></tr></thead>
             <tbody className="tabular-nums">
-              {perRegion.map((r) => <tr key={r.name} className="border-t border-line"><td className="px-2 py-1.5 font-semibold">{r.name}</td><td className="px-2 text-right">{r.customers}</td><td className="px-2 text-right">{r.boxes}</td><td className="px-2 text-right">{r.trials}</td><td className="px-2 text-right font-bold">{r.total}</td><td className="px-2 text-right font-semibold">{r.drinks}</td><td className="px-2 text-right text-muted">{r.takers ? `${r.takers} · ${r.perWeekDay} bottles` : '–'}</td><td className="px-2 text-right">{r.leave || '–'}</td></tr>)}
-              <tr className="border-t-2 border-ink bg-brand-soft font-bold"><td className="px-2 py-1.5">Total</td><td className="px-2 text-right">{tot.customers}</td><td className="px-2 text-right">{tot.boxes}</td><td className="px-2 text-right">{tot.trials}</td><td className="px-2 text-right text-base">{tot.total}</td><td className="px-2 text-right">{tot.drinks}</td><td className="px-2 text-right">{tot.takers ? `${tot.takers} · ${tot.perWeekDay} bottles` : '–'}</td><td className="px-2 text-right">{tot.leave || '–'}</td></tr>
+              {perRegion.map((r) => <tr key={r.name} className="border-t border-line"><td className="px-2 py-1.5 font-semibold">{r.name}</td><td className="px-2 text-right">{r.customers}</td><td className="px-2 text-right">{r.boxes}</td><td className="px-2 text-right">{r.trials}</td><td className="px-2 text-right font-bold">{r.total}</td>{drinkDay && <td className="px-2 text-right font-semibold">{r.drinks}</td>}<td className="px-2 text-right">{r.leave || '–'}</td></tr>)}
+              <tr className="border-t-2 border-ink bg-brand-soft font-bold"><td className="px-2 py-1.5">Total</td><td className="px-2 text-right">{tot.customers}</td><td className="px-2 text-right">{tot.boxes}</td><td className="px-2 text-right">{tot.trials}</td><td className="px-2 text-right text-base">{tot.total}</td>{drinkDay && <td className="px-2 text-right">{tot.drinks}</td>}<td className="px-2 text-right">{tot.leave || '–'}</td></tr>
             </tbody>
           </table>
           <div className="mt-4 rounded-xl bg-leaf-soft p-3.5 text-[12px]">
@@ -146,7 +148,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
                 {sheet.menu.note && <div><b>Note:</b> {sheet.menu.note}</div>}
               </div>
             ) : <div className="text-red">Menu not added yet</div>}
-            <div className="mt-1.5"><b>Butter milk (add-on drink):</b> {tot.drinks ? `${tot.drinks} bottle${tot.drinks > 1 ? 's' : ''} today` : 'no bottles today (Mon, Wed, Fri only)'} · {tot.takers} customers take it ({tot.perWeekDay} bottles on each drink day)</div>
+            {drinkDay && <div className="mt-1.5"><b>Butter milk (add-on drink):</b> {tot.drinks} bottle{tot.drinks === 1 ? '' : 's'} today</div>}
           </div>
           <div className="mt-4 grid grid-cols-3 gap-3">
             <Weights title="Raw fruit came in" rows={raw} empty="Write fruit and kg:" />
@@ -205,7 +207,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
             <div className="mt-4 grid grid-cols-4 gap-2.5">
               {[
                 [rows.length, 'Boxes', 'bg-brand-soft'],
-                [bm, 'Butter milk', 'bg-[#fbe4ef]'],
+                ...(drinkDay ? [[bm, 'Butter milk', 'bg-[#fbe4ef]']] : []),
                 [trials.length, 'Trial box', 'bg-tur-soft'],
                 [swaps, 'Customizations', 'bg-red-soft'],
               ].map(([n, l, c]) => (
@@ -215,8 +217,8 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
               ))}
             </div>
             <div className="mt-3.5 grid grid-cols-2 gap-3">
-              <Column rows={page.slice(0, 25)} start={p * 50 + 1} filled={filled} />
-              {page.length > 25 ? <Column rows={page.slice(25)} start={p * 50 + 26} filled={filled} /> : <div />}
+              <Column rows={page.slice(0, 25)} start={p * 50 + 1} filled={filled} drink={drinkDay} />
+              {page.length > 25 ? <Column rows={page.slice(25)} start={p * 50 + 26} filled={filled} drink={drinkDay} /> : <div />}
             </div>
             {p === pages.length - 1 && (
               <div className="mt-3.5 grid grid-cols-2 gap-3 text-[11px]">

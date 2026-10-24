@@ -8,6 +8,7 @@ import { CancelLeave, LeaveDrawer } from '@/components/Leave'
 import { lateAdds } from '@/lib/kitchen'
 import { SheetOrder } from '@/components/SheetOrder'
 import { DayClose } from '@/components/DayClose'
+import { isButtermilkDay } from '@/lib/plan'
 import { dayClose } from '@/lib/dayclose'
 import { DateField } from '@/components/DateField'
 
@@ -83,7 +84,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
           <SheetOrder rows={list.map((r) => ({ id: r.lead.id, name: r.lead.name, address: r.lead.address, time: r.lead.deliveryTime ?? r.lead.slot }))} back={self} region={region?.[0] ?? ''} />
         ) : list.length === 0 ? <Empty>No monthly boxes on this day.</Empty> : (
           <table className="w-full">
-            <thead><tr><th className="th">#</th><th className="th">Customer</th><th className="th">Time</th><th className="th">Butter milk</th><th className="th">Alt box no.</th><th className="th">Attendance</th></tr></thead>
+            <thead><tr><th className="th">#</th><th className="th">Customer</th><th className="th">Time</th>{isButtermilkDay(date) && <th className="th">Butter milk</th>}<th className="th">Alt box no.</th><th className="th">Attendance</th></tr></thead>
             <tbody>
               {list.map((r, i) => (
                 <tr key={r.pkg.id} className={r.altBox ? 'bg-sky-soft' : ''}>
@@ -95,7 +96,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
                     {r.altBox && <span className="ml-1.5 text-[11px] font-bold text-sky">ALT BOX</span>}
                   </td>
                   <td className="td">{r.lead.deliveryTime ?? r.lead.slot ?? '—'}</td>
-                  <td className="td">{r.bm ? <Chip label={`Butter milk ${r.bm}`} tone="leaf" /> : r.pkg.buttermilkQty ? <span className="text-xs text-muted">×{r.pkg.buttermilkQty} · Mon, Wed, Fri</span> : ''}</td>
+                  {isButtermilkDay(date) && <td className="td">{r.bm ? <Chip label={`Butter milk ${r.bm}`} tone="leaf" /> : ''}</td>}
                   <td className="td">{r.altBox ?? '—'}</td>
                   <td className="td">{r.attendance ? <StatusChip map={ATTENDANCE} value={r.attendance.status} /> : <Chip label="After 9 AM" tone="muted" />}</td>
                 </tr>
