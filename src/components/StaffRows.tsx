@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { DELIVERY_IN, SHIFT1, SHIFT2 } from '@/lib/shifts'
 
-export type StaffInit = { id: string; name: string; d: { attendance: string | null; idCard: string | null; uniform: string | null; onTimePickup: boolean | null; inTime: string | null; outTime: string | null; inTime2: string | null; outTime2: string | null; startKm: number | null; endKm: number | null; remarks: string | null } | null }
+export type StaffInit = { id: string; name: string; shift2?: boolean; d: { attendance: string | null; idCard: string | null; uniform: string | null; onTimePickup: boolean | null; inTime: string | null; outTime: string | null; inTime2: string | null; outTime2: string | null; startKm: number | null; endKm: number | null; remarks: string | null } | null }
 
 
 const cell = 'input px-2 py-1.5 text-[13px]'
@@ -47,7 +47,7 @@ function Row({ kind, s }: { kind: 'KITCHEN' | 'DELIVERY'; s: StaffInit }) {
           <td className="td"><Three name={`idCard_${s.id}`} value={s.d?.idCard} label="ID card" /></td>
           <td className="td"><Three name={`uniform_${s.id}`} value={s.d?.uniform} label="Uniform" /></td>
           <td className="td"><div className="flex gap-1.5"><Time name={`in_${s.id}`} value={s.d?.inTime} label="Shift 1 in" min={SHIFT1[0]} max={SHIFT1[1]} /><Time name={`out_${s.id}`} value={s.d?.outTime} label="Shift 1 out" min={SHIFT1[0]} max={SHIFT1[1]} /></div></td>
-          <td className="td"><div className="flex gap-1.5"><Time name={`in2_${s.id}`} value={s.d?.inTime2} label="Shift 2 in" min={SHIFT2[0]} max={SHIFT2[1]} /><Time name={`out2_${s.id}`} value={s.d?.outTime2} label="Shift 2 out" min={SHIFT2[0]} max={SHIFT2[1]} /></div></td>
+          <td className="td">{!s.shift2 ? <span className="text-xs text-muted">Not on shift 2</span> : <div className="flex gap-1.5"><Time name={`in2_${s.id}`} value={s.d?.inTime2} label="Shift 2 in" min={SHIFT2[0]} max={SHIFT2[1]} /><Time name={`out2_${s.id}`} value={s.d?.outTime2} label="Shift 2 out" min={SHIFT2[0]} max={SHIFT2[1]} /></div>}</td>
           <td className="td"><input name={`remarks_${s.id}`} defaultValue={s.d?.remarks ?? ''} aria-label="Remarks" className={`${cell} min-w-36`} /></td>
         </>
       ) : (
@@ -74,7 +74,7 @@ export function StaffTable({ kind, rows }: { kind: 'KITCHEN' | 'DELIVERY'; rows:
     <table className="w-full">
       <thead>
         {kind === 'KITCHEN' ? (
-          <tr><th className="th">Name</th><th className="th">Present</th><th className="th">ID card</th><th className="th">Uniform</th><th className="th">Shift 1 · in / out<div className="font-normal normal-case">3 AM to 7 AM</div></th><th className="th">Shift 2 · in / out<div className="font-normal normal-case">11 AM to 2 PM</div></th><th className="th">Remarks</th></tr>
+          <tr><th className="th">Name</th><th className="th">Present</th><th className="th">ID card</th><th className="th">Uniform</th><th className="th">Shift 1 · in / out<div className="font-normal normal-case">3 AM to 7 AM</div></th><th className="th">Shift 2 · in / out<div className="font-normal normal-case">11 AM to 2 PM, selected staff</div></th><th className="th">Remarks</th></tr>
         ) : (
           <tr><th className="th">Name</th><th className="th">Present</th><th className="th">ID card</th><th className="th">Dress code</th><th className="th">On-time pick-up</th><th className="th">In time</th><th className="th">Deliveries complete</th><th className="th">Starting km</th><th className="th">Ending km</th><th className="th">Total km</th><th className="th">Remarks</th></tr>
         )}

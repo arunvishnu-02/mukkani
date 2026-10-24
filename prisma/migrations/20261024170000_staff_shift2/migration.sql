@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Staff" ADD COLUMN "shift2" BOOLEAN NOT NULL DEFAULT false;

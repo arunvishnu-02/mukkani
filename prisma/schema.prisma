@@ -392,6 +392,8 @@ model Staff {
   kind      String // KITCHEN or DELIVERY
   phone     String?
   active    Boolean    @default(true)
+  // Kitchen staff who also work the second shift (11 AM - 2 PM). Others have the first shift only.
+  shift2    Boolean    @default(false)
   createdAt DateTime   @default(now())
   days      StaffDay[]
 }

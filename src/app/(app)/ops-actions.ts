@@ -100,7 +100,8 @@ export async function saveStaff(form: FormData) {
   const self = back(form, '/kitchen/staff')
   const name = s(form, 'name')
   if (!name) fail(`${self}${self.includes('?') ? '&' : '?'}team=1`, 'Enter the name')
-  const data = { name: name!, kind: s(form, 'kind') === 'DELIVERY' ? 'DELIVERY' : 'KITCHEN', phone: s(form, 'phone') }
+  const kind = s(form, 'kind') === 'DELIVERY' ? 'DELIVERY' : 'KITCHEN'
+  const data = { name: name!, kind, phone: s(form, 'phone'), shift2: kind === 'KITCHEN' && form.get('shift2') === 'on' }
   if (s(form, 'id')) await db.staff.update({ where: { id: id(form) }, data })
   else await db.staff.create({ data })
   done(self)
@@ -135,12 +136,12 @@ export async function saveStaffDay(form: FormData) {
     if (!idCard || !THREE.includes(idCard)) fail(self, `${who}: choose ID card Yes, No or Don't have`)
     if (!uniform || !THREE.includes(uniform)) fail(self, `${who}: choose ${p.kind === 'DELIVERY' ? 'dress code' : 'uniform'} Yes, No or Don't have`)
     if (p.kind === 'KITCHEN') {
-      const t = { inTime: g('in'), outTime: g('out'), inTime2: g('in2'), outTime2: g('out2') }
-      for (const [k, v] of Object.entries(t)) if (!v) fail(self, `${who}: fill all four shift times`)
+      const t = { inTime: g('in'), outTime: g('out'), inTime2: p.shift2 ? g('in2') : null, outTime2: p.shift2 ? g('out2') : null }
+      for (const [k, v] of Object.entries(t)) if (!v && (p.shift2 || !k.endsWith('2'))) fail(self, p.shift2 ? `${who}: fill all four shift times` : `${who}: fill the in and out time`)
       if (!inside(t.inTime!, SHIFT1) || !inside(t.outTime!, SHIFT1)) fail(self, `${who}: the first shift is between 3:00 AM and 7:00 AM`)
       if (t.outTime! < t.inTime!) fail(self, `${who}: the first shift out time is before the in time`)
-      if (!inside(t.inTime2!, SHIFT2) || !inside(t.outTime2!, SHIFT2)) fail(self, `${who}: the second shift is between 11:00 AM and 2:00 PM`)
-      if (t.outTime2! < t.inTime2!) fail(self, `${who}: the second shift out time is before the in time`)
+      if (p.shift2 && (!inside(t.inTime2!, SHIFT2) || !inside(t.outTime2!, SHIFT2))) fail(self, `${who}: the second shift is between 11:00 AM and 2:00 PM`)
+      if (p.shift2 && t.outTime2! < t.inTime2!) fail(self, `${who}: the second shift out time is before the in time`)
       rows.push({ staffId: p.id, data: { ...base, idCard, uniform, onTimePickup: null, ...t, startKm: null, endKm: null } })
     } else {
       const pickup = g('pickup')

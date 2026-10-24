@@ -31,7 +31,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
   const present = staff.filter((s) => of.get(s.id)?.attendance === 'PRESENT').length
   const absent = staff.filter((s) => of.get(s.id)?.attendance === 'ABSENT').length
   const flags = days.filter((d) => d.attendance !== 'ABSENT' && (d.idCard === 'NO' || d.uniform === 'NO' || d.onTimePickup === false)).length
-  const init = (list: typeof staff): StaffInit[] => list.map((x) => { const d = of.get(x.id); return { id: x.id, name: x.name, d: d ? { attendance: d.attendance, idCard: d.idCard, uniform: d.uniform, onTimePickup: d.onTimePickup, inTime: d.inTime, outTime: d.outTime, inTime2: d.inTime2, outTime2: d.outTime2, startKm: d.startKm, endKm: d.endKm, remarks: d.remarks } : null } })
+  const init = (list: typeof staff): StaffInit[] => list.map((x) => { const d = of.get(x.id); return { id: x.id, name: x.name, shift2: x.shift2, d: d ? { attendance: d.attendance, idCard: d.idCard, uniform: d.uniform, onTimePickup: d.onTimePickup, inTime: d.inTime, outTime: d.outTime, inTime2: d.inTime2, outTime2: d.outTime2, startKm: d.startKm, endKm: d.endKm, remarks: d.remarks } : null } })
   const self = `/kitchen/staff?date=${dayInput(date)}`
   const edit = sp.edit ? staff.find((s) => s.id === sp.edit) : null
   return (
@@ -80,12 +80,13 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
               <div><label className="label" htmlFor="staff-kind">Work</label><select id="staff-kind" name="kind" className="input" defaultValue={edit?.kind ?? 'KITCHEN'}><option value="KITCHEN">Kitchen staff</option><option value="DELIVERY">Delivery person</option></select></div>
               <div><label className="label" htmlFor="staff-phone">Phone *</label><input id="staff-phone" name="phone" required inputMode="tel" className="input" defaultValue={edit?.phone ?? ''} /></div>
             </div>
+            <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" name="shift2" defaultChecked={edit?.shift2} className="size-4 accent-brand" /> Works the second shift too (11 AM to 2 PM). Kitchen staff only.</label>
             <button className="btn w-full">{edit ? 'Save changes' : 'Add to the list'}</button>
           </form>
           <div className="mt-5 space-y-1.5">
             {staff.map((s) => (
               <div key={s.id} className="flex items-center gap-2 rounded-[10px] bg-s2 px-3 py-2 text-sm">
-                <span className="min-w-0 flex-1"><span className="font-semibold">{s.name}</span> <span className="text-xs text-muted">· {s.kind === 'DELIVERY' ? 'Delivery' : 'Kitchen'}{s.phone ? ` · ${s.phone}` : ''}</span></span>
+                <span className="min-w-0 flex-1"><span className="font-semibold">{s.name}</span> <span className="text-xs text-muted">· {s.kind === 'DELIVERY' ? 'Delivery' : 'Kitchen'}{s.shift2 ? ' · shift 2' : ''}{s.phone ? ` · ${s.phone}` : ''}</span></span>
                 <Link href={`${self}&team=1&edit=${s.id}`} scroll={false} className="text-xs font-semibold text-brand">Edit</Link>
                 <form action={setStaffActive}><input type="hidden" name="id" value={s.id} /><input type="hidden" name="back" value={`${self}&team=1`} /><button name="active" value="no" className="text-xs font-semibold text-red">Remove</button></form>
               </div>
