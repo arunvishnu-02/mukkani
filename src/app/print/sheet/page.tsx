@@ -100,9 +100,10 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
     const on = rs.filter((r) => !r.absent)
     const tr = sheet.trials.filter((t) => (t.trial.lead.region?.name ?? 'No region') === name).length
     const boxes = on.reduce((a, r) => a + r.boxes, 0)
-    return { name, customers: on.length, boxes, trials: tr, total: boxes + tr, drinks: on.reduce((a, r) => a + r.bm, 0), leave: rs.length - on.length }
+    const takers = on.filter((r) => r.pkg.buttermilkQty > 0)
+    return { name, customers: on.length, boxes, trials: tr, total: boxes + tr, drinks: on.reduce((a, r) => a + r.bm, 0), takers: takers.length, perWeekDay: takers.reduce((a, r) => a + r.pkg.buttermilkQty, 0), leave: rs.length - on.length }
   })
-  const tot = perRegion.reduce((a, r) => ({ customers: a.customers + r.customers, boxes: a.boxes + r.boxes, trials: a.trials + r.trials, total: a.total + r.total, drinks: a.drinks + r.drinks, leave: a.leave + r.leave }), { customers: 0, boxes: 0, trials: 0, total: 0, drinks: 0, leave: 0 })
+  const tot = perRegion.reduce((a, r) => ({ customers: a.customers + r.customers, boxes: a.boxes + r.boxes, trials: a.trials + r.trials, total: a.total + r.total, drinks: a.drinks + r.drinks, takers: a.takers + r.takers, perWeekDay: a.perWeekDay + r.perWeekDay, leave: a.leave + r.leave }), { customers: 0, boxes: 0, trials: 0, total: 0, drinks: 0, takers: 0, perWeekDay: 0, leave: 0 })
   const swapsAll = swapTotals([...sheet.rows.filter((r) => !r.absent).map((r) => r.swap), ...sheet.trials.map((t) => t.swap)])
   const Weights = ({ title, rows, empty }: { title: string; rows: [string, number][]; empty: string }) => (
     <div className="rounded-xl border border-line p-3">
@@ -129,10 +130,10 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
           </div>
           {sheet.holiday && <div className="mt-3 rounded-lg bg-red-soft px-3 py-2 text-sm font-bold text-red">Office holiday: {sheet.holiday.name}. No boxes go out.</div>}
           <table className="mt-4 w-full border-collapse overflow-hidden rounded-lg border border-ink text-[12px]">
-            <thead><tr className="bg-brand text-left text-[10px] font-bold text-white uppercase"><th className="px-2 py-1.5">Region</th><th className="px-2 text-right">Customers</th><th className="px-2 text-right">Boxes</th><th className="px-2 text-right">Trial</th><th className="px-2 text-right">Total boxes</th><th className="px-2 text-right">Butter milk</th><th className="px-2 text-right">On leave</th></tr></thead>
+            <thead><tr className="bg-brand text-left text-[10px] font-bold text-white uppercase"><th className="px-2 py-1.5">Region</th><th className="px-2 text-right">Customers</th><th className="px-2 text-right">Boxes</th><th className="px-2 text-right">Trial</th><th className="px-2 text-right">Total boxes</th><th className="px-2 text-right">Butter milk today</th><th className="px-2 text-right">Take it</th><th className="px-2 text-right">On leave</th></tr></thead>
             <tbody className="tabular-nums">
-              {perRegion.map((r) => <tr key={r.name} className="border-t border-line"><td className="px-2 py-1.5 font-semibold">{r.name}</td><td className="px-2 text-right">{r.customers}</td><td className="px-2 text-right">{r.boxes}</td><td className="px-2 text-right">{r.trials}</td><td className="px-2 text-right font-bold">{r.total}</td><td className="px-2 text-right">{r.drinks || '–'}</td><td className="px-2 text-right">{r.leave || '–'}</td></tr>)}
-              <tr className="border-t-2 border-ink bg-brand-soft font-bold"><td className="px-2 py-1.5">Total</td><td className="px-2 text-right">{tot.customers}</td><td className="px-2 text-right">{tot.boxes}</td><td className="px-2 text-right">{tot.trials}</td><td className="px-2 text-right text-base">{tot.total}</td><td className="px-2 text-right">{tot.drinks || '–'}</td><td className="px-2 text-right">{tot.leave || '–'}</td></tr>
+              {perRegion.map((r) => <tr key={r.name} className="border-t border-line"><td className="px-2 py-1.5 font-semibold">{r.name}</td><td className="px-2 text-right">{r.customers}</td><td className="px-2 text-right">{r.boxes}</td><td className="px-2 text-right">{r.trials}</td><td className="px-2 text-right font-bold">{r.total}</td><td className="px-2 text-right font-semibold">{r.drinks}</td><td className="px-2 text-right text-muted">{r.takers ? `${r.takers} · ${r.perWeekDay} bottles` : '–'}</td><td className="px-2 text-right">{r.leave || '–'}</td></tr>)}
+              <tr className="border-t-2 border-ink bg-brand-soft font-bold"><td className="px-2 py-1.5">Total</td><td className="px-2 text-right">{tot.customers}</td><td className="px-2 text-right">{tot.boxes}</td><td className="px-2 text-right">{tot.trials}</td><td className="px-2 text-right text-base">{tot.total}</td><td className="px-2 text-right">{tot.drinks}</td><td className="px-2 text-right">{tot.takers ? `${tot.takers} · ${tot.perWeekDay} bottles` : '–'}</td><td className="px-2 text-right">{tot.leave || '–'}</td></tr>
             </tbody>
           </table>
           <div className="mt-4 rounded-xl bg-leaf-soft p-3.5 text-[12px]">
@@ -145,7 +146,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
                 {sheet.menu.note && <div><b>Note:</b> {sheet.menu.note}</div>}
               </div>
             ) : <div className="text-red">Menu not added yet</div>}
-            <div className="mt-1.5"><b>Butter milk (add-on drink):</b> {tot.drinks ? `${tot.drinks} bottle${tot.drinks > 1 ? 's' : ''}` : 'none today (Mon, Wed, Fri only)'}</div>
+            <div className="mt-1.5"><b>Butter milk (add-on drink):</b> {tot.drinks ? `${tot.drinks} bottle${tot.drinks > 1 ? 's' : ''} today` : 'no bottles today (Mon, Wed, Fri only)'} · {tot.takers} customers take it ({tot.perWeekDay} bottles on each drink day)</div>
           </div>
           <div className="mt-4 grid grid-cols-3 gap-3">
             <Weights title="Raw fruit came in" rows={raw} empty="Write fruit and kg:" />
