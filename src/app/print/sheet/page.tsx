@@ -19,7 +19,7 @@ function Column({ rows, start, filled }: { rows: Line[]; start: number; filled?:
     <table className="w-full border-collapse overflow-hidden rounded-lg border border-ink text-[11px]">
       <thead>
         <tr className="bg-brand text-left text-[9px] font-bold text-white uppercase">
-          <th className="w-6 px-1.5 py-1.5">#</th><th className="w-9 px-1">Time</th><th className="px-1">Customer</th><th className="w-9 px-1 text-center">Drink</th><th className="w-11 px-1 text-center">Box no.</th><th className="w-7 px-1 text-center">Ret.</th>{filled && <th className="w-20 px-1">Status</th>}
+          <th className="w-6 px-1.5 py-1.5">#</th><th className="w-9 px-1">Time</th><th className="px-1">Customer</th><th className="w-10 px-1 text-center">Milk</th><th className="w-11 px-1 text-center">Box no.</th><th className="w-7 px-1 text-center">Ret.</th>{filled && <th className="w-20 px-1">Status</th>}
         </tr>
       </thead>
       <tbody>
@@ -129,7 +129,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
           </div>
           {sheet.holiday && <div className="mt-3 rounded-lg bg-red-soft px-3 py-2 text-sm font-bold text-red">Office holiday: {sheet.holiday.name}. No boxes go out.</div>}
           <table className="mt-4 w-full border-collapse overflow-hidden rounded-lg border border-ink text-[12px]">
-            <thead><tr className="bg-brand text-left text-[10px] font-bold text-white uppercase"><th className="px-2 py-1.5">Region</th><th className="px-2 text-right">Customers</th><th className="px-2 text-right">Boxes</th><th className="px-2 text-right">Trial</th><th className="px-2 text-right">Total boxes</th><th className="px-2 text-right">Add-on drink</th><th className="px-2 text-right">On leave</th></tr></thead>
+            <thead><tr className="bg-brand text-left text-[10px] font-bold text-white uppercase"><th className="px-2 py-1.5">Region</th><th className="px-2 text-right">Customers</th><th className="px-2 text-right">Boxes</th><th className="px-2 text-right">Trial</th><th className="px-2 text-right">Total boxes</th><th className="px-2 text-right">Butter milk</th><th className="px-2 text-right">On leave</th></tr></thead>
             <tbody className="tabular-nums">
               {perRegion.map((r) => <tr key={r.name} className="border-t border-line"><td className="px-2 py-1.5 font-semibold">{r.name}</td><td className="px-2 text-right">{r.customers}</td><td className="px-2 text-right">{r.boxes}</td><td className="px-2 text-right">{r.trials}</td><td className="px-2 text-right font-bold">{r.total}</td><td className="px-2 text-right">{r.drinks || '–'}</td><td className="px-2 text-right">{r.leave || '–'}</td></tr>)}
               <tr className="border-t-2 border-ink bg-brand-soft font-bold"><td className="px-2 py-1.5">Total</td><td className="px-2 text-right">{tot.customers}</td><td className="px-2 text-right">{tot.boxes}</td><td className="px-2 text-right">{tot.trials}</td><td className="px-2 text-right text-base">{tot.total}</td><td className="px-2 text-right">{tot.drinks || '–'}</td><td className="px-2 text-right">{tot.leave || '–'}</td></tr>
@@ -145,7 +145,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
                 {sheet.menu.note && <div><b>Note:</b> {sheet.menu.note}</div>}
               </div>
             ) : <div className="text-red">Menu not added yet</div>}
-            <div className="mt-1.5"><b>Add-on drink:</b> {tot.drinks ? `${tot.drinks} bottle${tot.drinks > 1 ? 's' : ''}` : 'none today (Mon, Wed, Fri only)'}</div>
+            <div className="mt-1.5"><b>Butter milk (add-on drink):</b> {tot.drinks ? `${tot.drinks} bottle${tot.drinks > 1 ? 's' : ''}` : 'none today (Mon, Wed, Fri only)'}</div>
           </div>
           <div className="mt-4 grid grid-cols-3 gap-3">
             <Weights title="Raw fruit came in" rows={raw} empty="Write fruit and kg:" />
@@ -204,7 +204,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
             <div className="mt-4 grid grid-cols-4 gap-2.5">
               {[
                 [rows.length, 'Boxes', 'bg-brand-soft'],
-                [bm, 'Add-on drink', 'bg-[#fbe4ef]'],
+                [bm, 'Butter milk', 'bg-[#fbe4ef]'],
                 [trials.length, 'Trial box', 'bg-tur-soft'],
                 [swaps, 'Customizations', 'bg-red-soft'],
               ].map(([n, l, c]) => (
