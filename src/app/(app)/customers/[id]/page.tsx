@@ -189,6 +189,7 @@ export default async function CustomerProfile({ params, searchParams }: { params
           )}
           <Card title="Customer details">
             <Row k="Foods to avoid" v={lead.avoidFoods ?? '—'} />
+            <Row k="Salad to avoid" v={lead.avoidSalad ?? '—'} />
             <Row k="Health issues" v={lead.healthNotes ?? '—'} />
             <Row k="Date of birth" v={lead.dob ? fmtDay(lead.dob) : '—'} />
             <Row k="Time slot" v={lead.slot ?? '—'} />

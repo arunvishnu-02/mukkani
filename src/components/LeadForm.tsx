@@ -37,6 +37,7 @@ export function LeadFields({ lead, regions, slots }: { lead?: Lead | null; regio
         <div><label className="label">Delivery time</label><input type="time" name="deliveryTime" className="input" defaultValue={lead?.deliveryTime ?? ''} /></div>
       </div>
       <div><label className="label">Foods to avoid *</label><input name="avoidFoods" required className="input" placeholder="For example: banana, papaya. Type None if nothing" defaultValue={lead?.avoidFoods ?? ''} /></div>
+      <div><label className="label">Salad to avoid</label><input name="avoidSalad" className="input" placeholder="For example: peanut, onion. Leave empty if nothing" defaultValue={lead?.avoidSalad ?? ''} /></div>
       <div><label className="label">Health issues *</label><input name="healthNotes" required className="input" placeholder="For example: sugar patient. Type None if nothing" defaultValue={lead?.healthNotes ?? ''} /></div>
       <div><label className="label">Notes</label><textarea name="notes" rows={2} className="input" defaultValue={lead?.notes ?? ''} /></div>
     </>

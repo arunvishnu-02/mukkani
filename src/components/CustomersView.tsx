@@ -119,6 +119,7 @@ export async function CustomersView({ base, sp, kitchen }: { base: string; sp: R
             </ul>
             <div className="rounded-lg bg-s2 px-3 py-2.5 text-[13px]">
               <div><span className="font-semibold">Foods to avoid:</span> {selected.avoidFoods ?? '—'}</div>
+              <div><span className="font-semibold">Salad to avoid:</span> {selected.avoidSalad ?? '—'}</div>
               <div><span className="font-semibold">Health:</span> {selected.healthNotes ?? '—'}</div>
               <div><span className="font-semibold">Address:</span> {selected.address ?? '—'}</div>
               <div><span className="font-semibold">Since:</span> {fmtDay(selected.createdAt)}</div>

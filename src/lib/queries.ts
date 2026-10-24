@@ -2,7 +2,7 @@ import 'server-only'
 import { cache } from 'react'
 import { db } from '@/lib/db'
 import { addDays, day, isSunday, keyOf } from '@/lib/dates'
-import { matchSwaps, splitList, type Swap } from '@/lib/menu'
+import { hasSwap, matchSwaps, splitList, type Swap } from '@/lib/menu'
 import { isButtermilkDay, planPackage, type PackagePlan } from '@/lib/plan'
 import type { Prisma } from '@/generated/prisma/client'
 
@@ -143,7 +143,7 @@ export async function daySheet(date: Date) {
         return d && (d.kind === 'planned' || d.kind === 'delivered' || d.kind === 'leave' || d.kind === 'notDelivered')
       })
   const menuFruits = splitList(menu?.fruits)
-  const swaps = menu ? matchSwaps([...due.map((r) => r.pkg.lead), ...trials.map((t) => t.lead)], menuFruits, splitList(menu.swapFruits)) : new Map<string, Swap>()
+  const swaps = menu ? matchSwaps([...due.map((r) => r.pkg.lead), ...trials.map((t) => t.lead)], menuFruits, splitList(menu.swapFruits), { menu: menu.salad, swapTo: menu.swapSalad }) : new Map<string, Swap>()
   const rows: SheetRow[] = due.map(({ pkg, plan }) => {
     const d = plan.dayOn(date)!
     const a = att.get(pkg.leadId)
@@ -169,7 +169,7 @@ export async function daySheet(date: Date) {
     paused,
     boxes,
     monthly: rows.filter((r) => !r.absent).length,
-    swapCount: [...swaps.values()].filter((s) => s.swapTo).length,
+    swapCount: [...swaps.values()].filter((s) => hasSwap(s)).length,
     buttermilk: rows.reduce((a, r) => a + (r.absent ? 0 : r.bm), 0),
     altBoxes: altBoxes.length,
     entered: rows.filter((r) => r.attendance).length + trials.filter((t) => att.has(t.leadId)).length,

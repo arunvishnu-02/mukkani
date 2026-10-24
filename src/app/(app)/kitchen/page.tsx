@@ -6,6 +6,7 @@ import { daySheet, groupByRegion, swapTotals } from '@/lib/queries'
 import { lateAdds, dueCalls } from '@/lib/kitchen'
 import { appSettings } from '@/lib/settings'
 import { stockToday } from '@/lib/stock'
+import { hasSwap } from '@/lib/menu'
 import { dayClose, kitchenLate, KITCHEN_BY } from '@/lib/dayclose'
 import { DayClose } from '@/components/DayClose'
 import { Bar, Card, Chip, Empty, PageHeader, Tile, Tiles } from '@/components/ui'
@@ -74,7 +75,7 @@ export default async function KitchenDashboard() {
                     return (
                       <tr key={name}>
                         <td className="td font-semibold">{name}</td><td className="td">{m.length}</td><td className="td">{t.length}</td>
-                        <td className="td">{m.filter((r) => r.swap?.swapTo).length + t.filter((x) => x.swap?.swapTo).length}</td>
+                        <td className="td">{m.filter((r) => hasSwap(r.swap)).length + t.filter((x) => hasSwap(x.swap)).length}</td>
                         <td className="td">{m.reduce((a, r) => a + r.bm, 0)}</td><td className="td font-bold">{m.length + t.length}</td>
                         <td className="td"><a href={`/print/sheet?region=${encodeURIComponent(name)}`} target="_blank" rel="noreferrer" className="text-[13px] font-semibold text-sky">Print</a></td>
                       </tr>

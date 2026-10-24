@@ -85,7 +85,7 @@ export default async function CustomerCalls({ searchParams }: { searchParams: Pr
                   <td className="td">Month {d.pkg.number}</td>
                   <td className="td"><Chip label={d.renewal ? 'Day 26 · Renewal' : `Day ${d.dayNo}`} tone={d.renewal ? 'leaf' : 'sky'} /></td>
                   <td className={`td ${d.date < today ? 'font-semibold text-red' : ''}`}>{d.date < today ? <>{fmtWeekday(d.date)}<div className="text-[11px]">overdue</div></> : 'Today'}</td>
-                  <td className="td max-w-48 text-muted">{d.pkg.lead.avoidFoods ?? '—'}</td>
+                  <td className="td max-w-48 text-muted">{[d.pkg.lead.avoidFoods, d.pkg.lead.avoidSalad && `Salad: ${d.pkg.lead.avoidSalad}`].filter(Boolean).join(' · ') || '—'}</td>
                   <td className="td"><Link href={`${link(kind[0], region)}&call=${d.pkg.id}`} scroll={false} className="btn btn-sm">Log call</Link></td>
                 </tr>
               ))}

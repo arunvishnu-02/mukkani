@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { addDays, day, dayInput, fmtWeekday, isSunday, parseDay } from '@/lib/dates'
-import { splitList } from '@/lib/menu'
+import { fruitLine, saladLine, splitList } from '@/lib/menu'
 import { daySheet, swapTotals } from '@/lib/queries'
 import { appSettings } from '@/lib/settings'
 import { isButtermilkDay } from '@/lib/plan'
@@ -92,7 +92,8 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
                   <div>
                     <span className="label">3. Customization fruit (optional)</span>
                     <Checks name="swapFruits" options={st.fruits} values={splitList(menu?.swapFruits)} />
-                    <p className="mt-1.5 text-xs text-muted">Tick a few fruits that are NOT in step 1. A customer who can&apos;t eat today&apos;s fruit gets one of these instead (customization).</p>
+                    <div className="mt-3"><label className="label" htmlFor="swap-salad">Salad given instead (optional)</label><input id="swap-salad" name="swapSalad" className="input" defaultValue={menu?.swapSalad ?? ''} placeholder="For example: plain cucumber and carrot" /></div>
+                    <p className="mt-1.5 text-xs text-muted">Tick a few fruits that are NOT in step 1. A customer who can&apos;t eat today&apos;s fruit gets one of these instead (customization). A customer who avoids something in the salad (from their Salad to avoid) gets the salad given instead.</p>
                   </div>
                   <div><label className="label">4. Note for kitchen (optional)</label><textarea name="note" rows={2} className="input" defaultValue={menu?.note ?? ''} /></div>
                   {kitchenWait && kitchenWait.missing.length > 0 ? <button type="button" disabled className="btn w-full opacity-50">Waiting for the kitchen</button> : <button className="btn w-full">Save menu</button>}
@@ -121,9 +122,12 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
                       {swaps.map(({ lead, swap }) => (
                         <tr key={lead.id}>
                           <td className="td"><Who name={lead.name} sub={lead.region?.name ?? lead.phone} href={`/customers/${lead.id}`} /></td>
-                          <td className="td text-muted">{[lead.avoidFoods, lead.healthNotes].filter(Boolean).join(' · ')}</td>
-                          <td className="td">{swap.avoids.join(', ')}</td>
-                          <td className="td">{swap.swapTo ? <Chip label={swap.swapTo} tone="brand" /> : <Chip label="Add a customization fruit" tone="red" />}</td>
+                          <td className="td text-muted">{[lead.avoidFoods, lead.avoidSalad && `Salad: ${lead.avoidSalad}`, lead.healthNotes].filter(Boolean).join(' · ')}</td>
+                          <td className="td">{[...swap.avoids, ...swap.saladAvoids.map((x) => `${x} (salad)`)].join(', ')}</td>
+                          <td className="td"><div className="flex flex-wrap gap-1">
+                            {swap.avoids.length > 0 && (swap.swapTo ? <Chip label={swap.swapTo} tone="brand" /> : <Chip label="Add a customization fruit" tone="red" />)}
+                            {swap.saladAvoids.length > 0 && (swap.saladTo ? <Chip label={`Salad: ${swap.saladTo}`} tone="brand" /> : <Chip label="Add a salad given instead" tone="red" />)}
+                          </div></td>
                         </tr>
                       ))}
                     </tbody>

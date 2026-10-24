@@ -17,7 +17,9 @@ export async function GET() {
     ['Harini S', '94432 55871', '90034 77120', 'WhatsApp', region(1), '', '', slot(1), '', '', 'Wants a trial box first', next],
     ['Rishi K', '90034 77120', '', 'Google Business', region(2), '4, Main Road', '15/08/1988', '', 'Banana', '', '', ''],
   ]
-  const csv = '\uFEFF' + rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(',')).join('\r\n') + '\r\n'
+  // The last column is Salad to avoid; one example row has it filled.
+  const withSalad = rows.map((r, i) => (i === 0 ? r : [...r, i === 1 ? 'Peanut' : '']))
+  const csv = '\uFEFF' + withSalad.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(',')).join('\r\n') + '\r\n'
   return new Response(csv, {
     headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="mukkani-leads-sample.csv"', 'Cache-Control': 'no-store' },
   })

@@ -10,6 +10,7 @@ import { isButtermilkDay } from '@/lib/plan'
 import { DateField } from '@/components/DateField'
 import { LeaveDrawer } from '@/components/Leave'
 import { SheetOrder } from '@/components/SheetOrder'
+import { saladLine } from '@/lib/menu'
 import { DayClose } from '@/components/DayClose'
 import { salesClose, salesDayToFinish } from '@/lib/salesclose'
 import { db } from '@/lib/db'
@@ -61,6 +62,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
       tags: [
         ...(r.isNew ? ([['NEW', 'leaf']] as Row['tags']) : []),
         ...(r.swap?.swapTo ? ([[`Customization: ${r.swap.swapTo}`, 'warn']] as Row['tags']) : []),
+        ...(r.swap?.saladAvoids.length ? ([[saladLine(r.swap), 'warn']] as Row['tags']) : []),
         ...(r.bm > 0 ? ([[`Butter milk ×${r.bm}`, 'sky']] as Row['tags']) : []),
         [r.pkg.boxesPerDay > 1 ? `${r.pkg.boxesPerDay} boxes a day · box ${r.dayNo ?? '-'} of 26` : `Day ${r.dayNo ?? '-'}`, 'brand'],
       ] as Row['tags'],
@@ -78,7 +80,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
       leadId: t.trial.leadId,
       name: t.trial.lead.name,
       time: t.trial.lead.deliveryTime ?? t.trial.slot,
-      tags: [['TRIAL', 'sky'] as Row['tags'][number], ...(t.swap?.swapTo ? ([[`Customization: ${t.swap.swapTo}`, 'warn']] as Row['tags']) : [])],
+      tags: [['TRIAL', 'sky'] as Row['tags'][number], ...(t.swap?.swapTo ? ([[`Customization: ${t.swap.swapTo}`, 'warn']] as Row['tags']) : []), ...(t.swap?.saladAvoids.length ? ([[saladLine(t.swap), 'warn']] as Row['tags']) : [])],
       bm: 0,
       altBox: null,
       status: t.attendance?.status ?? null,

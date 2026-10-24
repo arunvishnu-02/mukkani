@@ -31,8 +31,8 @@ export async function GET(req: Request, ctx: RouteContext<'/api/export/[kind]'>)
 
   if (kind === 'leads') {
     const leads = await db.lead.findMany({ include: { region: true, owner: true }, orderBy: { createdAt: 'desc' } })
-    head = ['Name', 'Phone', 'Category', 'Not interested reason', 'Source', 'Region', 'Address', 'Slot', 'Delivery time', 'Foods to avoid', 'Health issues', 'Date of birth', 'Sales', 'Next call', 'Added on']
-    rows = leads.map((l) => [l.name, l.phone, LEAD_STATUS[l.status][0], l.notInterestedReason, SOURCE[l.source], l.region?.name, l.address, l.slot, l.deliveryTime, l.avoidFoods, l.healthNotes, d(l.dob), l.owner?.name, d(l.nextFollowUpAt), d(l.createdAt)])
+    head = ['Name', 'Phone', 'Category', 'Not interested reason', 'Source', 'Region', 'Address', 'Slot', 'Delivery time', 'Foods to avoid', 'Salad to avoid', 'Health issues', 'Date of birth', 'Sales', 'Next call', 'Added on']
+    rows = leads.map((l) => [l.name, l.phone, LEAD_STATUS[l.status][0], l.notInterestedReason, SOURCE[l.source], l.region?.name, l.address, l.slot, l.deliveryTime, l.avoidFoods, l.avoidSalad, l.healthNotes, d(l.dob), l.owner?.name, d(l.nextFollowUpAt), d(l.createdAt)])
   } else if (kind === 'packages') {
     const pkgs = await db.package.findMany({ where: { startDate: { lt: to } }, include: { lead: { include: { region: true } } }, orderBy: { startDate: 'desc' } })
     head = ['Customer', 'Phone', 'Region', 'Month no.', 'Start date', 'Status', 'Price', 'Add-on drink bottles', 'Add-on drink price', 'Paid', 'Paid on']

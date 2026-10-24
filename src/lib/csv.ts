@@ -24,7 +24,7 @@ export function parseCsv(text: string): string[][] {
 }
 
 // Columns of the leads import file, in the order of the sample. Only Name and Phone are required.
-export const LEAD_IMPORT_COLUMNS = ['Name', 'Phone', 'Alternate phone', 'Source', 'Region', 'Address', 'Date of birth', 'Time slot', 'Foods to avoid', 'Health issues', 'Notes', 'Next call date'] as const
+export const LEAD_IMPORT_COLUMNS = ['Name', 'Phone', 'Alternate phone', 'Source', 'Region', 'Address', 'Date of birth', 'Time slot', 'Foods to avoid', 'Health issues', 'Notes', 'Next call date', 'Salad to avoid'] as const
 
 // A date typed in a spreadsheet: 2026-10-15, 15/10/2026 or 15-10-2026. Returns YYYY-MM-DD, or null when it is not a date.
 export function sheetDate(v: string): string | null {

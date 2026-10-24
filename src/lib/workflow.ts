@@ -297,6 +297,7 @@ export type InviteAnswers = {
   dob: Date | null
   slot: string | null
   avoidFoods: string | null
+  avoidSalad: string | null
   healthNotes: string | null
   regionId: string | null
   lat: number | null
@@ -323,6 +324,7 @@ export async function submitLeadInvite(token: string, a: InviteAnswers) {
     dob: a.dob,
     slot: a.slot,
     avoidFoods: a.avoidFoods,
+    avoidSalad: a.avoidSalad,
     healthNotes: a.healthNotes,
     regionId: region ?? a.regionId,
     ...(hasPin ? { lat: a.lat, lng: a.lng, accuracyM: a.accuracy == null ? null : Math.round(a.accuracy), locationStatus: 'PIN_SAVED' as const, locationUpdatedAt: new Date() } : {}),

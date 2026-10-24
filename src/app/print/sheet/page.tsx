@@ -3,6 +3,7 @@ import { day, fmtDay, parseDay } from '@/lib/dates'
 import { daySheet, groupByRegion, swapTotals } from '@/lib/queries'
 import { getSettings } from '@/lib/settings'
 import { isButtermilkDay } from '@/lib/plan'
+import { hasSwap, saladLine } from '@/lib/menu'
 import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { dayClose } from '@/lib/dayclose'
@@ -106,6 +107,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
     return { name, customers: on.length, boxes, trials: tr, total: boxes + tr, drinks: on.reduce((a, r) => a + r.bm, 0), takers: takers.length, perWeekDay: takers.reduce((a, r) => a + r.pkg.buttermilkQty, 0), leave: rs.length - on.length }
   })
   const tot = perRegion.reduce((a, r) => ({ customers: a.customers + r.customers, boxes: a.boxes + r.boxes, trials: a.trials + r.trials, total: a.total + r.total, drinks: a.drinks + r.drinks, takers: a.takers + r.takers, perWeekDay: a.perWeekDay + r.perWeekDay, leave: a.leave + r.leave }), { customers: 0, boxes: 0, trials: 0, total: 0, drinks: 0, takers: 0, perWeekDay: 0, leave: 0 })
+  const saladBoxes = [...sheet.rows.filter((r) => !r.absent).map((r) => r.swap), ...sheet.trials.map((t) => t.swap)].filter((x) => x && x.saladAvoids.length > 0).length
   const swapsAll = swapTotals([...sheet.rows.filter((r) => !r.absent).map((r) => r.swap), ...sheet.trials.map((t) => t.swap)])
   const Weights = ({ title, rows, empty }: { title: string; rows: [string, number][]; empty: string }) => (
     <div className="rounded-xl border border-line p-3">
@@ -145,6 +147,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
                 <div><b>1. Today&apos;s fruit:</b> {sheet.menu.fruits}</div>
                 <div><b>2. Salad:</b> {sheet.menu.salad || '—'}</div>
                 <div><b>3. Customization:</b> {sheet.menu.swapFruits || 'none'}{swapsAll.length ? ` · boxes: ${swapsAll.map(([f, n]) => `${f} ${n}`).join(', ')}` : ''}</div>
+                {saladBoxes > 0 && <div><b>Salad customization:</b> {saladBoxes} box{saladBoxes > 1 ? 'es' : ''}{sheet.menu.swapSalad ? ` → ${sheet.menu.swapSalad}` : ' (no salad given instead set)'}</div>}
                 {sheet.menu.note && <div><b>Note:</b> {sheet.menu.note}</div>}
               </div>
             ) : <div className="text-red">Menu not added yet</div>}
@@ -170,6 +173,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
           name: r.lead.name,
           tags: [
             ...(r.swap?.swapTo ? ([[`No ${r.swap.avoids.join(', ')} → ${r.swap.swapTo}`, 'red']] as [string, string][]) : []),
+            ...(r.swap?.saladAvoids.length ? ([[saladLine(r.swap), 'red']] as [string, string][]) : []),
             ...(r.isNew ? ([['New', 'leaf']] as [string, string][]) : []),
             ...(r.boxes > 1 ? ([[`${r.boxes} boxes`, 'red']] as [string, string][]) : []),
             ...(r.dayNo && r.dayNo >= 25 ? ([[`Day ${r.dayNo}`, 'warn']] as [string, string][]) : []),
@@ -183,7 +187,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
         const trials = sheet.trials.filter((t) => (t.trial.lead.region?.name ?? 'No region') === region)
         const leave = sheet.paused.filter((p) => (p.region?.name ?? 'No region') === region)
         const absent = sheet.rows.filter((r) => r.absent && (r.lead.region?.name ?? 'No region') === region)
-        const swaps = rows.filter((r) => r.swap?.swapTo).length + trials.filter((t) => t.swap?.swapTo).length
+        const swaps = rows.filter((r) => hasSwap(r.swap)).length + trials.filter((t) => hasSwap(t.swap)).length
         const bm = rows.reduce((a, r) => a + r.bm, 0)
         const pages: Line[][] = []
         for (let i = 0; i < Math.max(1, lines.length); i += 50) pages.push(lines.slice(i, i + 50))

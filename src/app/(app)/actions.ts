@@ -77,6 +77,7 @@ const leadFields = (form: FormData) => ({
   sourceOther: s(form, 'source') === 'OTHER' ? s(form, 'sourceOther') : null,
   notes: s(form, 'notes'),
   avoidFoods: s(form, 'avoidFoods'),
+  avoidSalad: s(form, 'avoidSalad'),
   healthNotes: s(form, 'healthNotes'),
   dob: date(form, 'dob'),
   slot: s(form, 'slot'),
@@ -141,6 +142,7 @@ export async function importLeads(form: FormData) {
       dob: dob ? parseDay(dob) : null,
       slot: get('Time slot'),
       avoidFoods: get('Foods to avoid'),
+      avoidSalad: get('Salad to avoid'),
       healthNotes: get('Health issues'),
       notes: get('Notes'),
       nextFollowUpAt: next ? parseDay(next) : day(0),
@@ -273,7 +275,7 @@ export async function saveMenuAction(form: FormData) {
     const k = await kitchenBeforeMenu(d, day(0))
     if (k.missing.length) redirect(withError(self, new FlowError(`The kitchen has not entered ${k.missing.map((i) => i.label).join(', ')} for today. The menu can be saved after that. Ask the kitchen manager.`)))
   }
-  const data = { fruits: fruits.join(', '), swapFruits: swaps.join(', '), salad: s(form, 'salad'), note: s(form, 'note'), byId: user.id }
+  const data = { fruits: fruits.join(', '), swapFruits: swaps.join(', '), salad: s(form, 'salad'), swapSalad: s(form, 'swapSalad'), note: s(form, 'note'), byId: user.id }
   await db.menu.upsert({ where: { date: d }, create: { date: d, ...data }, update: data })
   revalidatePath('/', 'layout')
   redirect(`${self}${self.includes('?') ? '&' : '?'}saved=1`)

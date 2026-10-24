@@ -29,6 +29,7 @@ export async function submitInvite(form: FormData) {
     dob: isDay(text('dob')) ? parseDay(text('dob')!) : null,
     slot: text('slot', 40),
     avoidFoods: text('avoidFoods'),
+    avoidSalad: text('avoidSalad', 200),
     healthNotes: text('healthNotes'),
     regionId: region && z.string().uuid().safeParse(region).success ? region : null,
     lat: pin ? lat : null,

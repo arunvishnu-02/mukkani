@@ -115,6 +115,8 @@ model Lead {
   notInterestedReason String?
   notes               String? @db.Text
   avoidFoods          String? @db.Text
+  // Salad items the customer does not eat (peanut, onion...), matched against the day's salad.
+  avoidSalad          String? @db.Text
   healthNotes         String? @db.Text
   dob                 DateTime?      @db.Date
   slot                String?
@@ -274,6 +276,8 @@ model Menu {
   fruits     String   @db.Text
   salad      String?
   swapFruits String   @db.Text
+  // Salad given instead to customers who avoid something in the day's salad.
+  swapSalad  String?
   note       String?  @db.Text
   byId       String? @db.Uuid
   updatedAt  DateTime @updatedAt

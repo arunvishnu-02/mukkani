@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { fruitLine, hasSwap, saladLine } from '@/lib/menu'
 import { requireUser } from '@/lib/auth'
 import { day, dayInput, fmtWeekday, isSunday, parseDay } from '@/lib/dates'
 import { daySheet, groupByRegion } from '@/lib/queries'
@@ -36,7 +37,7 @@ export default async function KitchenBoxes({ searchParams }: { searchParams: Pro
                   <td className="td font-semibold"><Link href={`/customers/${trial.leadId}`} className="hover:underline">{trial.lead.name}</Link></td>
                   <td className="td">{trial.lead.region?.name ?? '—'}</td>
                   <td className="td">{trial.slot ?? '—'}</td>
-                  <td className="td">{swap?.swapTo ? <Chip label={`${swap.avoids.join(', ')} → ${swap.swapTo}`} tone="warn" /> : '—'}</td>
+                  <td className="td">{hasSwap(swap) ? <div className="flex flex-wrap gap-1">{fruitLine(swap) && <Chip label={fruitLine(swap)} tone="warn" />}{saladLine(swap) && <Chip label={saladLine(swap)} tone="warn" />}</div> : '—'}</td>
                   <td className="td text-muted">{[trial.lead.avoidFoods, trial.lead.healthNotes].filter(Boolean).join(' · ') || '—'}</td>
                 </tr>
               ))}
@@ -57,7 +58,7 @@ export default async function KitchenBoxes({ searchParams }: { searchParams: Pro
                   <td className="td font-semibold"><Link href={`/customers/${r.lead.id}`} className="hover:underline">{r.lead.name}</Link>{r.isNew && <span className="ml-1.5"><Chip label="New" tone="leaf" /></span>}</td>
                   <td className="td">{r.lead.deliveryTime ?? r.lead.slot ?? '—'}</td>
                   <td className="td">{r.dayNo}/26</td>
-                  <td className="td">{r.swap?.swapTo ? <Chip label={`${r.swap.avoids.join(', ')} → ${r.swap.swapTo}`} tone="warn" /> : '—'}</td>
+                  <td className="td">{hasSwap(r.swap) ? <div className="flex flex-wrap gap-1">{fruitLine(r.swap) && <Chip label={fruitLine(r.swap)} tone="warn" />}{saladLine(r.swap) && <Chip label={saladLine(r.swap)} tone="warn" />}</div> : '—'}</td>
                   <td className="td">{r.bm || '—'}</td>
                   <td className="td">{r.altBox ?? '—'}</td>
                   <td className="td max-w-64 truncate text-muted">{r.lead.address ?? '—'}</td>

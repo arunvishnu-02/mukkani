@@ -9,6 +9,7 @@ import { lateAdds } from '@/lib/kitchen'
 import { SheetOrder } from '@/components/SheetOrder'
 import { DayClose } from '@/components/DayClose'
 import { isButtermilkDay } from '@/lib/plan'
+import { saladLine } from '@/lib/menu'
 import { dayClose } from '@/lib/dayclose'
 import { DateField } from '@/components/DateField'
 
@@ -92,6 +93,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
                   <td className="td">
                     <Link href={`/customers/${r.lead.id}`} className="font-semibold hover:underline">{r.lead.name}</Link>
                     {r.swap?.swapTo && <span className="ml-1.5"><Chip label={`Customization: ${r.swap.swapTo}`} tone="warn" /></span>}
+                    {r.swap?.saladAvoids.length ? <span className="ml-1.5"><Chip label={saladLine(r.swap)} tone="warn" /></span> : null}
                     {r.isNew && <span className="ml-1.5"><Chip label="New" tone="leaf" /></span>}
                     {r.altBox && <span className="ml-1.5 text-[11px] font-bold text-sky">ALT BOX</span>}
                   </td>

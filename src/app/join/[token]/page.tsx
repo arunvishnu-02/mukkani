@@ -54,6 +54,7 @@ export default async function JoinPage({ params, searchParams }: { params: Promi
             </div>
             <div><label className="label">Date of birth *</label><DateField name="dob" required birthday /></div>
             <div><label className="label" htmlFor="j-avoid">Fruits or foods you do not eat *</label><input id="j-avoid" name="avoidFoods" required className="input" placeholder="For example: banana, papaya. Type None if nothing" /></div>
+            <div><label className="label" htmlFor="j-salad">Salad items you do not eat</label><input id="j-salad" name="avoidSalad" className="input" placeholder="For example: peanut, onion. Leave empty if nothing" /></div>
             <div><label className="label" htmlFor="j-health">Any health condition we should know *</label><input id="j-health" name="healthNotes" required className="input" placeholder="For example: diabetes. Type None if nothing" /></div>
             <button className="btn w-full py-3.5 text-base">Submit</button>
             <p className="text-center text-xs text-muted">We use these details only for your Mukkani deliveries.</p>
