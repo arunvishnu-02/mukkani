@@ -19,25 +19,31 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const last = new Date(Date.UTC(y, m, 0))
   const gridStart = addDays(first, -((first.getUTCDay() + 6) % 7))
   const canSet = user.role !== 'KITCHEN'
-  const [running, trials, menus, dobs, holidays] = await Promise.all([
+  const [running, trials, menus, dobs, holidays, delivered] = await Promise.all([
     runningPackages(today),
     db.trialBox.findMany({ where: { deliveryDate: { gte: first, lte: last } }, select: { deliveryDate: true } }),
     db.menu.findMany({ where: { date: { gte: first, lte: last } }, select: { date: true } }),
     db.lead.findMany({ where: { dob: { not: null }, status: { not: 'NOT_INTERESTED' } }, select: { dob: true } }),
     db.holiday.findMany({ where: { date: { gte: addDays(first, -7) } }, orderBy: { date: 'asc' } }),
+    // Past days show what was really delivered (every pack, finished or not), not the packs still running now.
+    db.attendance.findMany({ where: { date: { gte: gridStart, lt: today }, status: 'DELIVERED' }, select: { date: true, boxes: true } }),
   ])
+  const deliveredOn = new Map<string, number>()
+  for (const a of delivered) deliveredOn.set(keyOf(a.date), (deliveredOn.get(keyOf(a.date)) ?? 0) + (a.boxes ?? 1))
   const holidayOn = (d: Date) => holidays.find((h) => h.date.getTime() === d.getTime())
   const self = `/calendar${sp.m ? `?m=${sp.m}` : ''}`
   const cells: Date[] = []
   for (let d = gridStart; d <= last || cells.length % 7 !== 0; d = addDays(d, 1)) cells.push(d)
   const count = (d: Date) => {
+    const past = d < today
     let boxes = 0
     let ends = 0
     for (const r of running) {
       const x = r.plan.dayOn(d)
-      if (x && (x.kind === 'planned' || x.kind === 'delivered')) boxes++
-      if (r.plan.end && r.plan.end.getTime() === d.getTime()) ends++
+      if (!past && x && (x.kind === 'planned' || x.kind === 'delivered')) boxes += x.boxes || 1
+      if (!past && r.plan.end && r.plan.end.getTime() === d.getTime()) ends++
     }
+    if (past) boxes = deliveredOn.get(keyOf(d)) ?? 0
     const t = trials.filter((x) => x.deliveryDate.getTime() === d.getTime()).length
     const b = dobs.filter((x) => x.dob!.getUTCDate() === d.getUTCDate() && x.dob!.getUTCMonth() === d.getUTCMonth()).length
     return { boxes: boxes + t, trials: t, ends, birthdays: b, menu: menus.some((x) => x.date.getTime() === d.getTime()) }
@@ -46,7 +52,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const next = keyOf(new Date(Date.UTC(y, m, 1))).slice(0, 7)
   return (
     <>
-      <PageHeader title={MONTH.format(first)} crumb="Calendar" sub="Boxes planned each day (monthly and trial), trials, last days of packages and birthdays. Sunday and office holidays have no delivery.">
+      <PageHeader title={MONTH.format(first)} crumb="Calendar" sub="Boxes delivered on past days and planned for coming days (monthly and trial), trials, last days of packages and birthdays. Sunday and office holidays have no delivery.">
         <div className="flex gap-2">
           <Link href={`/calendar?m=${prev}`} className="btn-secondary btn-sm">Previous</Link>
           <Link href="/calendar" className="btn-secondary btn-sm">Today</Link>
