@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { addDays, day, dayInput, fmtWeekday, parseDay } from '@/lib/dates'
 import { WASTE_REASONS } from '@/lib/labels'
 import { appSettings } from '@/lib/settings'
+import { splitList } from '@/lib/menu'
 import { Bar, Callout, Card, PageHeader, Pills, Tile, Tiles } from '@/components/ui'
 import { dayMarkAction, saveWastageAction } from '../actions'
 import { DateField } from '@/components/DateField'
@@ -19,7 +20,8 @@ export default async function WastagePage({ searchParams }: { searchParams: Prom
   const monday = addDays(date, -((date.getUTCDay() + 6) % 7))
   const monthStart = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1))
   const st = await appSettings()
-  const [rows, week, month, used, noWaste] = await Promise.all([
+  const [menu, rows, week, month, used, noWaste] = await Promise.all([
+    db.menu.findUnique({ where: { date } }),
     db.wastage.findMany({ where: { date } }),
     db.wastage.findMany({ where: { date: { gte: monday, lt: addDays(monday, 7) } } }),
     db.wastage.aggregate({ where: { date: { gte: monthStart, lte: date } }, _sum: { wasteKg: true } }),
@@ -27,6 +29,10 @@ export default async function WastagePage({ searchParams }: { searchParams: Prom
     db.dayMark.findUnique({ where: { date_kind: { date, kind: 'NO_WASTAGE' } } }),
   ])
   const by = new Map(rows.map((r) => [r.fruit, r]))
+  // The menu fruits of the day come first and are marked, so it is clear which fruits were cut.
+  const onMenu = new Set(splitList(menu?.fruits))
+  const swapOnly = new Set(splitList(menu?.swapFruits))
+  const fruitList = [...st.fruits].sort((a, b) => Number(onMenu.has(b)) - Number(onMenu.has(a)) || Number(swapOnly.has(b)) - Number(swapOnly.has(a)))
   const total = rows.reduce((a, r) => a + r.wasteKg, 0)
   const cut = rows.reduce((a, r) => a + r.cutKg, 0)
   const sumReason = (re: string) => rows.filter((r) => r.reason === re || r.reason.startsWith(`${re}:`)).reduce((a, r) => a + r.wasteKg, 0)
@@ -48,6 +54,16 @@ export default async function WastagePage({ searchParams }: { searchParams: Prom
             : <><span className="flex-1">Wastage for {fmtWeekday(date)} is not entered. Fill the table, or if nothing was wasted, tap the button.</span><button className="btn btn-sm">No wastage today</button></>}
         </form>
       )}
+      <div className="rounded-[10px] bg-leaf-soft px-4 py-3 text-[13px]">
+        <div className="mb-1 text-xs font-bold tracking-wide text-leaf uppercase">Menu · {fmtWeekday(date)}</div>
+        {menu ? (
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+            <span><b>Fruits:</b> {menu.fruits}</span>
+            <span><b>Salad:</b> {menu.salad || '—'}</span>
+            {menu.swapFruits && <span><b>Given instead:</b> {menu.swapFruits}</span>}
+          </div>
+        ) : <span className="font-semibold text-red">Menu not added for this day yet. Ask sales.</span>}
+      </div>
       <Tiles cols={4}>
         <Tile label={date.getTime() === day(0).getTime() ? 'Wastage today' : `Wastage ${fmtWeekday(date)}`} value={`${r1(total)} kg`} sub={cut ? `${Math.round((total / cut) * 100)}% of fruit cut` : undefined} tone="red" />
         <Tile label="Cutting waste" value={`${r1(sumReason('Cutting waste'))} kg`} sub="peel, seeds, ends" />
@@ -68,12 +84,12 @@ export default async function WastagePage({ searchParams }: { searchParams: Prom
           <table className="w-full">
             <thead><tr><th className="th">Fruit</th><th className="th">Cut today (kg)</th><th className="th">Waste (kg)</th><th className="th">Waste %</th><th className="th">Reason</th></tr></thead>
             <tbody>
-              {st.fruits.map((f) => {
+              {fruitList.map((f) => {
                 const w = by.get(f)
                 const c = cutDefault(f)
                 return (
-                  <tr key={f}>
-                    <td className="td font-semibold">{f}<input type="hidden" name="fruit" value={f} /></td>
+                  <tr key={f} className={onMenu.has(f) ? "bg-leaf-soft/40" : ""}>
+                    <td className="td font-semibold">{f}{onMenu.has(f) ? <span className="ml-2 rounded-full bg-leaf-soft px-2 py-0.5 text-[11px] font-semibold text-leaf">On menu</span> : swapOnly.has(f) ? <span className="ml-2 rounded-full bg-tur-soft px-2 py-0.5 text-[11px] font-semibold text-warn">Given instead</span> : null}<input type="hidden" name="fruit" value={f} /></td>
                     <td className="td"><input name={`cut_${f}`} type="number" step="0.1" min="0" defaultValue={c || ''} className="input w-20 px-2 py-1.5" aria-label={`${f} cut`} /></td>
                     <td className="td"><input name={`waste_${f}`} type="number" step="0.1" min="0" defaultValue={w?.wasteKg ?? ''} className="input w-20 px-2 py-1.5" aria-label={`${f} waste`} /></td>
                     <td className="td">{w && w.cutKg ? `${Math.round((w.wasteKg / w.cutKg) * 100)}%` : '–'}</td>
