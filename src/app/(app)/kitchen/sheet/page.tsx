@@ -29,6 +29,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
     <>
       <PageHeader title={date.getTime() === day(0).getTime() ? "Today's attendance sheet" : `Attendance sheet ${fmtWeekday(date)}`} crumb="Delivery attendance" sub="Print at 3 AM. After delivery, write the attendance on the paper. Sales enters it in the dashboard after 9 AM.">
         <Link href={`${self}&leave=1`} scroll={false} className="btn-secondary">Mark leave</Link>
+        <a href={`/print/sheet?${q}&summary=1`} target="_blank" rel="noreferrer" className="btn-secondary" title="One page: boxes of all regions, menu, add-on drink, fruit and wastage">Print overall summary</a>
         <a href={`/print/sheet?${q}&filled=1`} target="_blank" rel="noreferrer" className="btn-secondary" title="The attendance as entered: delivered, not delivered, box back">Print entered attendance</a>
         <a href={`/print/sheet?${q}`} target="_blank" rel="noreferrer" className="btn">Print all regions</a>
       </PageHeader>

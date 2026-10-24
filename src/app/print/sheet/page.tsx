@@ -48,6 +48,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
   const date = sp.date ? parseDay(sp.date) : day(0)
   // filled=1: the attendance as entered (delivered, not delivered, box back), to print after delivery.
   const filled = sp.filled === '1'
+  const onlySummary = sp.summary === '1'
   // The kitchen manager takes the next sheet only after the day's work is filled (stock, wastage, staff, menu).
   const user = await requireUser()
   if (user.role === 'KITCHEN' && !filled && date >= day(0)) {
@@ -160,7 +161,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
           <div className="-mx-9 bg-s2 px-9 py-2 text-[9px] text-muted">Mukkani · Fresh fruit and salad boxes · {st.address} · {st.businessPhone}</div>
         </div>
       )}
-      {regions.flatMap(([region, rows]) => {
+      {!onlySummary && regions.flatMap(([region, rows]) => {
         const lines: Line[] = rows.map((r) => ({
           time: r.lead.deliveryTime,
           name: r.lead.name,

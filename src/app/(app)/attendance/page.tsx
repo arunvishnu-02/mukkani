@@ -110,6 +110,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
     <>
       <PageHeader title="Enter today's attendance" crumb="Delivery attendance" sub={`After 9 AM, copy the kitchen manager's paper sheet into the dashboard. ${fmtWeekday(date)}`}>
         <Link href={`${self}&leave=1`} scroll={false} className="btn-secondary btn-sm">Mark leave</Link>
+        <a href={`/print/sheet?date=${dayInput(date)}&summary=1`} target="_blank" rel="noreferrer" className="btn-secondary btn-sm">Print overall summary</a>
         <a href={`/print/sheet?date=${dayInput(date)}`} target="_blank" rel="noreferrer" className="btn-secondary btn-sm">Print sheet</a>
         <a href={`/print/sheet?date=${dayInput(date)}&filled=1`} target="_blank" rel="noreferrer" className="btn-secondary btn-sm">Print entered attendance</a>
         <form action="/attendance" className="flex items-center gap-2">
