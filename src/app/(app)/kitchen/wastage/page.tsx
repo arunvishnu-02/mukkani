@@ -32,7 +32,12 @@ export default async function WastagePage({ searchParams }: { searchParams: Prom
   // The menu fruits of the day come first and are marked, so it is clear which fruits were cut.
   const onMenu = new Set(splitList(menu?.fruits))
   const swapOnly = new Set(splitList(menu?.swapFruits))
-  const fruitList = [...st.fruits].sort((a, b) => Number(onMenu.has(b)) - Number(onMenu.has(a)) || Number(swapOnly.has(b)) - Number(swapOnly.has(a)))
+  // Only the fruits of the day: menu fruits, the fruit given instead, and any fruit that already has wastage saved.
+  // Without a menu, or with ?all=1, every fruit is listed.
+  const showAll = !menu || sp.all === '1'
+  const shown = (f: string) => showAll || onMenu.has(f) || swapOnly.has(f) || by.has(f)
+  const fruitList = [...st.fruits].filter(shown).sort((a, b) => Number(onMenu.has(b)) - Number(onMenu.has(a)) || Number(swapOnly.has(b)) - Number(swapOnly.has(a)))
+  const hidden = st.fruits.length - fruitList.length
   const total = rows.reduce((a, r) => a + r.wasteKg, 0)
   const cut = rows.reduce((a, r) => a + r.cutKg, 0)
   const sumReason = (re: string) => rows.filter((r) => r.reason === re || r.reason.startsWith(`${re}:`)).reduce((a, r) => a + r.wasteKg, 0)
@@ -77,7 +82,7 @@ export default async function WastagePage({ searchParams }: { searchParams: Prom
           <div className="flex items-center gap-3 px-5 py-4">
             <div className="flex-1">
               <h2 className="font-display text-lg font-semibold">Wastage · {fmtWeekday(date)}</h2>
-              <p className="text-[13px] text-muted">Weigh the waste after cutting and pick a reason. Leave a fruit blank if it was not cut.</p>
+              <p className="text-[13px] text-muted">Only the fruits of the day's menu are listed. Weigh the waste after cutting and pick a reason. Leave a fruit blank if it was not cut.</p>
             </div>
             <button className="btn">Save wastage</button>
           </div>
@@ -102,6 +107,12 @@ export default async function WastagePage({ searchParams }: { searchParams: Prom
               })}
             </tbody>
           </table>
+          {menu && (
+            <div className="border-t border-line px-5 py-3 text-[13px] text-muted">
+              {showAll ? <a className="font-semibold text-sky" href={`/kitchen/wastage?date=${dayInput(date)}`}>Show only the menu fruits</a>
+                : hidden > 0 && <>Showing only the menu fruits. <a className="font-semibold text-sky" href={`/kitchen/wastage?date=${dayInput(date)}&all=1`}>Show all {st.fruits.length} fruits</a></>}
+            </div>
+          )}
         </form>
         <div className="space-y-4">
           <Card title="This week" sub="Wastage per day (kg)">
