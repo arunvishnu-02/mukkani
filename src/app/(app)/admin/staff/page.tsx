@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { addDays, day, dayInput, keyOf } from '@/lib/dates'
 import { holidaySet } from '@/lib/queries'
+import { KITCHEN_FIRST_FROM } from '@/lib/dayclose'
 import { Callout, Card, Empty, ErrorNote, PageHeader, Tile, Tiles } from '@/components/ui'
 import { saveStaff, setStaffActive } from '../../ops-actions'
 
@@ -27,7 +28,8 @@ export default async function AdminStaffPage({ searchParams }: { searchParams: P
   for (let d = first; d <= last; d = addDays(d, 1)) dates.push(d)
   const of = new Map(days.map((d) => [`${d.staffId}|${keyOf(d.date)}`, d]))
   const off = (d: Date) => d.getUTCDay() === 0 || hol.has(keyOf(d))
-  const worked = dates.filter((d) => !off(d) && d <= today)
+  // Daily staff entry is compulsory from 24 Oct; earlier days are not counted as missing.
+  const worked = dates.filter((d) => !off(d) && d <= today && d >= KITCHEN_FIRST_FROM)
   const prev = keyOf(new Date(Date.UTC(y, m - 2, 1))).slice(0, 7)
   const next = keyOf(new Date(Date.UTC(y, m, 1))).slice(0, 7)
   const self = `/admin/staff?m=${keyOf(first).slice(0, 7)}`
@@ -72,8 +74,8 @@ export default async function AdminStaffPage({ searchParams }: { searchParams: P
                   {dates.map((d) => {
                     const r = of.get(`${s.id}|${keyOf(d)}`)
                     const a = r?.attendance
-                    const label = off(d) && !r ? '' : a === 'ABSENT' ? 'A' : r ? 'P' : d <= today ? '·' : ''
-                    const cls = a === 'ABSENT' ? 'bg-tur-soft font-bold text-warn' : r ? 'bg-leaf-soft font-bold text-leaf' : off(d) ? 'bg-s2' : d <= today ? 'font-bold text-red' : ''
+                    const label = off(d) && !r ? '' : a === 'ABSENT' ? 'A' : r ? 'P' : d <= today && d >= KITCHEN_FIRST_FROM ? '·' : ''
+                    const cls = a === 'ABSENT' ? 'bg-tur-soft font-bold text-warn' : r ? 'bg-leaf-soft font-bold text-leaf' : off(d) ? 'bg-s2' : d <= today && d >= KITCHEN_FIRST_FROM ? 'font-bold text-red' : ''
                     return <td key={keyOf(d)} className={`p-0 ${cls}`}><Link href={`/kitchen/staff?date=${keyOf(d)}`} className="block px-1 py-2" title={keyOf(d)}>{label}</Link></td>
                   })}
                   <td className="td font-semibold text-leaf">{present}</td><td className="td font-semibold text-warn">{absent || '–'}</td><td className={`td font-semibold ${missing ? 'text-red' : 'text-muted'}`}>{missing || '–'}</td><td className="td">{s.kind === 'DELIVERY' ? `${km(s.id)} km` : '–'}</td>
