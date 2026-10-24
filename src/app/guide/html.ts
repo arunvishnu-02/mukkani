@@ -223,6 +223,8 @@ footer { color: var(--muted); font-size: 13px; padding-block: 24px 40px; border-
       <ul>
         <li><b>Monthly reports</b>: after 26 boxes, tap <span class="btn g">Send PDF</span>. On a phone, pick WhatsApp and the PDF goes attached.</li>
         <li><b>Arrange order</b> (Delivery attendance): drag customers into the delivery route order, then save.</li>
+        <li><b>A customer who sometimes takes 2 boxes</b> (like Sowmiya): open the customer, in the package box find "Takes more than the usual boxes on a day?", pick the day and 2 boxes, tap Add. That day's sheet and attendance show "2 boxes", and the extra box counts in the 26.</li>
+        <li><b>Salad to avoid</b>: collected on the customer form link and in Add lead. When the day's salad has an item the customer avoids, the sheet shows "No peanut in salad" and the menu page lists them. Add the salad given instead in Daily menu, step 3.</li>
         <li><b>Calendar</b>: add an office holiday with a reason.</li>
         <li><b>Daily issues</b>: write any problem with the department and who will fix it.</li>
         <li><b>Customers › Missing details</b>: fill phones and addresses.</li>

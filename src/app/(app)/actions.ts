@@ -261,6 +261,31 @@ export async function lastBoxAheadAction(form: FormData) {
   redirect(`/reports?made=${encodeURIComponent(pkg.lead.name)}`)
 }
 
+// A customer who sometimes takes 2 boxes: set the day in advance so the sheet shows it and it counts in the 26.
+export async function addBoxPlanAction(form: FormData) {
+  const user = await requireUser(['SALES', 'KITCHEN'])
+  const leadId = z.string().uuid().parse(s(form, 'leadId'))
+  const d = date(form, 'date')
+  const boxes = z.coerce.number().int().min(2).max(3).parse(s(form, 'boxes') ?? 2)
+  const self = back(form, `/customers/${leadId}`)
+  if (!d) redirect(withError(self, new FlowError('Pick the day')))
+  if (d! < day(0)) redirect(withError(self, new FlowError('Pick today or a later day. For a past day, change the boxes in Delivery attendance.')))
+  if (isSunday(d!)) redirect(withError(self, new FlowError('Sunday has no delivery')))
+  await db.boxPlan.upsert({ where: { leadId_date: { leadId, date: d! } }, create: { leadId, date: d!, boxes, byId: user.id }, update: { boxes, byId: user.id } })
+  await log(leadId, 'package', `${boxes} boxes on ${fmtWeekday(d!)}`, 'Asked in advance', user.id)
+  revalidatePath('/', 'layout')
+  redirect(self)
+}
+
+export async function removeBoxPlanAction(form: FormData) {
+  const user = await requireUser(['SALES', 'KITCHEN'])
+  const id = z.string().uuid().parse(s(form, 'id'))
+  const gone = await db.boxPlan.delete({ where: { id } })
+  await log(gone.leadId, 'package', `Extra boxes on ${fmtWeekday(gone.date)} taken back`, null, user.id)
+  revalidatePath('/', 'layout')
+  redirect(back(form, `/customers/${gone.leadId}`))
+}
+
 // Daily menu, added by sales the day before.
 export async function saveMenuAction(form: FormData) {
   const user = await requireUser(['SALES'])

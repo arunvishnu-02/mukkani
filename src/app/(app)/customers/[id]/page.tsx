@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { addDays, day, deliveryDayFrom, fmtDay, fmtTime, fmtWeekday } from '@/lib/dates'
+import { addDays, day, dayInput, deliveryDayFrom, fmtDay, fmtTime, fmtWeekday } from '@/lib/dates'
 import { CUSTOMER_CALL, CUSTOMER_STATUS, LEAD_STATUS, LOCATION_STATUS, PACKAGE_STATUS, RENEWAL, SOURCE, TRIAL_RESULT, TRIAL_STATUS, rupees, sourceLabel } from '@/lib/labels'
 import { holidaySet, planFor, regionsList } from '@/lib/queries'
 import { appSettings, getSettings } from '@/lib/settings'
@@ -10,9 +10,10 @@ import { fill, firstName, waLink } from '@/lib/whatsapp'
 import { Avatar, Callout, Card, Chip, Drawer, ErrorNote, Progress, StatusChip, WaLink } from '@/components/ui'
 import { PackageCalendar } from '@/components/PackageCalendar'
 import { PackageFields } from '@/components/PackageFields'
+import { DateField } from '@/components/DateField'
 import { MapPin } from '@/components/MapPin'
 import { BillPhotos } from '@/components/BillPhotos'
-import { setButtermilkAction, setPackagePaidAction, startPackageAction } from '../../actions'
+import { addBoxPlanAction, removeBoxPlanAction, setButtermilkAction, setPackagePaidAction, startPackageAction } from '../../actions'
 
 function Row({ k, v }: { k: string; v: React.ReactNode }) {
   return (
@@ -60,6 +61,7 @@ export default async function CustomerProfile({ params, searchParams }: { params
     lead.customerStatus === 'INACTIVE' ? 'INACTIVE' : lead.customerStatus === 'PAUSED' && (!lead.pausedUntil || lead.pausedUntil >= today) ? 'PAUSED' : absentToday ? 'ABSENT' : 'ACTIVE'
   const birthday = lead.dob && lead.dob.getUTCDate() === today.getUTCDate() && lead.dob.getUTCMonth() === today.getUTCMonth()
   const self = `/customers/${lead.id}`
+  const boxPlans = pkg && pkg.status === 'ACTIVE' ? await db.boxPlan.findMany({ where: { leadId: lead.id, date: { gte: today } }, orderBy: { date: 'asc' } }) : []
   // Next month: the delivery day after this pack's last day, never before tomorrow.
   const latest = pkg ? !lead.packages.some((p) => p.number > pkg.number) : false
   const nextStart = deliveryDayFrom(plan?.end && addDays(plan.end, 1) > day(1) ? addDays(plan.end, 1) : day(1))
@@ -147,6 +149,29 @@ export default async function CustomerProfile({ params, searchParams }: { params
                 </div>
               )}
               <PackageCalendar plan={plan} today={today} />
+              {pkg.status === 'ACTIVE' && (
+                <div className="mt-4 rounded-[10px] border border-line p-3.5">
+                  <div className="mb-2 text-sm font-semibold">Takes more than the usual boxes on a day?</div>
+                  <p className="mb-2.5 text-xs text-muted">Set the day ahead. The sheet shows &quot;2 boxes&quot; that day, and the extra box counts in the 26, so the last day comes earlier.</p>
+                  {boxPlans.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      {boxPlans.map((b) => (
+                        <form key={b.id} action={removeBoxPlanAction} className="flex items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1 text-[13px] font-semibold text-brand">
+                          <input type="hidden" name="id" value={b.id} /><input type="hidden" name="back" value={self} />
+                          {fmtWeekday(b.date)} · {b.boxes} boxes
+                          <button title="Take back" className="text-muted hover:text-red">✕</button>
+                        </form>
+                      ))}
+                    </div>
+                  )}
+                  <form action={addBoxPlanAction} className="flex flex-wrap items-end gap-2.5">
+                    <input type="hidden" name="leadId" value={lead.id} /><input type="hidden" name="back" value={self} />
+                    <div className="w-44"><label className="label">Day</label><DateField name="date" required min={dayInput(today)} compact /></div>
+                    <div className="w-28"><label className="label" htmlFor="box-n">Boxes</label><select id="box-n" name="boxes" className="input"><option value="2">2 boxes</option><option value="3">3 boxes</option></select></div>
+                    <button className="btn-secondary">Add</button>
+                  </form>
+                </div>
+              )}
               {pkg.status === 'ACTIVE' && (
                 <form action={setButtermilkAction} className="mt-4 flex flex-wrap items-end gap-2.5 border-t border-line pt-4">
                   <input type="hidden" name="packageId" value={pkg.id} />

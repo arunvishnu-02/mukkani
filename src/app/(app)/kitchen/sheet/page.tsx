@@ -92,6 +92,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
                   <td className="td">{i + 1}</td>
                   <td className="td">
                     <Link href={`/customers/${r.lead.id}`} className="font-semibold hover:underline">{r.lead.name}</Link>
+                    {r.boxes > 1 && <span className="ml-1.5"><Chip label={`${r.boxes} boxes`} tone="brand" /></span>}
                     {r.swap?.swapTo && <span className="ml-1.5"><Chip label={`Customization: ${r.swap.swapTo}`} tone="warn" /></span>}
                     {r.swap?.saladAvoids.length ? <span className="ml-1.5"><Chip label={saladLine(r.swap)} tone="warn" /></span> : null}
                     {r.isNew && <span className="ml-1.5"><Chip label="New" tone="leaf" /></span>}

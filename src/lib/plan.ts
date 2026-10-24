@@ -31,7 +31,8 @@ export type PackagePlan = {
 export function planPackage(opts: {
   start: Date
   total?: number
-  attendance: { date: Date; status: AttendanceStatus; boxes?: number | null }[]
+  // PLANNED = boxes asked in advance for a day that has not happened (counts like a planned day with that many boxes)
+  attendance: { date: Date; status: AttendanceStatus | 'PLANNED'; boxes?: number | null }[]
   boxesPerDay?: number
   holidays?: Set<string> // office holidays (YYYY-MM-DD): no delivery, like Sunday
   pause?: { from: Date; until: Date | null } | null
@@ -64,7 +65,7 @@ export function planPackage(opts: {
     const st = a?.status
     // The last day only takes the boxes that are left.
     const take = (n: number) => Math.min(Math.max(1, n), total - count)
-    const base = { date: d, carried: false, entered: st != null, boxes: 0 }
+    const base = { date: d, carried: false, entered: st != null && st !== 'PLANNED', boxes: 0 }
     if (off(d)) {
       days.push({ ...base, kind: 'holiday', dayNo: null })
     } else if (st === 'ABSENT' || st === 'NOT_DELIVERED') {
@@ -81,7 +82,7 @@ export function planPackage(opts: {
       days.push({ ...base, kind: 'paused', dayNo: null })
       if (opts.pause!.until == null) break
     } else {
-      const n = take(perDay)
+      const n = take(st === 'PLANNED' ? (a?.boxes ?? perDay) : perDay)
       count += n
       days.push({ ...base, kind: 'planned', dayNo: count, boxes: n, carried: d > originalEnd })
     }

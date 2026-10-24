@@ -147,6 +147,7 @@ model Lead {
   activities       Activity[]
   attendance       Attendance[]
   altBoxes         AltBox[]
+  boxPlans         BoxPlan[]
   calls            CustomerCall[]
 
   @@index([status])
@@ -516,4 +517,19 @@ model DayMark {
   createdAt DateTime @default(now())
 
   @@unique([date, kind])
+}
+
+// A customer who takes more than their usual boxes on one day (asked in advance). It shows on that day's
+// sheet and attendance, counts in the 26, and moves the end date.
+model BoxPlan {
+  id        String   @id @default(uuid()) @db.Uuid
+  leadId    String   @db.Uuid
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  boxes     Int
+  byId      String?  @db.Uuid
+  createdAt DateTime @default(now())
+
+  @@unique([leadId, date])
+  @@index([date])
 }

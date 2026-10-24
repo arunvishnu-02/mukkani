@@ -5,6 +5,7 @@ import { addDays, day, isSunday, keyOf } from '@/lib/dates'
 import { hasSwap, matchSwaps, splitList, type Swap } from '@/lib/menu'
 import { isButtermilkDay, planPackage, type PackagePlan } from '@/lib/plan'
 import type { Prisma } from '@/generated/prisma/client'
+import type { AttendanceStatus } from '@/generated/prisma/enums'
 
 export const leadInclude = {
   region: true,
@@ -50,9 +51,13 @@ const runningAt = cache(async (at: number): Promise<Running[]> => {
     where: { leadId: { in: list.map((p) => p.leadId) }, date: { gte: minStart } },
     select: { leadId: true, date: true, status: true, boxes: true },
   })
-  const byLead = new Map<string, typeof att>()
+  type Entry = { leadId: string; date: Date; status: AttendanceStatus | 'PLANNED'; boxes: number | null }
+  const byLead = new Map<string, Entry[]>()
   for (const a of att) byLead.set(a.leadId, [...(byLead.get(a.leadId) ?? []), a])
   const hol = await holidaySet()
+  // Boxes asked in advance for days still to come (a customer who sometimes takes 2).
+  const asked = await db.boxPlan.findMany({ where: { leadId: { in: list.map((p) => p.leadId) }, date: { gte: today } }, select: { leadId: true, date: true, boxes: true } })
+  for (const b of asked) byLead.set(b.leadId, [...(byLead.get(b.leadId) ?? []), { leadId: b.leadId, date: b.date, status: 'PLANNED' as const, boxes: b.boxes }])
   return list.map((pkg) => ({ pkg, plan: planFor(pkg, byLead.get(pkg.leadId) ?? [], today, hol) }))
 })
 
@@ -81,7 +86,7 @@ function pausedFrom(attendance: { date: Date }[], start: Date, today: Date) {
 
 export function planFor(
   pkg: { startDate: Date; status: string; boxesPerDay?: number; lead: { customerStatus: string; pausedUntil: Date | null } },
-  attendance: { date: Date; status: 'DELIVERED' | 'ABSENT' | 'NOT_DELIVERED'; boxes?: number | null }[],
+  attendance: { date: Date; status: 'DELIVERED' | 'ABSENT' | 'NOT_DELIVERED' | 'PLANNED'; boxes?: number | null }[],
   today = day(0),
   holidays?: Set<string>,
 ) {
@@ -101,7 +106,8 @@ export function planFor(
 export async function packagePlan(packageId: string, today = day(0)) {
   const pkg = await db.package.findUniqueOrThrow({ where: { id: packageId }, include: pkgInclude })
   const att = await db.attendance.findMany({ where: { leadId: pkg.leadId, date: { gte: pkg.startDate } }, select: { date: true, status: true, boxes: true } })
-  return { pkg, plan: planFor(pkg, att, today, await holidaySet()) }
+  const asked = await db.boxPlan.findMany({ where: { leadId: pkg.leadId, date: { gte: today } }, select: { date: true, boxes: true } })
+  return { pkg, plan: planFor(pkg, [...att, ...asked.map((b) => ({ date: b.date, status: 'PLANNED' as const, boxes: b.boxes }))], today, await holidaySet()) }
 }
 
 export type SheetRow = {
