@@ -33,7 +33,7 @@ export default async function KitchenDashboard() {
         <Link href="/kitchen/boxes" className="btn">Today's boxes</Link>
       </PageHeader>
       {lateData.length > 0 && <div className="rounded-[10px] bg-red-soft px-4 py-3 text-[13px] font-semibold text-red">Late: {lateData.map((i) => i.label).join(', ')} should be entered by {KITCHEN_BY}. Sales is waiting to add tomorrow's menu. Admin has been told.</div>}
-      <DayClose work={close.work} sheetDate={nextSheet} items={close.items} />
+      {close.applies && <DayClose work={close.work} sheetDate={nextSheet} items={close.items} />}
       {late.length > 0 && (
         <section className="rounded-[10px] border border-tur bg-tur-soft px-4 py-3">
           <div className="text-sm font-bold text-warn">Added after 2 PM today · {late.length}</div>

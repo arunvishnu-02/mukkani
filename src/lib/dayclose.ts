@@ -15,6 +15,9 @@ export async function workDayBefore(sheetDate: Date) {
 
 // Before the kitchen takes the next day's sheet: stock, wastage and staff of the work day are filled,
 // and sales has added the menu for the sheet's day.
+// The kitchen manager's compulsory daily work starts on this day. Earlier days are not checked.
+export const KITCHEN_FIRST_FROM = new Date(Date.UTC(2026, 9, 24))
+
 export async function dayClose(sheetDate: Date) {
   const work = await workDayBefore(sheetDate)
   const holiday = (await holidaySet()).has(keyOf(sheetDate))
@@ -34,12 +37,11 @@ export async function dayClose(sheetDate: Date) {
     { key: 'staff', label: 'Staff tracking', who: 'Kitchen', done: staffDays >= staff, detail: staff ? `${Math.min(staffDays, staff)} of ${staff} staff` : 'No staff added', href: `/kitchen/staff?date=${w}` },
     ...(holiday ? [] : [{ key: 'menu', label: 'Menu for the sheet day', who: 'Sales' as const, done: !!menu, detail: menu ? menu.fruits : 'Sales has not added it', href: `/menu?date=${keyOf(sheetDate)}` }]),
   ]
-  return { work, items, done: items.every((i) => i.done) }
+  return { work, items, done: items.every((i) => i.done), applies: work >= KITCHEN_FIRST_FROM }
 }
 
 // From 24 Oct the kitchen fills stock, wastage and staff for the day (by 11:30 AM); only then can sales add
 // the next day's menu. Returns the kitchen items still missing for the menu of sheetDate (empty = menu can be added).
-export const KITCHEN_FIRST_FROM = new Date(Date.UTC(2026, 9, 24))
 export const KITCHEN_BY = '11:30 AM'
 export async function kitchenBeforeMenu(sheetDate: Date, today: Date) {
   const close = await dayClose(sheetDate)

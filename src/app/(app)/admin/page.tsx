@@ -69,7 +69,7 @@ export default async function AdminOverview({ searchParams }: { searchParams: Pr
         <a href="/api/export/leads" download className="btn-secondary">Download Excel</a>
         <Link href="/admin/reports" className="btn">Reports</Link>
       </PageHeader>
-      {!close.done && <DayClose work={close.work} sheetDate={nextSheet} items={close.items} />}
+      {close.applies && !close.done && <DayClose work={close.work} sheetDate={nextSheet} items={close.items} />}
       {!sClose.done && <DayClose work={sClose.work} sheetDate={sClose.next} items={sClose.items} what="attendance" />}
       <div className="flex flex-wrap items-center gap-2.5">
         <Tabs items={[['day', 'Today'], ['week', 'This week'], ['month', 'This month']].map(([k, l]) => ({ label: l, href: `/admin?period=${k}`, active: !picked && base.kind === k }))} />

@@ -50,7 +50,7 @@ export async function navBadges(role: string): Promise<Badges> {
     '/admin/dues': { n: dues, tip: 'Dues due by tomorrow or overdue' },
     '/admin/requests': { n: requests, tip: 'Past-day requests waiting for you' },
     '/admin/notices': { n: notices, tip: 'Deleted by sales or the kitchen, not seen yet' },
-    ...(close ? Object.fromEntries(close.items.filter((i) => i.who === 'Kitchen').map((i) => [i.href.split('?')[0], { n: i.done ? 0 : 1, tip: `${i.label}: fill it for today before the next sheet` }])) : {}),
+    ...(close && close.applies ? Object.fromEntries(close.items.filter((i) => i.who === 'Kitchen').map((i) => [i.href.split('?')[0], { n: i.done ? 0 : 1, tip: `${i.label}: fill it for today before the next sheet` }])) : {}),
   }
   return Object.fromEntries(Object.entries(b).filter(([, x]) => x.n > 0))
 }

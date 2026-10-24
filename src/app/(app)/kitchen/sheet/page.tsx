@@ -35,7 +35,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
         <a href={`/print/sheet?${q}`} target="_blank" rel="noreferrer" className="btn">Print all regions</a>
       </PageHeader>
       {sheet.holiday && <Callout tone="warn">Office holiday: {sheet.holiday.name}. No monthly boxes go out.</Callout>}
-      {date >= day(0) && <DayClose work={close.work} sheetDate={date} items={close.items} />}
+      {date >= day(0) && close.applies && <DayClose work={close.work} sheetDate={date} items={close.items} />}
       <ErrorNote error={sp.error} />
       {sp.leave && sp.leave !== '1' && <Callout>{sp.leave}</Callout>}
       {sp.ordered && (

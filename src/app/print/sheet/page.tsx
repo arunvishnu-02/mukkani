@@ -54,7 +54,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
   const user = await requireUser()
   if (user.role === 'KITCHEN' && !filled && date >= day(0)) {
     const close = await dayClose(date)
-    if (!close.done) {
+    if (close.applies && !close.done) {
       // Admin is told once a day which items stopped the sheet.
       const text = `Kitchen could not print the ${fmtDay(date)} sheet`
       if (!(await db.adminNotice.findFirst({ where: { text, createdAt: { gte: new Date(Date.now() - 12 * 3_600_000) } } })))
