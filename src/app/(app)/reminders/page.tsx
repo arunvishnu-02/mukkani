@@ -21,9 +21,8 @@ export default async function RemindersPage({ searchParams }: { searchParams: Pr
     db.package.count({ where: { number: { gt: 1 }, createdAt: { gte: monthStart } } }),
   ])
   const ending = running.filter((r) => r.plan.end && r.plan.end >= today && r.plan.end <= day(7) && r.pkg.lead.customerStatus !== 'PAUSED').sort((a, b) => a.plan.end!.getTime() - b.plan.end!.getTime())
-  // Every running pack ending within 3 days that has not been reminded, including one whose last day was missed earlier,
-  // so the card on the dashboard checklist always leads to a name here.
-  const toSend = running.filter((r) => r.plan.end && r.plan.end <= day(3) && !r.pkg.reminderSentAt && r.pkg.lead.customerStatus !== 'PAUSED').sort((a, b) => a.plan.end!.getTime() - b.plan.end!.getTime())
+  // Every running pack ending within 3 days that has not been reminded; the dashboard checklist counts the same packs.
+  const toSend = running.filter((r) => r.plan.end && r.plan.end >= today && r.plan.end <= day(3) && !r.pkg.reminderSentAt && r.pkg.lead.customerStatus !== 'PAUSED').sort((a, b) => a.plan.end!.getTime() - b.plan.end!.getTime())
   const sent = ending.filter((r) => r.pkg.reminderSentAt)
   const rows = tab === 'send' ? toSend : tab === 'sent' ? sent : ending
   const sample = toSend[0] ?? ending[0]

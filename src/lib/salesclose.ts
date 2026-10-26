@@ -19,16 +19,20 @@ async function nextWorkDay(d: Date) {
 // answers, follow-up calls and trial feedback that were due by then.
 export async function salesClose(work: Date) {
   const next = await nextWorkDay(work)
+  const now = day(0)
   const [sheet, menu, running, ren, calls, trials] = await Promise.all([
     daySheet(work),
     db.menu.findUnique({ where: { date: next } }),
-    runningPackages(work),
+    runningPackages(now),
     renewalList(work),
     db.lead.count({ where: { status: 'FOLLOW_UP', nextFollowUpAt: { lte: work } } }),
     db.trialBox.count({ where: { status: { not: 'DONE' }, deliveryDate: { lte: work } } }),
   ])
   const att = sheet.holiday ? 0 : sheet.rows.filter((r) => !r.attendance && !r.absent).length + sheet.trials.filter((t) => !t.attendance).length
-  const remind = running.filter((r) => r.plan.end && r.plan.end >= work && r.plan.end <= addDays(work, 3) && !r.pkg.reminderSentAt && r.pkg.lead.customerStatus !== 'PAUSED').length
+  // A reminder is still owed when the pack, as it stands today, ends within 3 days of that working day and is not
+  // reminded yet. A pack that has already ended goes to Renewals instead; one whose leave moved the end is not due.
+  const from = work > now ? work : now
+  const remind = running.filter((r) => r.plan.end && r.plan.end >= from && r.plan.end <= addDays(work, 3) && !r.pkg.reminderSentAt && r.pkg.lead.customerStatus !== 'PAUSED').length
   const unanswered = ren.filter((r) => r.finished && !r.decision).length
   const w = keyOf(work)
   const items: CloseItem[] = [
