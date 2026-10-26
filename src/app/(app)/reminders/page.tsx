@@ -20,7 +20,7 @@ export default async function RemindersPage({ searchParams }: { searchParams: Pr
     db.package.count({ where: { reminderSentAt: { gte: day(-6) } } }),
     db.package.count({ where: { number: { gt: 1 }, createdAt: { gte: monthStart } } }),
   ])
-  const ending = running.filter((r) => r.plan.end && r.plan.end >= today && r.plan.end <= day(7)).sort((a, b) => a.plan.end!.getTime() - b.plan.end!.getTime())
+  const ending = running.filter((r) => r.plan.end && r.plan.end >= today && r.plan.end <= day(7) && r.pkg.lead.customerStatus !== 'PAUSED').sort((a, b) => a.plan.end!.getTime() - b.plan.end!.getTime())
   const toSend = ending.filter((r) => r.plan.end! <= day(3) && !r.pkg.reminderSentAt)
   const sent = ending.filter((r) => r.pkg.reminderSentAt)
   const rows = tab === 'send' ? toSend : tab === 'sent' ? sent : ending

@@ -34,7 +34,7 @@ export async function navBadges(role: string): Promise<Badges> {
     sales || kitchen ? renewalList(today).then((x) => x.filter((r) => r.finished && (r.decision == null || r.decision === 'UNDECIDED' || r.decision === 'YES')).length) : none,
   ])
   await kitchenLate(today).catch(() => [])
-  const reminders = running.filter((r) => r.plan.end && r.plan.end >= today && r.plan.end <= day(3) && !r.pkg.reminderSentAt).length
+  const reminders = running.filter((r) => r.plan.end && r.plan.end >= today && r.plan.end <= day(3) && !r.pkg.reminderSentAt && r.pkg.lead.customerStatus !== 'PAUSED').length
   const toEnter = sheet ? sheet.rows.length + sheet.trials.length - sheet.entered : 0
   const b: Badges = {
     '/leads': { n: newLeads, tip: 'New leads today' },

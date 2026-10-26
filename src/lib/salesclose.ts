@@ -28,7 +28,7 @@ export async function salesClose(work: Date) {
     db.trialBox.count({ where: { status: { not: 'DONE' }, deliveryDate: { lte: work } } }),
   ])
   const att = sheet.holiday ? 0 : sheet.rows.filter((r) => !r.attendance && !r.absent).length + sheet.trials.filter((t) => !t.attendance).length
-  const remind = running.filter((r) => r.plan.end && r.plan.end >= work && r.plan.end <= addDays(work, 3) && !r.pkg.reminderSentAt).length
+  const remind = running.filter((r) => r.plan.end && r.plan.end >= work && r.plan.end <= addDays(work, 3) && !r.pkg.reminderSentAt && r.pkg.lead.customerStatus !== 'PAUSED').length
   const unanswered = ren.filter((r) => r.finished && !r.decision).length
   const w = keyOf(work)
   const items: CloseItem[] = [

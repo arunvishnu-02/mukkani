@@ -40,7 +40,7 @@ export default async function SalesDashboard() {
     db.lead.findMany({ orderBy: { createdAt: 'desc' }, take: 6, include: { region: true } }),
   ])
   const total = sheet.rows.length + sheet.trials.length
-  const reminders = running.filter((r) => r.plan.end && r.plan.end >= today && r.plan.end <= day(3) && !r.pkg.reminderSentAt).length
+  const reminders = running.filter((r) => r.plan.end && r.plan.end >= today && r.plan.end <= day(3) && !r.pkg.reminderSentAt && r.pkg.lead.customerStatus !== 'PAUSED').length
   const close = await salesClose(today)
   return (
     <>

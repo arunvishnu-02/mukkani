@@ -48,7 +48,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
       <>
         <PageHeader title="Finish yesterday first" crumb="Delivery attendance" sub={`Today's attendance opens when ${fmtWeekday(prevClose.work)} is finished. Admin has been told what is missing.`} />
         <DayClose work={prevClose.work} sheetDate={date} items={prevClose.items} what="attendance" />
-        <Callout tone="warn">A past day's attendance is locked. To enter it, ask admin to open {fmtWeekday(prevClose.work)} (Past-day requests).</Callout>
+        <Callout tone="warn">Tap the orange card to do the missing work. As soon as it is done, today&apos;s attendance opens by itself.{!prevClose.items.find((i) => i.key === 'att')?.done && <> {fmtWeekday(prevClose.work)}&apos;s attendance is also not entered: ask admin to open that day (Past-day requests).</>}</Callout>
       </>
     )
   }
