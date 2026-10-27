@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { fmtDay, keyOf } from '@/lib/dates'
 import { calendarWeeks, type PackagePlan } from '@/lib/plan'
 
@@ -14,7 +15,7 @@ const STYLE = {
   outside: 'border border-dashed border-line text-line',
 }
 
-export function PackageCalendar({ plan, today }: { plan: PackagePlan; today: Date }) {
+export function PackageCalendar({ plan, today, fixBase }: { plan: PackagePlan; today: Date; fixBase?: string }) {
   const weeks = calendarWeeks(plan)
   const t = keyOf(today)
   return (
@@ -35,15 +36,12 @@ export function PackageCalendar({ plan, today }: { plan: PackagePlan; today: Dat
                 d.kind === 'notDelivered' ? 'Not delivered' :
                 d.kind === 'paused' ? 'Paused' :
                 `Day ${'dayNo' in d ? d.dayNo : ''}${kind === 'carried' ? ' · +1' : ''}${isToday ? ' · Today' : ''}`
-              return (
-                <div
-                  key={keyOf(d.date)}
-                  className={`min-h-12 rounded-lg px-2 py-1.5 ${STYLE[kind]} ${isToday ? 'ring-2 ring-brand ring-offset-1' : ''}`}
-                >
-                  <div className="text-[13px] font-bold">{fmtDay(d.date)}</div>
-                  <div className="text-[11px] opacity-90">{label}</div>
-                </div>
-              )
+              const cls = `min-h-12 rounded-lg px-2 py-1.5 ${STYLE[kind]} ${isToday ? 'ring-2 ring-brand ring-offset-1' : ''}`
+              const inner = (<><div className="text-[13px] font-bold">{fmtDay(d.date)}</div><div className="text-[11px] opacity-90">{label}</div></>)
+              // Admin can open any working day of the pack to correct it.
+              return fixBase && d.kind !== 'outside' && d.kind !== 'holiday'
+                ? <Link key={keyOf(d.date)} href={`${fixBase}${fixBase.includes('?') ? '&' : '?'}fix=${keyOf(d.date)}`} scroll={false} title="Change this day" className={`${cls} block hover:ring-2 hover:ring-ink/30`}>{inner}</Link>
+                : <div key={keyOf(d.date)} className={cls}>{inner}</div>
             })}
           </div>
         ))}

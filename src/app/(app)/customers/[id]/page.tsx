@@ -13,6 +13,7 @@ import { PackageFields } from '@/components/PackageFields'
 import { DateField } from '@/components/DateField'
 import { MapPin } from '@/components/MapPin'
 import { BillPhotos } from '@/components/BillPhotos'
+import { adminSetDay } from '../../ops-actions'
 import { addBoxPlanAction, removeBoxPlanAction, setButtermilkAction, setPackagePaidAction, startPackageAction } from '../../actions'
 
 function Row({ k, v }: { k: string; v: React.ReactNode }) {
@@ -42,7 +43,7 @@ export default async function CustomerProfile({ params, searchParams }: { params
         calls: { orderBy: { createdAt: 'desc' } },
         followUps: { orderBy: { createdAt: 'desc' }, take: 5 },
         altBoxes: { orderBy: { givenOn: 'desc' }, take: 5 },
-        attendance: { select: { date: true, status: true, boxes: true } },
+        attendance: { select: { date: true, status: true, boxes: true, remarks: true } },
       },
     }),
     db.activity.findMany({ where: { leadId: id }, include: { by: { select: { name: true } } }, orderBy: { createdAt: 'desc' }, take: 15 }),
@@ -148,7 +149,7 @@ export default async function CustomerProfile({ params, searchParams }: { params
                   <Link href={`${self}?pay=1`} scroll={false} className="text-xs font-semibold text-sky">{shots.length ? 'Change' : 'Add screenshot'}</Link>
                 </div>
               )}
-              <PackageCalendar plan={plan} today={today} />
+              <PackageCalendar plan={plan} today={today} fixBase={user.role === 'ADMIN' ? self : undefined} />
               {pkg.status === 'ACTIVE' && (
                 <div className="mt-4 rounded-[10px] border border-line p-3.5">
                   <div className="mb-2 text-sm font-semibold">Takes more than the usual boxes on a day?</div>
@@ -299,6 +300,34 @@ export default async function CustomerProfile({ params, searchParams }: { params
           </Card>
         </div>
       </div>
+      {user.role === 'ADMIN' && sp.fix && /^\d{4}-\d{2}-\d{2}$/.test(sp.fix) && (() => {
+        const fd = new Date(`${sp.fix}T00:00:00Z`)
+        const cur = lead.attendance.find((x) => x.date.getTime() === fd.getTime())
+        return (
+          <Drawer title={`Change ${fmtWeekday(fd)}`} sub={`${lead.name} · admin`} close={self}>
+            <form action={adminSetDay} className="space-y-3.5">
+              <input type="hidden" name="leadId" value={lead.id} /><input type="hidden" name="date" value={sp.fix} /><input type="hidden" name="back" value={self} />
+              <div className="rounded-[10px] bg-s2 px-3.5 py-2.5 text-[13px]">Now: <b>{cur ? (cur.status === 'DELIVERED' ? `Delivered${cur.boxes && cur.boxes > 1 ? ` (${cur.boxes} boxes)` : ''}` : cur.status === 'ABSENT' ? 'Leave' : 'Not delivered') : 'No entry'}</b></div>
+              <div>
+                <label className="label" htmlFor="fix-status">What happened *</label>
+                <select id="fix-status" name="status" required className="input" defaultValue={cur?.status ?? ''}>
+                  <option value="" disabled>Choose</option>
+                  <option value="DELIVERED">Delivered</option>
+                  <option value="ABSENT">Leave (absent)</option>
+                  <option value="NOT_DELIVERED">Not delivered (box carried forward)</option>
+                  <option value="CLEAR">Remove the entry</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div><label className="label" htmlFor="fix-boxes">Boxes (if delivered)</label><select id="fix-boxes" name="boxes" className="input" defaultValue={String(cur?.boxes ?? 1)}><option value="1">1 box</option><option value="2">2 boxes</option><option value="3">3 boxes</option></select></div>
+                <div><label className="label" htmlFor="fix-note">Reason</label><input id="fix-note" name="remarks" className="input" defaultValue={cur?.remarks ?? ''} placeholder="For example: food issue" /></div>
+              </div>
+              <p className="text-xs text-muted">The month, last day and report update by themselves. The change is written in the customer&apos;s History.</p>
+              <div className="grid grid-cols-2 gap-2.5"><Link href={self} className="btn-secondary">Cancel</Link><button className="btn">Save</button></div>
+            </form>
+          </Drawer>
+        )
+      })()}
       {sales && sp.pay && pkg && (
         <Drawer title={pkg.paid ? 'Payment' : 'Mark paid'} sub={`${lead.name} · Month ${pkg.number} · ${rupees(pkg.price + pkg.buttermilkQty * pkg.buttermilkPrice)}`} close={self}>
           <form action="/api/form/payment" method="post" encType="multipart/form-data" className="space-y-3.5">

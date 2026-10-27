@@ -320,6 +320,7 @@ footer { color: var(--muted); font-size: 13px; padding-block: 24px 40px; border-
         <li><b>Staff attendance</b>: a month table of present and absent for every person, and the list of people. Only admin adds or removes people (and sets who works shift 2). The kitchen manager fills each day in Staff tracking.</li>
         <li><b>Office staff</b> (your own team, not kitchen and not delivery): add them in Staff attendance with Work set to Office staff. You enter their present or absent, in and out time at the top of that page. The kitchen manager does not see them.</li>
         <li><b>Reports</b> and <b>All reports</b>: sort and filter any column.</li>
+        <li><b>Change any day of a customer</b>: open the customer, and in the calendar tap the day. Choose Delivered (with boxes), Leave, Not delivered (box carried forward) or Remove the entry, add the reason, and Save. The month, last day and report update by themselves, and the change is written in the customer's History.</li>
         <li><b>Backups</b>: a full copy is made every night after 1 AM; the last 30 are kept. Once a week, tap <b>Download</b> on the newest one and keep it in Google Drive or on a pen drive.</li>
       </ul>
     </div></div>

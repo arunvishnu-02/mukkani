@@ -7,7 +7,7 @@ import type { Prisma } from '@/generated/prisma/client'
 import { SHIFT1, SHIFT2 } from '@/lib/shifts'
 import { db } from '@/lib/db'
 import { requireUser } from '@/lib/auth'
-import { day, isDay, parseDay } from '@/lib/dates'
+import { day, fmtWeekday, isDay, parseDay } from '@/lib/dates'
 import { DUE_KINDS, ISSUE_DEPARTMENTS, ISSUE_STATUS } from '@/lib/labels'
 import { FlowError, createLeadInvite } from '@/lib/workflow'
 import { dayOpen, lockedText } from '@/lib/lock'
@@ -112,6 +112,29 @@ export async function saveOfficeAttendance(form: FormData) {
     await db.staffDay.upsert({ where: { staffId_date: { staffId: r.staffId, date: d } }, create: { staffId: r.staffId, date: d, ...data }, update: data })
   }
   done(`${self}${self.includes('?') ? '&' : '?'}saved=${rows.length}`)
+}
+
+// Admin corrects any day of a customer: Delivered (with boxes), Absent (leave), Not delivered, or no entry.
+export async function adminSetDay(form: FormData) {
+  const user = await requireUser(['ADMIN'])
+  const leadId = id(form, 'leadId')
+  const d = date(form, 'date')
+  const self = back(form, `/customers/${leadId}`)
+  if (!d) fail(self, 'Pick the day')
+  const st = s(form, 'status')
+  if (st === 'CLEAR') {
+    await db.attendance.deleteMany({ where: { leadId, date: d! } })
+  } else {
+    if (st !== 'DELIVERED' && st !== 'ABSENT' && st !== 'NOT_DELIVERED') fail(self, 'Choose what happened on that day')
+    const boxes = st === 'DELIVERED' ? whole(s(form, 'boxes'), 3) : null
+    const data = { status: st as 'DELIVERED' | 'ABSENT' | 'NOT_DELIVERED', boxes: boxes && boxes > 1 ? boxes : null, buttermilk: false, remarks: s(form, 'remarks'), byId: user.id }
+    await db.attendance.upsert({ where: { leadId_date: { leadId, date: d! } }, create: { leadId, date: d!, ...data }, update: data })
+  }
+  await db.activity.create({ data: { leadId, kind: 'package', text: `${fmtWeekday(d!)}: ${st === 'CLEAR' ? 'entry removed' : st === 'DELIVERED' ? 'delivered' : st === 'ABSENT' ? 'leave' : 'not delivered'}`, detail: `Changed by admin${s(form, 'remarks') ? `: ${s(form, 'remarks')}` : ''}`, byId: user.id } })
+  const { completeFinished } = await import('@/lib/workflow')
+  await completeFinished([leadId])
+  revalidatePath('/', 'layout')
+  done(self)
 }
 
 export async function markNoticesSeen() {
