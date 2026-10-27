@@ -33,8 +33,18 @@ export function runningPackages(today = day(0)): Promise<Running[]> {
   return runningAt(today.getTime())
 }
 
+// A customer on leave comes back on the day after the last leave day: status Paused with a return date that has
+// passed becomes Active again, so they are on the sheet and off the "On leave" list without anyone tapping.
+const resumeEnded = cache(async (at: number) => {
+  const back = await db.lead.findMany({ where: { customerStatus: 'PAUSED', pausedUntil: { lt: new Date(at) } }, select: { id: true, pausedUntil: true } })
+  if (back.length === 0) return
+  await db.lead.updateMany({ where: { id: { in: back.map((b) => b.id) }, customerStatus: 'PAUSED' }, data: { customerStatus: 'ACTIVE', pausedUntil: null } })
+  await db.activity.createMany({ data: back.map((b) => ({ leadId: b.id, kind: 'status', text: 'Back from leave', detail: `Leave ended ${keyOf(b.pausedUntil!)}. Active again.` })) })
+})
+
 const runningAt = cache(async (at: number): Promise<Running[]> => {
   const today = new Date(at)
+  await resumeEnded(at)
   const pkgs = await db.package.findMany({
     where: { status: 'ACTIVE' },
     include: pkgInclude,
@@ -132,7 +142,7 @@ export async function daySheet(date: Date) {
     db.attendance.findMany({ where: { date } }),
     db.altBox.findMany({ where: { givenOn: date } }),
     db.trialBox.findMany({ where: { deliveryDate: date }, include: { lead: { include: { region: true } } }, orderBy: { lead: { deliveryTime: 'asc' } } }),
-    db.lead.findMany({ where: { customerStatus: 'PAUSED', packages: { some: { status: 'ACTIVE' } } }, include: { region: true }, orderBy: { name: 'asc' } }),
+    db.lead.findMany({ where: { customerStatus: 'PAUSED', OR: [{ pausedUntil: null }, { pausedUntil: { gte: date } }], packages: { some: { status: 'ACTIVE' } } }, include: { region: true }, orderBy: { name: 'asc' } }),
   ])
   const covering = all.filter((r) => r.pkg.startDate <= date)
   const have = new Set(covering.map((r) => r.pkg.leadId))
