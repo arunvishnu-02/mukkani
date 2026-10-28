@@ -6,6 +6,7 @@ import { stockToday } from '@/lib/stock'
 import { Callout, Card, Chip, Empty, ErrorNote, PageHeader, Pills, Tabs, Tile, Tiles } from '@/components/ui'
 import { addStockAction, dayMarkAction, deleteStockAction } from '../actions'
 import { DateField } from '@/components/DateField'
+import { SubmitButton } from '@/components/SubmitButton'
 
 // Record the fruit that comes in and see what is left at the end of each day.
 export default async function StockPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -99,7 +100,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
               <div><label className="label">Quantity (kg) *</label><input name="qtyKg" type="number" step="0.1" min="0" required className="input" /></div>
               <div><label className="label">Date</label><DateField name="date" defaultValue={dayInput(today)} /></div>
               <div><label className="label">Note</label><input name="note" className="input" placeholder="For example: from Gandhi Market" /></div>
-              <button className="btn w-full">Save</button>
+              <SubmitButton>Save</SubmitButton>
             </form>
           </Card>
           <Callout tone="brand">Prices and bills are added by admin in Purchase + expenses. The kitchen enters only quantities.</Callout>
