@@ -28,6 +28,14 @@ export type PackagePlan = {
   done: boolean
 }
 
+// "Ending soon": the last box is within `ahead` days, or no more than `ahead` delivery boxes are left
+// (Sundays and holidays do not count, so a pack can have 3 boxes left while its last day is 4+ days away).
+export function endsSoon(plan: PackagePlan, today: Date, ahead = 3): boolean {
+  if (!plan.end) return false
+  if (plan.end <= addDays(today, ahead)) return true
+  return plan.days.filter((d) => d.date > today && d.dayNo != null && d.kind === 'planned').length <= ahead
+}
+
 export function planPackage(opts: {
   start: Date
   total?: number

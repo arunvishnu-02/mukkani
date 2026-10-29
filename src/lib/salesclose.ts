@@ -4,6 +4,7 @@ import { addDays, day, keyOf } from '@/lib/dates'
 import { daySheet, holidaySet, runningPackages } from '@/lib/queries'
 import { renewalList } from '@/lib/renewals'
 import { workDayBefore, type CloseItem } from '@/lib/dayclose'
+import { endsSoon } from '@/lib/plan'
 
 // Sales closes each working day from this one on. Days before it are not checked.
 export const SALES_CLOSE_FROM = new Date(Date.UTC(2026, 9, 24))
@@ -32,7 +33,7 @@ export async function salesClose(work: Date) {
   // A reminder is still owed when the pack, as it stands today, ends within 3 days of that working day and is not
   // reminded yet. A pack that has already ended goes to Renewals instead; one whose leave moved the end is not due.
   const from = work > now ? work : now
-  const remind = running.filter((r) => r.plan.end && r.plan.end >= from && r.plan.end <= addDays(work, 3) && !r.pkg.reminderSentAt && r.pkg.lead.customerStatus !== 'PAUSED').length
+  const remind = running.filter((r) => r.plan.end && r.plan.end >= from && endsSoon(r.plan, work) && !r.pkg.reminderSentAt && r.pkg.lead.customerStatus !== 'PAUSED').length
   const unanswered = ren.filter((r) => r.finished && !r.decision).length
   const w = keyOf(work)
   const items: CloseItem[] = [

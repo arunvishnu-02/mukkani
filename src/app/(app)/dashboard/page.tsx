@@ -9,6 +9,7 @@ import { salesClose } from '@/lib/salesclose'
 import { DayClose } from '@/components/DayClose'
 import { fill, firstName, waLink } from '@/lib/whatsapp'
 import { Card, Chip, PageHeader, StatusChip, Tile, Tiles, WaLink, Who } from '@/components/ui'
+import { endsSoon } from '@/lib/plan'
 
 function Todo({ done, title, sub, href, cta }: { done: boolean; title: string; sub: string; href: string; cta: string }) {
   return (
@@ -40,7 +41,7 @@ export default async function SalesDashboard() {
     db.lead.findMany({ orderBy: { createdAt: 'desc' }, take: 6, include: { region: true } }),
   ])
   const total = sheet.rows.length + sheet.trials.length
-  const reminders = running.filter((r) => r.plan.end && r.plan.end >= today && r.plan.end <= day(3) && !r.pkg.reminderSentAt && r.pkg.lead.customerStatus !== 'PAUSED').length
+  const reminders = running.filter((r) => r.plan.end && r.plan.end >= today && endsSoon(r.plan, today) && !r.pkg.reminderSentAt && r.pkg.lead.customerStatus !== 'PAUSED').length
   const close = await salesClose(today)
   return (
     <>

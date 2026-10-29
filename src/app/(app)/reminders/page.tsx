@@ -6,6 +6,7 @@ import { getSettings } from '@/lib/settings'
 import { fill } from '@/lib/whatsapp'
 import { Callout, Card, Chip, Empty, PageHeader, Progress, Tabs, Tile, Tiles, Who } from '@/components/ui'
 import { sendReminderAction } from '../actions'
+import { endsSoon } from '@/lib/plan'
 
 // 3 days before a package ends, sales sends the end-date reminder on WhatsApp with one tap.
 export default async function RemindersPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -22,7 +23,7 @@ export default async function RemindersPage({ searchParams }: { searchParams: Pr
   ])
   const ending = running.filter((r) => r.plan.end && r.plan.end >= today && r.plan.end <= day(7) && r.pkg.lead.customerStatus !== 'PAUSED').sort((a, b) => a.plan.end!.getTime() - b.plan.end!.getTime())
   // Every running pack ending within 3 days that has not been reminded; the dashboard checklist counts the same packs.
-  const toSend = running.filter((r) => r.plan.end && r.plan.end >= today && r.plan.end <= day(3) && !r.pkg.reminderSentAt && r.pkg.lead.customerStatus !== 'PAUSED').sort((a, b) => a.plan.end!.getTime() - b.plan.end!.getTime())
+  const toSend = running.filter((r) => r.plan.end && r.plan.end >= today && endsSoon(r.plan, today) && !r.pkg.reminderSentAt && r.pkg.lead.customerStatus !== 'PAUSED').sort((a, b) => a.plan.end!.getTime() - b.plan.end!.getTime())
   const sent = ending.filter((r) => r.pkg.reminderSentAt)
   const rows = tab === 'send' ? toSend : tab === 'sent' ? sent : ending
   const sample = toSend[0] ?? ending[0]

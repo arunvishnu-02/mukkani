@@ -3,6 +3,7 @@ import { cache } from 'react'
 import { db } from '@/lib/db'
 import { addDays, day } from '@/lib/dates'
 import { holidaySet, planFor, runningPackages, type Running } from '@/lib/queries'
+import { endsSoon } from '@/lib/plan'
 
 export type RenewalRow = Running & {
   finished: boolean // 26 boxes done
@@ -29,7 +30,7 @@ export const finishedWithoutNext = cache(async (today: Date = day(0), withinDays
 export async function renewalList(today = day(0)): Promise<RenewalRow[]> {
   const [running, finished] = await Promise.all([runningPackages(today), finishedWithoutNext(today)])
   const nextOf = new Set((await db.package.findMany({ where: { status: 'ACTIVE' }, select: { leadId: true, number: true } })).map((p) => `${p.leadId}:${p.number}`))
-  const ending = running.filter((r) => r.plan.end && r.plan.end <= addDays(today, 3) && !nextOf.has(`${r.pkg.leadId}:${r.pkg.number + 1}`))
+  const ending = running.filter((r) => r.plan.end && endsSoon(r.plan, today) && !nextOf.has(`${r.pkg.leadId}:${r.pkg.number + 1}`))
   const rows = [...finished.map((r) => ({ ...r, finished: true })), ...ending.map((r) => ({ ...r, finished: false }))]
   const calls = await db.customerCall.findMany({ where: { packageId: { in: rows.map((r) => r.pkg.id) }, dayNo: 26 } })
   return rows
