@@ -14,6 +14,7 @@ import { DateField } from '@/components/DateField'
 import { MapPin } from '@/components/MapPin'
 import { BillPhotos } from '@/components/BillPhotos'
 import { adminSetDay } from '../../ops-actions'
+import { SubmitButton } from '@/components/SubmitButton'
 import { addBoxPlanAction, removeBoxPlanAction, setButtermilkAction, setPackagePaidAction, startPackageAction } from '../../actions'
 
 function Row({ k, v }: { k: string; v: React.ReactNode }) {
@@ -346,7 +347,7 @@ export default async function CustomerProfile({ params, searchParams }: { params
             <input type="hidden" name="back" value={self} />
             <input type="hidden" name="self" value={`${self}?start=1`} />
             <PackageFields start={pkg ? nextStart : day(1)} regions={regions} slots={st.slots} regionId={lead.regionId} slot={lead.slot} price={st.monthlyPrice} bmPrice={st.buttermilkPrice} />
-            <div className="grid grid-cols-2 gap-2.5"><Link href={self} className="btn-secondary">Cancel</Link><button className="btn">Start</button></div>
+            <div className="grid grid-cols-2 gap-2.5"><Link href={self} className="btn-secondary">Cancel</Link><SubmitButton className="btn">Start</SubmitButton></div>
           </form>
         </Drawer>
       )}

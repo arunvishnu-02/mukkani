@@ -87,7 +87,11 @@ export type PackageStart = {
 // Starts a monthly package (26 delivery days). The kitchen manager takes over the calls from here.
 export async function startPackage(leadId: string, byId: string, p: PackageStart) {
   const s = await appSettings()
+  // A pack with all 26 boxes delivered is closed first, so the sheet moves to the new month straight away.
+  await completeFinished([leadId])
   const last = await db.package.findFirst({ where: { leadId }, orderBy: { number: 'desc' } })
+  // A double tap on Start must not make a second month.
+  if (last && Date.now() - last.createdAt.getTime() < 60_000) return last
   const startDate = deliveryDayFrom(p.startDate ?? day(1))
   const lead = await db.lead.findUniqueOrThrow({ where: { id: leadId } })
   const pkg = await db.package.create({
