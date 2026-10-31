@@ -51,6 +51,41 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
   // filled=1: the attendance as entered (delivered, not delivered, box back), to print after delivery.
   const filled = sp.filled === '1'
   const onlySummary = sp.summary === '1'
+  // blank=1: an empty sheet (no names) to write on by hand, 50 rows a page.
+  if (sp.blank === '1') {
+    await requireUser()
+    const bst = await getSettings()
+    const pages = Math.min(5, Math.max(1, Number(sp.pages) || 1))
+    const empty: Line[] = Array.from({ length: 25 }, () => ({ time: null, name: '', tags: [], bm: 0, box: null, alt: false, status: null, back: null }))
+    return (
+      <>
+        {Array.from({ length: pages }, (_, p) => (
+          <div key={p} className="a4 flex flex-col px-9 pt-6 pb-0">
+            <div className="absolute inset-x-0 top-0 flex h-1.5"><span className="flex-[3] bg-brand" /><span className="flex-1 bg-leaf" /></div>
+            <div className="flex items-start gap-4">
+              <Image src="/mukkani-logo.png" alt="Mukkani" width={86} height={41} />
+              <div className="flex-1">
+                <h1 className="font-display text-2xl font-bold">Customer Attendance</h1>
+                <div className="mt-1 text-xs text-muted">Region: ______________________ · Page {p + 1}</div>
+              </div>
+              <div className="rounded-xl bg-brand-soft px-4 py-2 text-right">
+                <div className="text-[9px] font-bold tracking-wider text-brand uppercase">Date</div>
+                <div className="font-display text-base font-bold">{sp.date ? D.format(date) : '____ / ____ / ______'}</div>
+              </div>
+            </div>
+            <div className="mt-3.5 grid grid-cols-2 gap-3"><Column rows={empty} start={p * 50 + 1} /><Column rows={empty} start={p * 50 + 26} /></div>
+            <div className="flex-1" />
+            <div className="grid grid-cols-3 gap-6 pt-6 pb-3 text-[10px] text-muted">
+              <div className="border-t border-ink/40 pt-1">Delivered by</div>
+              <div className="border-t border-ink/40 pt-1">Boxes returned ___ / ___</div>
+              <div className="border-t border-ink/40 pt-1">Kitchen manager sign</div>
+            </div>
+            <div className="-mx-9 bg-s2 px-9 py-2 text-[9px] text-muted">Mukkani · Fresh fruit and salad boxes · {bst.address} · {bst.businessPhone}</div>
+          </div>
+        ))}
+      </>
+    )
+  }
   // The kitchen manager takes the next sheet only after the day's work is filled (stock, wastage, staff, menu).
   const user = await requireUser()
   if (user.role === 'KITCHEN' && !filled && date >= day(0)) {

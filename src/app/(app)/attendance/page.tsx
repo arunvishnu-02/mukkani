@@ -117,6 +117,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
         <Link href={`${self}&leave=1`} scroll={false} className="btn-secondary btn-sm">Mark leave</Link>
         <a href={`/print/sheet?date=${dayInput(date)}&summary=1`} target="_blank" rel="noreferrer" className="btn-secondary btn-sm">Print overall summary</a>
         <a href={`/print/sheet?date=${dayInput(date)}`} target="_blank" rel="noreferrer" className="btn-secondary btn-sm">Print sheet</a>
+        <a href="/print/sheet?blank=1&pages=2" target="_blank" rel="noreferrer" className="btn-secondary btn-sm">Print empty sheet</a>
         <a href={`/print/sheet?date=${dayInput(date)}&filled=1`} target="_blank" rel="noreferrer" className="btn-secondary btn-sm">Print entered attendance</a>
         <form action="/attendance" className="flex items-center gap-2">
           <DateField name="date" defaultValue={dayInput(date)} compact />
