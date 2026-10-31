@@ -7,7 +7,11 @@ const NOTHING: Record<string, unknown> = { findUnique: null, findFirst: null, fi
 
 // Keep connections open between clicks (opening one costs several trips to the database) and stay
 // under the 15 connections Supabase's session pooler allows when two server processes run.
-const POOL = { connectionString: process.env.DATABASE_URL, max: 4, idleTimeoutMillis: 60_000 }
+const POOL = { connectionString: process.env.DATABASE_URL, max: 4, idleTimeoutMillis: 60_000, connectionTimeoutMillis: 10_000, keepAlive: true }
+
+// A dropped or busy connection is a blip, not a failure: read queries are tried again once or twice.
+const BLIP = /terminated|timeout|ECONNRESET|ECONNREFUSED|EPIPE|Connection|too many clients|MaxClientsInSessionMode/i
+const READS = new Set(['findUnique', 'findUniqueOrThrow', 'findFirst', 'findFirstOrThrow', 'findMany', 'count', 'aggregate', 'groupBy'])
 
 function client() {
   return new PrismaClient({ adapter: new PrismaPg(POOL) }).$extends({
@@ -15,7 +19,14 @@ function client() {
       $allModels: {
         async $allOperations({ operation, args, query }) {
           try {
-            return await query(args)
+            for (let i = 0; ; i++) {
+              try {
+                return await query(args)
+              } catch (e) {
+                if (i >= 2 || !READS.has(operation) || !BLIP.test(String((e as Error).message))) throw e
+                await new Promise((r) => setTimeout(r, 300 * (i + 1)))
+              }
+            }
           } catch (e) {
             const err = e as { message?: string; meta?: unknown }
             if (operation in NOTHING && `${err.message} ${JSON.stringify(err.meta)}`.includes('invalid input syntax for type uuid')) return NOTHING[operation]
