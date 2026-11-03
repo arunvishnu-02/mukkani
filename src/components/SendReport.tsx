@@ -6,7 +6,7 @@ import { useState } from 'react'
 // browser. On a phone the share sheet opens so WhatsApp gets the PDF attached; where sharing files is not
 // possible, the PDF is downloaded and WhatsApp opens with the message, ready for the PDF to be attached.
 export function SendReport({ packageId, fileName, waHref, text, small }: { packageId: string; fileName: string; waHref: string; text: string; small?: boolean }) {
-  const [state, setState] = useState<'idle' | 'making' | 'downloaded' | 'failed'>('idle')
+  const [state, setState] = useState<'idle' | 'making' | 'ready' | 'downloaded' | 'failed'>('idle')
 
   async function makePdf(): Promise<File> {
     const frame = document.createElement('iframe')
@@ -35,38 +35,62 @@ export function SendReport({ packageId, fileName, waHref, text, small }: { packa
     }
   }
 
-  async function send() {
+  // Step 1 (tap): make the PDF. Step 2 (tap again): share it or open WhatsApp. A browser only opens the share sheet
+  // or a new window straight after a tap, and making the PDF takes a few seconds, so those can not be done in step 1.
+  const [file, setFile] = useState<File | null>(null)
+
+  async function make() {
     setState('making')
-    let file: File
     try {
-      file = await makePdf()
+      setFile(await makePdf())
+      setState('ready')
     } catch {
       setState('failed')
-      return
     }
+  }
+
+  async function share() {
+    if (!file) return
     try {
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], text })
-        setState('idle')
         return
       }
     } catch (e) {
-      if ((e as Error).name === 'AbortError') { setState('idle'); return }
+      if ((e as Error).name === 'AbortError') return
     }
-    const url = URL.createObjectURL(file)
-    const a = Object.assign(document.createElement('a'), { href: url, download: fileName })
-    a.click()
-    setTimeout(() => URL.revokeObjectURL(url), 10_000)
-    window.open(waHref, '_blank', 'noreferrer')
+    save()
     setState('downloaded')
   }
 
+  function save() {
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    const a = Object.assign(document.createElement('a'), { href: url, download: fileName })
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 10_000)
+  }
+
+  const btn = `inline-flex items-center justify-center gap-2 rounded-lg font-semibold hover:opacity-90 disabled:opacity-60 ${small ? 'px-3 py-1.5 text-[13px]' : 'px-4 py-2.5 text-sm'}`
+  if (file && state !== 'making') {
+    return (
+      <span className="inline-flex flex-col items-start gap-1.5">
+        <span className="flex flex-wrap gap-1.5">
+          <button type="button" onClick={share} className={`${btn} bg-leaf text-white`}>Share PDF</button>
+          <button type="button" onClick={save} className={`${btn} border border-line bg-white`}>Save PDF</button>
+          <a href={waHref} target="_blank" rel="noreferrer" className={`${btn} border border-line bg-white`}>Open WhatsApp</a>
+        </span>
+        <span className="max-w-64 text-[11px] text-muted">{state === 'downloaded' ? 'PDF saved. In WhatsApp, attach it (📎 → Document).' : 'PDF is ready. Share it, or save it and attach it in WhatsApp.'}</span>
+      </span>
+    )
+  }
   return (
     <span className="inline-flex flex-col items-start gap-1">
-      <button type="button" onClick={send} disabled={state === 'making'} className={`inline-flex items-center justify-center gap-2 rounded-lg bg-leaf font-semibold text-white hover:opacity-90 disabled:opacity-60 ${small ? 'px-3 py-1.5 text-[13px]' : 'px-4 py-2.5 text-sm'}`}>
+      <button type="button" onClick={make} disabled={state === 'making'} className={`${btn} bg-leaf text-white`}>
         {state === 'making' ? 'Making PDF…' : small ? 'Send PDF' : 'Send PDF on WhatsApp'}
       </button>
-      {state === 'downloaded' && <span className="max-w-56 text-[11px] text-muted">PDF downloaded. In the WhatsApp chat, attach it (📎 → Document).</span>}
       {state === 'failed' && <span className="text-[11px] text-red">Could not make the PDF. Try again or use Print.</span>}
     </span>
   )
