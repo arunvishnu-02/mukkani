@@ -100,10 +100,33 @@ export function planFor(
   today = day(0),
   holidays?: Set<string>,
 ) {
+  const entered = attendance.filter((a) => a.date >= pkg.startDate)
+  const plan = planOnce(pkg, entered, today, holidays, attendance)
+  // A pack whose 26 boxes "ran out" only because days were never entered (nobody entered anything for a stretch
+  // up to today) would drop off the sheet while the customer still gets boxes. Those missing days are then
+  // treated as no box, so the month carries on and the customer stays on the sheet.
+  if (pkg.status === 'ACTIVE' && plan.end && plan.end < today && !plan.done && entered.length > 0) {
+    const real = entered.filter((a) => a.status !== 'PLANNED')
+    const last = real.reduce((m, a) => (a.date > m ? a.date : m), pkg.startDate)
+    const have = new Set(entered.map((a) => keyOf(a.date)))
+    const gap: typeof entered = []
+    for (let d = addDays(last, 1); d < today; d = addDays(d, 1)) if (!have.has(keyOf(d))) gap.push({ date: d, status: 'ABSENT' })
+    if (gap.length) return planOnce(pkg, [...entered, ...gap], today, holidays, attendance)
+  }
+  return plan
+}
+
+function planOnce(
+  pkg: Parameters<typeof planFor>[0],
+  entered: Parameters<typeof planFor>[1],
+  today: Date,
+  holidays: Set<string> | undefined,
+  attendance: Parameters<typeof planFor>[1],
+) {
   return planPackage({
     holidays,
     start: pkg.startDate,
-    attendance: attendance.filter((a) => a.date >= pkg.startDate),
+    attendance: entered,
     boxesPerDay: pkg.boxesPerDay,
     // A paused customer is off from the day after their last entered day (not only from today), so days
     // nobody entered after they went on leave do not count as boxes delivered.
