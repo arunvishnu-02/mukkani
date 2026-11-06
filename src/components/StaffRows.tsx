@@ -57,7 +57,7 @@ function Row({ kind, s }: { kind: 'KITCHEN' | 'DELIVERY'; s: StaffInit }) {
           <td className="td">
             <select name={`pickup_${s.id}`} required defaultValue={s.d?.onTimePickup == null ? '' : s.d.onTimePickup ? 'yes' : 'no'} aria-label="On-time pick-up" style={{ width: 90, minWidth: 90 }} className={cell}><option value="">Choose</option><option value="yes">Yes</option><option value="no">No</option></select>
           </td>
-          <td className="td"><Time name={`in_${s.id}`} value={inT} label="In time" /><div className={`mt-0.5 text-[11px] ${inT > DELIVERY_IN ? 'font-semibold text-red' : 'text-muted'}`}>{inT > DELIVERY_IN ? 'Late, due 5:30' : 'due 5:30'}</div></td>
+          <td className="td"><Time name={`in_${s.id}`} value={inT} label="In time" /><div className={`mt-0.5 text-xs ${inT > DELIVERY_IN ? 'font-semibold text-red' : 'text-muted'}`}>{inT > DELIVERY_IN ? 'Late, due 5:30' : 'due 5:30'}</div></td>
           <td className="td"><Time name={`out_${s.id}`} value={s.d?.outTime} label="Deliveries complete time" /></td>
           <td className="td"><input type="number" min={0} required name={`startKm_${s.id}`} value={a} onChange={(e) => setA(e.target.value)} aria-label="Starting km" className={`${cell} w-[104px]`} /></td>
           <td className="td"><input type="number" min={0} required name={`endKm_${s.id}`} value={b} onChange={(e) => setB(e.target.value)} aria-label="Ending km" className={`${cell} w-[104px] ${a !== '' && b !== '' && Number(b) < Number(a) ? 'border-red text-red' : ''}`} /></td>

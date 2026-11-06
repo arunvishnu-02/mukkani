@@ -25,7 +25,7 @@ export function BillPhotos({ saved, max, label = 'Bill photos', name = 'bill', r
           {saved.map((s, i) => (
             <div key={s.id} className="w-[72px]">
               <Thumb file={{ url: `/api/files/${s.id}`, isImage: s.isImage, name: `${label} ${i + 1}` }} />
-              <label className="mt-1 flex items-center gap-1 text-[11px] font-medium text-muted"><input type="checkbox" name={removeName} value={s.id} className="size-3.5 accent-red" /> Remove</label>
+              <label className="mt-1 flex items-center gap-1 text-xs font-medium text-muted"><input type="checkbox" name={removeName} value={s.id} className="size-3.5 accent-red" /> Remove</label>
             </div>
           ))}
         </div>

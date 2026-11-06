@@ -53,7 +53,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
           <ul className="mt-2 space-y-1 text-[13px]">
             {late.map((l) => (
               <li key={l.id} className="flex flex-wrap items-center gap-x-2">
-                <span className="rounded bg-white px-1.5 py-0.5 text-[11px] font-bold text-warn">{l.kind}</span>
+                <span className="rounded bg-white px-1.5 py-0.5 text-xs font-bold text-warn">{l.kind}</span>
                 <Link href={`/customers/${l.leadId}`} className="font-semibold hover:underline">{l.name}</Link>
                 <span className="text-muted">{l.region ?? 'No region'} · {l.kind === 'Trial box' ? 'delivery' : 'starts'} {fmtWeekday(l.date)} · added {new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }).format(l.at)}</span>
               </li>

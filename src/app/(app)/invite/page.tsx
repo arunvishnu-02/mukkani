@@ -73,7 +73,7 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
                   const expired = !i.filledAt && i.expiresAt <= new Date()
                   return (
                     <tr key={i.id} className={i.id === sp.new ? 'bg-leaf-soft/50' : ''}>
-                      <td className="td"><div className="font-semibold">{i.phone}</div>{i.name && <div className="text-[11px] text-muted">{i.name}</div>}</td>
+                      <td className="td"><div className="font-semibold">{i.phone}</div>{i.name && <div className="text-xs text-muted">{i.name}</div>}</td>
                       <td className="td">{i.filledAt ? <Chip label={`Filled ${fmtDay(i.filledAt)}`} tone="leaf" /> : expired ? <Chip label="Expired" tone="muted" /> : <Chip label="Waiting" tone="warn" />}</td>
                       <td className="td whitespace-nowrap">{fmtDay(i.createdAt)} · {fmtTime(i.createdAt)}</td>
                       <td className="td">{by(i.createdById)}</td>

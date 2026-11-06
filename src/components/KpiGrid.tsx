@@ -49,7 +49,7 @@ export function KpiGrid({ cards }: { cards: KpiCard[] }) {
       {shown.length === 0 && <p className="px-1 text-sm text-muted">No card matches. Clear the filter to see them all.</p>}
       {sections.map(([g, list]) => (
         <section key={g || 'all'}>
-          {g && <h2 className="mb-2 text-[11px] font-semibold tracking-widest text-muted uppercase">{g}</h2>}
+          {g && <h2 className="mb-2 text-xs font-semibold tracking-widest text-muted uppercase">{g}</h2>}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {list.map((c) => (
               <Link key={c.key} href={c.href} className="card group flex flex-col px-5 py-4 hover:border-brand hover:shadow-md">

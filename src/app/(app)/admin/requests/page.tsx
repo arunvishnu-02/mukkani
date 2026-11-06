@@ -34,7 +34,7 @@ export default async function DayRequestsPage() {
             <tbody>
               {pending.map((r) => (
                 <tr key={r.id}>
-                  <td className="td"><div className="font-semibold">{who(r.userId)?.name ?? '—'}</div><div className="text-[11px] text-muted">{who(r.userId) ? ROLE[who(r.userId)!.role][0] : ''}</div></td>
+                  <td className="td"><div className="font-semibold">{who(r.userId)?.name ?? '—'}</div><div className="text-xs text-muted">{who(r.userId) ? ROLE[who(r.userId)!.role][0] : ''}</div></td>
                   <td className="td font-semibold whitespace-nowrap">{fmtWeekday(r.date)}</td>
                   <td className="td">{r.area}</td>
                   <td className="td max-w-80">{r.note ?? '—'}</td>

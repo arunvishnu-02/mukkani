@@ -16,7 +16,7 @@ export function DayClose({ work, sheetDate, items, what = 'sheet' }: { work: Dat
           <Link key={i.key} href={i.href} className={`flex items-center gap-3 rounded-[10px] px-3.5 py-2.5 ${i.done ? 'bg-leaf-soft' : 'bg-tur-soft hover:ring-2 hover:ring-tur'}`}>
             <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${i.done ? 'bg-leaf text-white' : 'border-2 border-warn text-warn'}`}>{i.done ? '✓' : '!'}</span>
             <span className="min-w-0">
-              <span className="block text-sm font-semibold">{i.label} <span className="text-[11px] font-medium text-muted">· {i.who}</span></span>
+              <span className="block text-sm font-semibold">{i.label} <span className="text-xs font-medium text-muted">· {i.who}</span></span>
               <span className={`block truncate text-xs ${i.done ? 'text-leaf' : 'text-warn'}`}>{i.detail}</span>
             </span>
           </Link>

@@ -19,7 +19,7 @@ function Line({ label, hint, value, total, tone }: { label: string; hint?: strin
     <div className={`flex items-center justify-between gap-3 py-1.5 ${total ? 'mt-1 border-t border-line pt-2.5' : ''}`}>
       <dt className="min-w-0">
         <div className={total ? 'text-sm font-semibold' : 'text-sm'}>{label}</div>
-        {hint && <div className="text-[11px] leading-4 text-muted">{hint}</div>}
+        {hint && <div className="text-xs leading-4 text-muted">{hint}</div>}
       </dt>
       <dd className={`shrink-0 text-sm ${total ? 'font-bold' : 'font-semibold'} ${tone === 'leaf' ? 'text-leaf' : tone === 'red' ? 'text-red' : ''}`}>{value}</dd>
     </div>

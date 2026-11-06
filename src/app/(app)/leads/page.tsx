@@ -84,7 +84,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
               {leads.map((l) => (
                 <tr key={l.id} className={l.id === selected?.id ? 'bg-brand-soft/60' : ''}>
                   <td className="td"><RowCheck formId="bulk-leads" id={l.id} /></td>
-                  <td className="td"><Who name={l.name} sub={l.phone || 'No phone'} href={`${list}&lead=${l.id}`} />{missingDetails(l).length > 0 && <div className="mt-0.5 text-[11px] font-semibold text-red">Missing: {missingDetails(l).join(', ')}</div>}</td>
+                  <td className="td"><Who name={l.name} sub={l.phone || 'No phone'} href={`${list}&lead=${l.id}`} />{missingDetails(l).length > 0 && <div className="mt-0.5 text-xs font-semibold text-red">Missing: {missingDetails(l).join(', ')}</div>}</td>
                   <td className="td">{l.region?.name ?? '—'}</td>
                   <td className="td">{sourceLabel(l)}</td>
                   <td className="td">

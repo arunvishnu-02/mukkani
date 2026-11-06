@@ -127,7 +127,7 @@ export function DateField({
 
           {mode === 'days' && (
             <>
-              <div className="grid grid-cols-7 text-center text-[11px] font-bold tracking-wide text-muted uppercase">{DAYS.map((d) => <div key={d} className="py-1">{d}</div>)}</div>
+              <div className="grid grid-cols-7 text-center text-xs font-bold tracking-wide text-muted uppercase">{DAYS.map((d) => <div key={d} className="py-1">{d}</div>)}</div>
               <div className="grid grid-cols-7 gap-y-0.5">
                 {Array.from({ length: lead }, (_, i) => <div key={`b${i}`} />)}
                 {Array.from({ length: count }, (_, i) => {

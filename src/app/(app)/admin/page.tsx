@@ -81,7 +81,7 @@ export default async function AdminOverview({ searchParams }: { searchParams: Pr
         </form>
       </div>
       <section>
-        <h2 className="mb-2 text-[11px] font-semibold tracking-widest text-muted uppercase">KPIs · {month.label}</h2>
+        <h2 className="mb-2 text-xs font-semibold tracking-widest text-muted uppercase">KPIs · {month.label}</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
           {([
             ['New leads', f.leads, 'text-sky', '/report/leads'],

@@ -37,7 +37,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                 {people.map((p) => (
                   <tr key={p.id}>
                     <td className="td"><Who name={p.name} sub={[p.phone, p.altPhone].filter(Boolean).join(' · ')} href={link(p)} /></td>
-                    <td className="td">{p.region?.name ?? '—'}{p.address && <div className="max-w-56 truncate text-[11px] text-muted">{p.address}</div>}</td>
+                    <td className="td">{p.region?.name ?? '—'}{p.address && <div className="max-w-56 truncate text-xs text-muted">{p.address}</div>}</td>
                     <td className="td"><StatusChip map={LEAD_STATUS} value={p.status} /></td>
                     <td className="td">
                       {p.packages[0] ? (

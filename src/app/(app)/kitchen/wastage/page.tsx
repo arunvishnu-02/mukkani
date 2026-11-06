@@ -94,7 +94,7 @@ export default async function WastagePage({ searchParams }: { searchParams: Prom
                 const c = cutDefault(f)
                 return (
                   <tr key={f} className={onMenu.has(f) ? "bg-leaf-soft/40" : ""}>
-                    <td className="td font-semibold">{f}{onMenu.has(f) ? <span className="ml-2 rounded-full bg-leaf-soft px-2 py-0.5 text-[11px] font-semibold text-leaf">On menu</span> : swapOnly.has(f) ? <span className="ml-2 rounded-full bg-tur-soft px-2 py-0.5 text-[11px] font-semibold text-warn">Customization</span> : null}<input type="hidden" name="fruit" value={f} /></td>
+                    <td className="td font-semibold">{f}{onMenu.has(f) ? <span className="ml-2 rounded-full bg-leaf-soft px-2 py-0.5 text-xs font-semibold text-leaf">On menu</span> : swapOnly.has(f) ? <span className="ml-2 rounded-full bg-tur-soft px-2 py-0.5 text-xs font-semibold text-warn">Customization</span> : null}<input type="hidden" name="fruit" value={f} /></td>
                     <td className="td"><input name={`cut_${f}`} type="number" step="0.1" min="0" defaultValue={c || ''} className="input w-20 px-2 py-1.5" aria-label={`${f} cut`} /></td>
                     <td className="td"><input name={`waste_${f}`} type="number" step="0.1" min="0" defaultValue={w?.wasteKg ?? ''} className="input w-20 px-2 py-1.5" aria-label={`${f} waste`} /></td>
                     <td className="td">{w && w.cutKg ? `${Math.round((w.wasteKg / w.cutKg) * 100)}%` : '–'}</td>

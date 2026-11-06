@@ -36,21 +36,21 @@ export default async function ReportPrint({ params }: { params: Promise<{ id: st
           <Image src="/mukkani-logo.png" alt="Mukkani" width={132} height={63} />
           <div className="flex-1" />
           <div className="text-right">
-            <div className="text-[11px] font-bold tracking-[0.18em] text-brand uppercase">Monthly report</div>
+            <div className="text-xs font-bold tracking-[0.18em] text-brand uppercase">Monthly report</div>
             <div className="font-display text-2xl font-bold leading-tight">Month {pkg.number}</div>
             <div className="text-[12px] text-muted">{D.format(pkg.startDate)} to {plan.end ? D.format(plan.end) : 'paused'}</div>
           </div>
         </div>
         <div className="mx-12 mt-6 flex items-end gap-8 border-b border-line pb-5">
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-semibold tracking-wider text-muted uppercase">Prepared for</div>
+            <div className="text-xs font-semibold tracking-wider text-muted uppercase">Prepared for</div>
             <h1 className="font-display text-[30px] font-bold leading-tight">{pkg.lead.name}</h1>
             <div className="mt-0.5 text-[13px] text-muted">{[pkg.lead.region?.name, pkg.lead.phone, pkg.lead.deliveryTime ?? pkg.lead.slot].filter(Boolean).join(' · ')}</div>
           </div>
           <div className="w-[250px] shrink-0">
             <div className="flex items-baseline justify-between">
               <span className="font-display text-[34px] font-bold leading-none whitespace-nowrap text-leaf">{plan.delivered}<span className="text-lg text-muted"> of 26</span></span>
-              <span className="text-[11px] font-bold tracking-wider whitespace-nowrap text-muted uppercase">boxes delivered</span>
+              <span className="text-xs font-bold tracking-wider whitespace-nowrap text-muted uppercase">boxes delivered</span>
             </div>
             <div className="mt-2 flex gap-[3px]">
               {Array.from({ length: 26 }, (_, i) => <span key={i} className={`h-2.5 flex-1 rounded-sm ${i < plan.delivered ? 'bg-leaf' : 'bg-s2'}`} />)}
@@ -67,7 +67,7 @@ export default async function ReportPrint({ params }: { params: Promise<{ id: st
             ].map(([n, l, c]) => (
               <div key={l as string} className={`rounded-lg border-l-4 bg-[#faf8fc] px-3.5 py-2.5 ${c}`}>
                 <div className="font-display text-2xl font-bold leading-none">{n}</div>
-                <div className="mt-1 text-[11px] font-medium text-muted">{l}</div>
+                <div className="mt-1 text-xs font-medium text-muted">{l}</div>
               </div>
             ))}
           </div>
