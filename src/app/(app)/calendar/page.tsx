@@ -116,7 +116,7 @@ function DayDrawer({ date, sheet, ends, birthdays, close, role, future }: {
   const packing = sheet.rows.filter((r) => !r.absent)
   const stat = (label: string, value: number, tone = 'text-ink') => (
     <div className="rounded-lg bg-s2 px-3 py-2">
-      <div className="text-[11px] text-muted">{label}</div>
+      <div className="text-xs text-muted">{label}</div>
       <div className={`font-display text-xl font-bold ${tone}`}>{value}</div>
     </div>
   )

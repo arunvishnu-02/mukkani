@@ -52,7 +52,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
                     <Link href={`/customers/${r.lead.id}`} className="font-semibold hover:underline">{r.lead.name}</Link>
                     {r.swap?.swapTo && <span className="ml-1.5"><Chip label={`Swap: ${r.swap.swapTo}`} tone="warn" /></span>}
                     {r.isNew && <span className="ml-1.5"><Chip label="New" tone="leaf" /></span>}
-                    {r.altBox && <span className="ml-1.5 text-[11px] font-bold text-sky">ALT BOX</span>}
+                    {r.altBox && <span className="ml-1.5 text-xs font-bold text-sky">ALT BOX</span>}
                   </td>
                   <td className="td">{r.lead.deliveryTime ?? r.lead.slot ?? '—'}</td>
                   <td className="td">{r.bm ? <Chip label={`BM ${r.bm}`} tone="leaf" /> : ''}</td>

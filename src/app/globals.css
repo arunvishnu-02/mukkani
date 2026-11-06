@@ -52,10 +52,96 @@ body {
   @apply rounded-xl border border-line bg-surface;
 }
 .th {
-  @apply bg-s2 px-4 py-2.5 text-left text-[11px] font-bold tracking-wide text-muted uppercase;
+  @apply bg-s2 px-3 py-2.5 text-left text-xs sm:px-4 font-bold tracking-wide whitespace-nowrap text-muted uppercase;
 }
 .td {
-  @apply border-t border-line px-4 py-3 text-[13px];
+  @apply border-t border-line px-3 py-3 text-[13px] sm:px-4;
+}
+
+/* UI/UX pass (6 Nov 2026) */
+
+/* Grid columns may shrink below their content, so a wide table scrolls inside its card
+   instead of pushing the whole page sideways on a phone. */
+.grid > * {
+  min-width: 0;
+}
+
+/* Keyboard users always see where they are. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+.input:focus-visible {
+  outline: none;
+}
+
+/* Buttons respond to a press, not only to hover. */
+.btn,
+.btn-secondary {
+  @apply transition-[background-color,transform] duration-150 active:scale-[0.98];
+}
+
+/* Phones and tablets: every tap target at least 44px high, inputs 16px so iOS does not zoom. */
+@media (pointer: coarse) {
+  .btn,
+  .btn-secondary,
+  .btn-sm,
+  .tap {
+    min-height: 44px;
+  }
+  .input {
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .pill {
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* Tables that scroll sideways on a phone show a soft edge so people know there is more. */
+.overflow-x-auto {
+  /* keeps hidden radio/checkbox inputs inside the scroll box, so they cannot widen the page */
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+[data-pending] {
+  opacity: 0.65;
+  pointer-events: none;
+  cursor: progress;
+}
+[data-pending]::after {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Printed A4 sheets: attendance sheet and monthly report */

@@ -50,7 +50,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="md:flex">
       <Sidebar section={section} items={NAV[user.role]} user={{ name: user.name, role: ROLE[user.role][0] }} logout={logout} />
-      <main className="min-w-0 flex-1 space-y-[18px] px-4 py-6 md:px-8 md:py-7">{children}</main>
+      <main className="min-w-0 flex-1 space-y-[18px] px-4 pt-5 pb-[max(env(safe-area-inset-bottom),32px)] md:px-8 md:py-7">{children}</main>
     </div>
   )
 }
