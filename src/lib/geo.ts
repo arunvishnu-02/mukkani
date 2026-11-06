@@ -39,3 +39,49 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string |
     return null
   }
 }
+
+const PATTERNS = [
+  /@(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/, // .../@10.86,78.69,17z
+  /!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/, // place data
+  /[?&](?:q|ll|query|destination|center)=(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/,
+  /^\s*(-?\d{1,2}\.\d+)\s*[, ]\s*(-?\d{1,3}\.\d+)\s*$/, // "10.86, 78.69"
+]
+
+function findPoint(text: string) {
+  const t = decodeURIComponent(text)
+  for (const p of PATTERNS) {
+    const m = t.match(p)
+    if (m) {
+      const lat = Number(m[1])
+      const lng = Number(m[2])
+      if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) return { lat, lng }
+    }
+  }
+  return null
+}
+
+// A pasted Google Maps link (long or maps.app.goo.gl short link) or "lat, lng" -> a point.
+export async function pointFromText(text: string): Promise<{ lat: number; lng: number } | null> {
+  const direct = findPoint(text)
+  if (direct) return direct
+  const url = text.match(/https?:\/\/\S+/)?.[0]
+  if (!url || !/^https:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps|(www\.)?google\.[a-z.]+\/maps)/.test(url)) return null
+  // Short links: follow the redirects and read the point from the final address.
+  try {
+    let at = url
+    for (let i = 0; i < 4; i++) {
+      const res = await fetch(at, { redirect: 'manual', signal: AbortSignal.timeout(5000) })
+      const next = res.headers.get('location')
+      if (!next) {
+        if (res.ok) return findPoint(await res.text())
+        return null
+      }
+      at = new URL(next, at).toString()
+      const p = findPoint(at)
+      if (p) return p
+    }
+  } catch {
+    return null
+  }
+  return null
+}
