@@ -5,7 +5,7 @@ import { db } from '@/lib/db'
 import { readSession } from '@/lib/session'
 import type { Role } from '@/generated/prisma/enums'
 
-export const HOME: Record<Role, string> = { ADMIN: '/admin', SALES: '/dashboard', KITCHEN: '/kitchen' }
+export const HOME: Record<Role, string> = { ADMIN: '/admin', SALES: '/dashboard', KITCHEN: '/kitchen', DELIVERY: '/delivery' }
 
 export const currentUser = cache(async () => {
   const s = await readSession()

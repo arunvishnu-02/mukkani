@@ -11,7 +11,9 @@ import { Avatar, Callout, Card, Chip, Drawer, ErrorNote, Progress, StatusChip, W
 import { PackageCalendar } from '@/components/PackageCalendar'
 import { PackageFields } from '@/components/PackageFields'
 import { MapPin } from '@/components/MapPin'
-import { cancelLeaveAction, markLeaveAction, setButtermilkAction, startPackageAction } from '../../actions'
+import { SetLocation } from '@/components/SetLocation'
+import { mapsKeys } from '@/lib/delivery'
+import { cancelLeaveAction, markLeaveAction, setButtermilkAction, setLocationAction, startPackageAction } from '../../actions'
 
 function Row({ k, v }: { k: string; v: React.ReactNode }) {
   return (
@@ -181,7 +183,19 @@ export default async function CustomerProfile({ params, searchParams }: { params
             <div className="mt-2 flex flex-wrap gap-2.5">
               {lead.lat != null && <a className="btn btn-sm" target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${lead.lat},${lead.lng}`}>Open in Google Maps</a>}
               {sales && <Link className="btn-secondary btn-sm" href={`/leads/${lead.id}/location`}>Send location link</Link>}
+              {sales && !sp.pin && <Link className="btn-secondary btn-sm" href={`/customers/${lead.id}?pin=1`}>{lead.lat != null ? 'Change pin' : 'Set location by hand'}</Link>}
             </div>
+            {sales && sp.pin && (
+              <div className="mt-3 border-t border-line pt-3">
+                <SetLocation
+                  id={lead.id}
+                  action={setLocationAction}
+                  mapKey={mapsKeys().browser}
+                  start={lead.lat != null && lead.lng != null ? { lat: lead.lat, lng: lead.lng } : lead.region?.lat != null && lead.region.lng != null ? { lat: lead.region.lat, lng: lead.region.lng } : { lat: 10.85, lng: 78.69 }}
+                />
+                <Link href={`/customers/${lead.id}`} className="mt-2 block text-center text-[13px] font-semibold text-muted">Cancel</Link>
+              </div>
+            )}
           </Card>
         </div>
         <div className="space-y-4">
