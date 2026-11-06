@@ -45,13 +45,14 @@ async function main() {
   if (!process.env.SEED_DEMO) return
   if ((await db.lead.count()) > 0) return console.log('Leads exist, demo data skipped')
 
-  const mk = async (name: string, username: string, role: 'SALES' | 'KITCHEN', pw: string, phone: string) =>
+  const mk = async (name: string, username: string, role: 'SALES' | 'KITCHEN' | 'DELIVERY', pw: string, phone: string) =>
     db.user.upsert({ where: { username }, update: {}, create: { name, username, role, phone, passwordHash: await bcrypt.hash(pw, 10) } })
   const divya = await mk('Divya R', 'divya', 'SALES', 'sales123', '98430 11223')
   const karthik = await mk('Karthik M', 'karthik', 'SALES', 'sales123', '98430 44556')
   const kitchen = await mk('Murugan K', 'kitchen', 'KITCHEN', 'kitchen123', '98430 77889')
+  const driver = await mk('Senthil P', 'senthil', 'DELIVERY', 'delivery123', '98430 66001')
   const admin = await db.user.findUniqueOrThrow({ where: { username: 'admin' } })
-  for (const r of await db.region.findMany()) await db.region.update({ where: { id: r.id }, data: { ownerId: r.name === 'Junction' ? karthik.id : divya.id } })
+  for (const r of await db.region.findMany()) await db.region.update({ where: { id: r.id }, data: { ownerId: r.name === 'Junction' ? karthik.id : divya.id, deliveryUserId: r.name === 'Srirangam' ? driver.id : null } })
   const regions = await db.region.findMany({ orderBy: { name: 'asc' } })
   const reg = (i: number) => regions[i % regions.length]
 

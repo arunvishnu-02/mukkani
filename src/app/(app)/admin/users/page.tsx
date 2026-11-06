@@ -12,7 +12,7 @@ export default async function UsersRegions({ searchParams }: { searchParams: Pro
   const month = period('month')
   const [users, regions, team] = await Promise.all([
     db.user.findMany({ orderBy: [{ role: 'asc' }, { name: 'asc' }] }),
-    db.region.findMany({ orderBy: { name: 'asc' }, include: { owner: true, _count: { select: { leads: true } } } }),
+    db.region.findMany({ orderBy: { name: 'asc' }, include: { owner: true, deliveryUser: true, _count: { select: { leads: true } } } }),
     teamFigures(month),
   ])
   const editUser = sp.user === 'new' ? null : users.find((u) => u.id === sp.user)
@@ -40,15 +40,16 @@ export default async function UsersRegions({ searchParams }: { searchParams: Pro
         </form>
       )}
       {showRegion && (
-        <form action={saveRegion} className="card grid gap-3 border-brand p-5 sm:grid-cols-4">
+        <form action={saveRegion} className="card grid gap-3 border-brand p-5 sm:grid-cols-5">
           <input type="hidden" name="id" value={editRegion?.id ?? ''} />
-          <h2 className="font-display text-lg font-semibold sm:col-span-4">{editRegion ? `Edit ${editRegion.name}` : 'Add region'}</h2>
+          <h2 className="font-display text-lg font-semibold sm:col-span-5">{editRegion ? `Edit ${editRegion.name}` : 'Add region'}</h2>
           <div><label className="label">Name</label><input name="name" className="input" defaultValue={editRegion?.name} required /></div>
           <div><label className="label">Centre latitude</label><input name="lat" className="input" inputMode="decimal" defaultValue={editRegion?.lat ?? ''} /></div>
           <div><label className="label">Centre longitude</label><input name="lng" className="input" inputMode="decimal" defaultValue={editRegion?.lng ?? ''} /></div>
           <div><label className="label">Sales owner</label><select name="ownerId" className="input" defaultValue={editRegion?.ownerId ?? ''}><option value="">None</option>{users.filter((u) => u.role === 'SALES').map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
-          <p className="text-xs text-muted sm:col-span-4">The centre is used to set a customer&apos;s region automatically from their shared pin (nearest centre within 25 km).</p>
-          <div className="flex gap-2.5 sm:col-span-4"><Link href="/admin/users" className="btn-secondary">Cancel</Link><button className="btn">Save region</button></div>
+          <div><label className="label">Delivery person</label><select name="deliveryUserId" className="input" defaultValue={editRegion?.deliveryUserId ?? ''}><option value="">None</option>{users.filter((u) => u.role === 'DELIVERY' && u.active).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
+          <p className="text-xs text-muted sm:col-span-5">The centre is used to set a customer&apos;s region automatically from their shared pin (nearest centre within 25 km). The delivery person sees this region&apos;s drops on their phone each day.</p>
+          <div className="flex gap-2.5 sm:col-span-5"><Link href="/admin/users" className="btn-secondary">Cancel</Link><button className="btn">Save region</button></div>
         </form>
       )}
       <section className="card overflow-x-auto">
@@ -77,13 +78,14 @@ export default async function UsersRegions({ searchParams }: { searchParams: Pro
         <section className="card overflow-x-auto">
           <div className="px-5 py-4"><h2 className="font-display text-lg font-semibold">Regions</h2><p className="text-[13px] text-muted">Delivery areas used for leads, boxes and reports</p></div>
           <table className="w-full">
-            <thead><tr><th className="th">Region</th><th className="th">Leads</th><th className="th">Sales owner</th><th className="th">Centre</th><th className="th"></th></tr></thead>
+            <thead><tr><th className="th">Region</th><th className="th">Leads</th><th className="th">Sales owner</th><th className="th">Delivery person</th><th className="th">Centre</th><th className="th"></th></tr></thead>
             <tbody>
               {regions.map((r) => (
                 <tr key={r.id}>
                   <td className="td">{r.name}</td>
                   <td className="td">{r._count.leads}</td>
                   <td className="td">{r.owner?.name ?? '—'}</td>
+                  <td className="td">{r.deliveryUser?.name ?? <span className="text-red">Not assigned</span>}</td>
                   <td className="td font-mono text-xs">{r.lat != null ? `${r.lat.toFixed(3)}, ${r.lng?.toFixed(3)}` : 'not set'}</td>
                   <td className="td"><Link href={`/admin/users?region=${r.id}`} className="btn-secondary btn-sm">Edit</Link></td>
                 </tr>
@@ -96,6 +98,7 @@ export default async function UsersRegions({ searchParams }: { searchParams: Pro
             {[
               ['ADMIN', 'Everything: sales and kitchen screens, reports, purchase + expenses, team, regions and settings'],
               ['SALES', 'Leads, call register, trials, monthly packs, daily menu, delivery attendance, reminders and monthly reports'],
+              ['DELIVERY', 'Phone screen only: today’s drops in their region on the map with the route, 2-tap Delivered / Not delivered (fills attendance). Login and finish times are noted every day.'],
               ['KITCHEN', 'Today’s boxes and the 3 AM sheet, customer status, customer calls, alternative boxes, stock and wastage. Cannot delete.'],
             ].map(([r, d]) => (
               <div key={r} className="space-y-1.5 rounded-[10px] bg-s2 p-3">

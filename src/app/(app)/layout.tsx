@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { Sidebar, type NavItem } from '@/components/Sidebar'
 import { requireUser } from '@/lib/auth'
 import { ROLE } from '@/lib/labels'
@@ -32,6 +33,8 @@ const NAV: Record<string, NavItem[]> = {
     { href: '/calendar', label: 'Calendar', icon: 'calendar' },
     ...SALES.map((x) => ({ ...x, group: 'Sales' })),
     ...[...KITCHEN.filter((x) => x.href !== '/kitchen/customers'), REPORTS].map((x) => ({ ...x, group: 'Kitchen' })),
+    { href: '/admin/delivery', label: 'Delivery log + live map', icon: 'map', group: 'Delivery' },
+    { href: '/delivery', label: 'Delivery phone screen', icon: 'route', group: 'Delivery' },
     { href: '/admin/reports', label: 'Reports', icon: 'chart', group: 'Business' },
     { href: '/admin/money', label: 'Purchase + expenses', icon: 'money', group: 'Business' },
     { href: '/admin/users', label: 'Team + regions', icon: 'team', group: 'Business' },
@@ -41,6 +44,8 @@ const NAV: Record<string, NavItem[]> = {
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser()
+  // Delivery people only use their phone screen.
+  if (user.role === 'DELIVERY') redirect('/delivery')
   const section = user.role === 'KITCHEN' ? 'Kitchen' : user.role === 'SALES' ? 'Sales' : 'Admin'
   return (
     <div className="md:flex">
