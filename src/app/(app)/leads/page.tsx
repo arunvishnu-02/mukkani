@@ -89,7 +89,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                   <td className="td">{sourceLabel(l)}</td>
                   <td className="td">
                     <StatusChip map={LEAD_STATUS} value={l.status} />
-                    {l.status === 'NOT_INTERESTED' && l.notInterestedReason && <div className="mt-0.5 text-[11px] text-muted">{l.notInterestedReason}</div>}
+                    {l.status === 'NOT_INTERESTED' && l.notInterestedReason && <div className="mt-0.5 text-xs text-muted">{l.notInterestedReason}</div>}
                   </td>
                   <td className="td">{l.status === 'FOLLOW_UP' ? fmtDay(l.nextFollowUpAt) : '—'}</td>
                   <td className="td"><StatusChip map={LOCATION_STATUS} value={l.locationStatus} /></td>

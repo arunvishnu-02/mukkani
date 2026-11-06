@@ -97,7 +97,7 @@ export default async function KitchenSheet({ searchParams }: { searchParams: Pro
                     {r.swap?.swapTo && <span className="ml-1.5"><Chip label={`Customization: ${r.swap.swapTo}`} tone="warn" /></span>}
                     {r.swap?.saladAvoids.length ? <span className="ml-1.5"><Chip label={saladLine(r.swap)} tone="warn" /></span> : null}
                     {r.isNew && <span className="ml-1.5"><Chip label="New" tone="leaf" /></span>}
-                    {r.altBox && <span className="ml-1.5 text-[11px] font-bold text-sky">ALT BOX</span>}
+                    {r.altBox && <span className="ml-1.5 text-xs font-bold text-sky">ALT BOX</span>}
                   </td>
                   <td className="td">{r.lead.deliveryTime ?? r.lead.slot ?? '—'}</td>
                   {isButtermilkDay(date) && <td className="td">{r.bm ? <Chip label={`Butter milk ${r.bm}`} tone="leaf" /> : ''}</td>}

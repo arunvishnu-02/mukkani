@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Bricolage_Grotesque, JetBrains_Mono, Public_Sans } from 'next/font/google'
+import { Suspense } from 'react'
+import { FormFeedback } from '@/components/FormFeedback'
 import './globals.css'
 
 const display = Bricolage_Grotesque({ subsets: ['latin'], variable: '--font-bricolage', weight: ['600', '700'] })
@@ -12,7 +14,12 @@ export const viewport: Viewport = { width: 'device-width', initialScale: 1, them
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
-      <body className="min-h-screen font-sans antialiased">{children}</body>
+      <body className="min-h-screen font-sans antialiased">
+        {children}
+        <Suspense>
+          <FormFeedback />
+        </Suspense>
+      </body>
     </html>
   )
 }

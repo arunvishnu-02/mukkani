@@ -78,11 +78,11 @@ export default async function CustomerProfile({ params, searchParams }: { params
       </div>
       <ErrorNote error={sp.error} />
       {sp.paid && <Callout>Payment saved.</Callout>}
-      <div className="flex flex-wrap items-center gap-4">
-        <Avatar name={lead.name} size={64} />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="font-display text-[28px] font-bold">{lead.name}</h1>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <Avatar name={lead.name} size={56} />
+        <div className="min-w-0 flex-1 basis-[calc(100%-72px)] sm:basis-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="font-display text-2xl font-bold sm:text-[28px]">{lead.name}</h1>
             <StatusChip map={LEAD_STATUS} value={lead.status} />
             {lead.status === 'MONTHLY' && <StatusChip map={CUSTOMER_STATUS} value={status} />}
           </div>
@@ -91,10 +91,12 @@ export default async function CustomerProfile({ params, searchParams }: { params
             {lead.owner ? ` · added by ${lead.owner.name}` : ''}
           </p>
         </div>
-        <a href={`tel:${lead.phone}`} className="btn-secondary">Call</a>
-        <WaLink href={waLink(lead.phone, '')} />
-        {sales && <Link href={`/leads?lead=${lead.id}`} className="btn-secondary">Edit</Link>}
-        <Link href={`${kitchen ? '/kitchen/customers' : '/customers'}?tab=all&status=${lead.id}`} className="btn-secondary">Set status</Link>
+        <div className="flex w-full gap-2 sm:w-auto [&>*]:flex-1 sm:[&>*]:flex-none">
+          <a href={`tel:${lead.phone}`} className="btn-secondary">Call</a>
+          <WaLink href={waLink(lead.phone, '')} />
+          {sales && <Link href={`/leads?lead=${lead.id}`} className="btn-secondary">Edit</Link>}
+          <Link href={`${kitchen ? '/kitchen/customers' : '/customers'}?tab=all&status=${lead.id}`} className="btn-secondary">Set status</Link>
+        </div>
       </div>
       {birthday && (
         <Callout tone="brand">
@@ -308,7 +310,7 @@ export default async function CustomerProfile({ params, searchParams }: { params
                     <div className="text-[13px] font-semibold">{a.text}</div>
                     <div className="text-xs text-muted">{[a.detail, a.by?.name ? `by ${a.by.name}` : null].filter(Boolean).join(' · ')}</div>
                   </div>
-                  <span className="font-mono text-[11px] text-muted">{fmtTime(a.createdAt)}</span>
+                  <span className="font-mono text-xs text-muted">{fmtTime(a.createdAt)}</span>
                 </div>
               ))}
             </div>
