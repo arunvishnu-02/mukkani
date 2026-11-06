@@ -37,7 +37,7 @@ export function PackageCalendar({ plan, today, fixBase }: { plan: PackagePlan; t
                 d.kind === 'paused' ? 'Paused' :
                 `Day ${'dayNo' in d ? d.dayNo : ''}${kind === 'carried' ? ' · +1' : ''}${isToday ? ' · Today' : ''}`
               const cls = `min-h-12 rounded-lg px-2 py-1.5 ${STYLE[kind]} ${isToday ? 'ring-2 ring-brand ring-offset-1' : ''}`
-              const inner = (<><div className="text-[13px] font-bold">{fmtDay(d.date)}</div><div className="text-[11px] opacity-90">{label}</div></>)
+              const inner = (<><div className="text-[13px] font-bold">{fmtDay(d.date)}</div><div className="text-xs opacity-90">{label}</div></>)
               // Admin can open any working day of the pack to correct it.
               return fixBase && d.kind !== 'outside' && d.kind !== 'holiday'
                 ? <Link key={keyOf(d.date)} href={`${fixBase}${fixBase.includes('?') ? '&' : '?'}fix=${keyOf(d.date)}`} scroll={false} title="Change this day" className={`${cls} block hover:ring-2 hover:ring-ink/30`}>{inner}</Link>

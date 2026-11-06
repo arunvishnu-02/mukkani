@@ -54,6 +54,8 @@ Demo logins (only with SEED_DEMO=1): admin / admin123, divya / sales123, karthik
    | `APP_URL` | your address, e.g. `https://crm.mukkani.in` |
    | `ADMIN_PASSWORD` | the password you want for the `admin` login |
    | `COOKIE_SECURE` | `true` |
+   | `GOOGLE_MAPS_BROWSER_KEY` | Google Maps key for the delivery map (Maps JavaScript API) |
+   | `GOOGLE_MAPS_SERVER_KEY` | Google Maps key for route planning (Routes API); can be the same key if it has no website restriction |
 
    If the database password has symbols such as `@`, `#` or `/`, write them URL-encoded in `DATABASE_URL` (for example `@` becomes `%40`).
 5. **Deploy.** Run `npx prisma migrate deploy` against the database to create or update the tables. On first start the app creates the 4 regions and the `admin` user. Log in as `admin`, then add sales and kitchen users in Team + regions, and upload the payment QR in Settings.

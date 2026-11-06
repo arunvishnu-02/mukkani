@@ -13,6 +13,7 @@ import { SOURCE } from '@/lib/labels'
 import { fill, firstName, waLink } from '@/lib/whatsapp'
 import { holidaySet, packagePlan } from '@/lib/queries'
 import { notifyAdmin } from '@/lib/notice'
+import { nearestRegionId, pointFromText } from '@/lib/geo'
 import {
   FlowError,
   bookTrial,
@@ -464,4 +465,27 @@ export async function deleteUser(form: FormData) {
   await db.user.delete({ where: { id } })
   revalidatePath('/', 'layout')
   redirect('/admin/users')
+}
+
+// Staff set a customer's delivery spot by hand: pasted Google Maps link, "lat, lng", a map tap, or their own position.
+export async function setLocationAction(form: FormData) {
+  const user = await requireUser(['SALES'])
+  const id = z.string().uuid().parse(s(form, 'id'))
+  const self = `/customers/${id}?pin=1`
+  const lat = s(form, 'lat')
+  const lng = s(form, 'lng')
+  const point =
+    lat && lng
+      ? { lat: z.coerce.number().min(-90).max(90).parse(lat), lng: z.coerce.number().min(-180).max(180).parse(lng) }
+      : await pointFromText(s(form, 'where') ?? '')
+  if (!point) redirect(withError(self, new FlowError('Could not read a location. Paste a Google Maps link, or type it like 10.8620, 78.6930.')))
+  const regionId = await nearestRegionId(point.lat, point.lng)
+  const lead = await db.lead.findUniqueOrThrow({ where: { id } })
+  await db.lead.update({
+    where: { id },
+    data: { lat: point.lat, lng: point.lng, accuracyM: null, locationStatus: 'PIN_SAVED', locationUpdatedAt: new Date(), ...(regionId && !lead.regionId ? { regionId } : {}) },
+  })
+  await log(id, 'location', 'Location set by hand', null, user.id)
+  revalidatePath('/', 'layout')
+  redirect(`/customers/${id}`)
 }

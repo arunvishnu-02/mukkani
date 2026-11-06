@@ -53,7 +53,7 @@ export default async function RenewalsPage({ searchParams }: { searchParams: Pro
                   <td className="td"><Who name={r.pkg.lead.name} sub={r.pkg.lead.phone || 'no phone'} href={`/customers/${r.pkg.leadId}`} /></td>
                   <td className="td">{r.pkg.lead.region?.name ?? '—'}</td>
                   <td className="td">Month {r.pkg.number} · {r.plan.delivered}/26 {r.pkg.paid ? '' : <Chip label="not paid" tone="muted" />}</td>
-                  <td className="td whitespace-nowrap">{fmtWeekday(r.plan.end)}{r.finished && <div className="text-[11px] font-semibold text-red">month over</div>}</td>
+                  <td className="td whitespace-nowrap">{fmtWeekday(r.plan.end)}{r.finished && <div className="text-xs font-semibold text-red">month over</div>}</td>
                   <td className="td">{r.decision ? <StatusChip map={RENEWAL} value={r.decision} /> : <span className="text-xs text-muted">{r.finished ? 'not asked yet' : 'renewal call on day 26'}</span>}</td>
                   <td className="td">{r.pkg.lead.phone ? <WaLink small href={waLink(r.pkg.lead.phone, msg(r))}>{r.finished ? 'Ask' : 'Remind'}</WaLink> : <span className="text-xs text-muted">add phone</span>}</td>
                   <td className="td">

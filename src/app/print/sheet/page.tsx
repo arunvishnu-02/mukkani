@@ -18,7 +18,7 @@ const D = new Intl.DateTimeFormat('en-IN', { weekday: 'short', day: '2-digit', m
 
 function Column({ rows, start, filled, drink }: { rows: Line[]; start: number; filled?: boolean; drink?: boolean }) {
   return (
-    <table className="w-full border-collapse overflow-hidden rounded-lg border border-ink text-[11px]">
+    <table className="w-full border-collapse overflow-hidden rounded-lg border border-ink text-xs">
       <thead>
         <tr className="bg-brand text-left text-[9px] font-bold text-white uppercase">
           <th className="w-6 px-1.5 py-1.5">#</th><th className="w-9 px-1">Time</th><th className="px-1">Customer</th>{drink && <th className="w-10 px-1 text-center">Milk</th>}<th className="w-11 px-1 text-center">Box no.</th><th className="w-7 px-1 text-center">Ret.</th>{filled && <th className="w-20 px-1">Status</th>}
@@ -147,8 +147,8 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
   const Weights = ({ title, rows, empty }: { title: string; rows: [string, number][]; empty: string }) => (
     <div className="rounded-xl border border-line p-3">
       <div className="mb-1.5 flex items-baseline justify-between text-xs font-bold uppercase"><span>{title}</span><span className="font-display text-base">{rows.length ? kg(sum(rows)) : '____ kg'}</span></div>
-      {rows.length ? rows.map(([f, n]) => <div key={f} className="flex text-[11px]"><span className="flex-1">{f}</span><span className="tabular-nums">{kg(n)}</span></div>)
-        : <div className="space-y-2 pt-1 text-[11px] text-muted">{empty}{[0, 1, 2, 3].map((i) => <div key={i} className="h-4 border-b border-dashed border-ink/30" />)}</div>}
+      {rows.length ? rows.map(([f, n]) => <div key={f} className="flex text-xs"><span className="flex-1">{f}</span><span className="tabular-nums">{kg(n)}</span></div>)
+        : <div className="space-y-2 pt-1 text-xs text-muted">{empty}{[0, 1, 2, 3].map((i) => <div key={i} className="h-4 border-b border-dashed border-ink/30" />)}</div>}
     </div>
   )
   return (
@@ -260,7 +260,7 @@ export default async function SheetPrint({ searchParams }: { searchParams: Promi
               {page.length > 25 ? <Column rows={page.slice(25)} start={p * 50 + 26} filled={filled} drink={drinkDay} /> : <div />}
             </div>
             {p === pages.length - 1 && (
-              <div className="mt-3.5 grid grid-cols-2 gap-3 text-[11px]">
+              <div className="mt-3.5 grid grid-cols-2 gap-3 text-xs">
                 <div className="rounded-xl bg-tur-soft px-3.5 py-3">
                   <div className="mb-1.5 text-xs font-bold text-warn">Trial pack</div>
                   {trials.length === 0 ? <div className="text-muted">No trial boxes</div> : trials.map((t) => (

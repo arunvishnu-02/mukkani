@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { Clock } from '@/components/Clock'
 import { TableTools } from '@/components/TableTools'
 import { AutoRefresh } from '@/components/AutoRefresh'
+import { redirect } from 'next/navigation'
 import { Sidebar, type NavItem } from '@/components/Sidebar'
 import { requireUser } from '@/lib/auth'
 import { navBadges, type Badges } from '@/lib/badges'
@@ -47,6 +48,8 @@ const NAV: Record<string, NavItem[]> = {
     { href: '/calendar', label: 'Calendar', icon: 'calendar' },
     ...SALES.map((x) => ({ ...x, group: 'Sales' })),
     ...KITCHEN.filter((x) => x.href !== '/kitchen/customers' && x.href !== '/menu' && x.href !== '/invite' && x.href !== '/renewals').map((x) => ({ ...x, group: 'Kitchen' })),
+    { href: '/admin/delivery', label: 'Delivery log + live map', icon: 'map', group: 'Delivery' },
+    { href: '/delivery', label: 'Delivery phone screen', icon: 'route', group: 'Delivery' },
     { href: '/admin/reports', label: 'Reports', icon: 'chart', group: 'Business' },
     { ...ALL_REPORTS, group: 'Business' },
     { href: '/admin/money', label: 'Purchase + expenses', icon: 'money', group: 'Business' },
@@ -63,14 +66,16 @@ const NAV: Record<string, NavItem[]> = {
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser()
+  // Delivery people only use their phone screen.
+  if (user.role === 'DELIVERY') redirect('/delivery')
   const section = user.role === 'KITCHEN' ? 'Kitchen' : user.role === 'SALES' ? 'Sales' : 'Admin'
   // Counts are a help, never a reason for a page to fail.
   const badges: Badges = await navBadges(user.role).catch(() => ({}))
   return (
     <div className="md:flex">
       <Sidebar section={section} items={NAV[user.role]} badges={badges} user={{ name: user.name, role: ROLE[user.role][0] }} logout={logout} />
-      <main className="min-w-0 flex-1 space-y-[18px] px-4 py-6 md:px-8 md:py-7">{children}
-        <p className="pt-6 text-center text-[11px] text-muted">Mukkani software · built by CipherMutex Pvt. Ltd.</p>
+      <main className="min-w-0 flex-1 space-y-[18px] px-4 pt-5 pb-[max(env(safe-area-inset-bottom),32px)] md:px-8 md:py-7">{children}
+        <p className="pt-6 text-center text-xs text-muted">Mukkani software · built by CipherMutex Pvt. Ltd.</p>
       </main>
       <Suspense fallback={null}><TableTools /></Suspense>
       <AutoRefresh every={60} />

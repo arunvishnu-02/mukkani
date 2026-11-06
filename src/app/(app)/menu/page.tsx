@@ -62,7 +62,7 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
             <div className="flex flex-wrap gap-1.5">
               {nextDays.map((d) => (
                 <Link key={d.toISOString()} href={`/menu?date=${dayInput(d)}`} className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${d.getTime() === date.getTime() ? 'border-brand bg-brand text-white' : 'border-line bg-surface'}`}>
-                  {when(d) && <span className="mr-1 text-[11px] uppercase opacity-80">{when(d)} ·</span>}
+                  {when(d) && <span className="mr-1 text-xs uppercase opacity-80">{when(d)} ·</span>}
                   {fmtWeekday(d)}
                   {added.has(d.getTime()) && <span className={d.getTime() === date.getTime() ? 'ml-1' : 'ml-1 text-leaf'}>✓</span>}
                 </Link>

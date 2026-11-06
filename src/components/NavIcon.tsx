@@ -21,6 +21,8 @@ const PATHS = {
   trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
   money: '<circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/>',
   team: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  map: '<path d="M14.1 6.3 9.9 3.7a2 2 0 0 0-1.8 0L3.6 5.6A1 1 0 0 0 3 6.5v13a1 1 0 0 0 1.4.9l3.7-1.6a2 2 0 0 1 1.8 0l4.2 2.6a2 2 0 0 0 1.8 0l4.5-1.9a1 1 0 0 0 .6-.9v-13a1 1 0 0 0-1.4-.9l-3.7 1.6a2 2 0 0 1-1.8 0Z"/><path d="M15 5.8v15"/><path d="M9 3.2v15"/>',
+  route: '<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>',
 }
 
 export type IconName = keyof typeof PATHS

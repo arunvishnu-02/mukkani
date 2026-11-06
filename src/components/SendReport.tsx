@@ -82,7 +82,7 @@ export function SendReport({ packageId, fileName, waHref, text, small }: { packa
           <button type="button" onClick={save} className={`${btn} border border-line bg-white`}>Save PDF</button>
           <a href={waHref} target="_blank" rel="noreferrer" className={`${btn} border border-line bg-white`}>Open WhatsApp</a>
         </span>
-        <span className="max-w-64 text-[11px] text-muted">{state === 'downloaded' ? 'PDF saved. In WhatsApp, attach it (📎 → Document).' : 'PDF is ready. Share it, or save it and attach it in WhatsApp.'}</span>
+        <span className="max-w-64 text-xs text-muted">{state === 'downloaded' ? 'PDF saved. In WhatsApp, attach it (📎 → Document).' : 'PDF is ready. Share it, or save it and attach it in WhatsApp.'}</span>
       </span>
     )
   }
@@ -91,7 +91,7 @@ export function SendReport({ packageId, fileName, waHref, text, small }: { packa
       <button type="button" onClick={make} disabled={state === 'making'} className={`${btn} bg-leaf text-white`}>
         {state === 'making' ? 'Making PDF…' : small ? 'Send PDF' : 'Send PDF on WhatsApp'}
       </button>
-      {state === 'failed' && <span className="text-[11px] text-red">Could not make the PDF. Try again or use Print.</span>}
+      {state === 'failed' && <span className="text-xs text-red">Could not make the PDF. Try again or use Print.</span>}
     </span>
   )
 }

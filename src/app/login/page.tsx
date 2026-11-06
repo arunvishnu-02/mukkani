@@ -14,7 +14,7 @@ export default async function LoginPage() {
           <div className="mt-1 text-xs text-muted">CRM for sales, kitchen and admin</div>
         </div>
         <LoginForm />
-        <p className="mt-6 text-center text-[11px] text-muted">Built by CipherMutex Pvt. Ltd.</p>
+        <p className="mt-6 text-center text-xs text-muted">Built by CipherMutex Pvt. Ltd.</p>
       </div>
     </div>
   )

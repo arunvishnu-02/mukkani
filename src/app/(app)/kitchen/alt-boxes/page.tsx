@@ -55,7 +55,7 @@ export default async function AltBoxes({ searchParams }: { searchParams: Promise
               <div key={n} className={`rounded-lg border px-2.5 py-2 ${b ? (lateBox ? 'border-red bg-red-soft' : 'border-sky bg-sky-soft') : 'border-line bg-surface'}`}>
                 <div className={`font-display text-lg font-bold leading-none ${b ? (lateBox ? 'text-red' : 'text-sky') : 'text-muted'}`}>{n}</div>
                 <div className="mt-1 truncate text-xs font-semibold">{b ? (b.lead?.name ?? b.holder ?? 'Someone') : 'In the kitchen'}</div>
-                <div className="text-[11px] text-muted">{b ? `since ${fmtWeekday(b.givenOn)}${b.lead ? '' : ' · not a customer'}` : 'free'}</div>
+                <div className="text-xs text-muted">{b ? `since ${fmtWeekday(b.givenOn)}${b.lead ? '' : ' · not a customer'}` : 'free'}</div>
               </div>
             )
           })}

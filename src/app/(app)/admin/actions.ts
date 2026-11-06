@@ -107,7 +107,7 @@ export async function saveRegion(form: FormData) {
   await requireUser(['ADMIN'])
   const id = s(form, 'id')
   const num = (k: string) => (s(form, k) ? z.coerce.number().min(-180).max(180).parse(s(form, k)) : null)
-  const data = { name: z.string().min(1).parse(s(form, 'name')), lat: num('lat'), lng: num('lng'), ownerId: s(form, 'ownerId') }
+  const data = { name: z.string().min(1).parse(s(form, 'name')), lat: num('lat'), lng: num('lng'), ownerId: s(form, 'ownerId'), deliveryUserId: s(form, 'deliveryUserId') }
   const taken = await db.region.findUnique({ where: { name: data.name } })
   if (taken && taken.id !== id) fail(`/admin/users?region=${id ?? 'new'}`, `The region "${data.name}" already exists`)
   if (id) await db.region.update({ where: { id }, data })

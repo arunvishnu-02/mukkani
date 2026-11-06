@@ -28,7 +28,7 @@ export default async function NoticesPage() {
               {notices.map((n) => (
                 <tr key={n.id} className={n.seenAt ? '' : 'bg-red-soft'}>
                   <td className="td whitespace-nowrap">{fmtDay(n.createdAt)} · {fmtTime(n.createdAt)}</td>
-                  <td className="td"><div className="font-semibold">{n.byName ?? '—'}</div><div className="text-[11px] text-muted">{n.byRole && n.byRole in ROLE ? ROLE[n.byRole as Role][0] : ''}</div></td>
+                  <td className="td"><div className="font-semibold">{n.byName ?? '—'}</div><div className="text-xs text-muted">{n.byRole && n.byRole in ROLE ? ROLE[n.byRole as Role][0] : ''}</div></td>
                   <td className="td font-semibold">{n.text}</td>
                   <td className="td max-w-[420px] text-[13px] whitespace-pre-line">{n.detail ?? '—'}</td>
                   <td className="td">{n.seenAt ? '' : <Chip label="New" tone="red" />}</td>

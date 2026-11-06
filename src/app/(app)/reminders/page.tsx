@@ -75,7 +75,7 @@ export default async function RemindersPage({ searchParams }: { searchParams: Pr
           <Card title="Message" sub="Admin can edit the text in Settings">
             <div className="rounded-[10px] bg-leaf-soft px-4 py-3 text-[13px] leading-5">
               {fill(st.msgReminder, { name: sample ? sample.pkg.lead.name.split(' ')[0] : 'Meena', endDate: fmtWeekday(sample?.plan.end ?? day(3)) })}
-              <div className="mt-2 text-[11px] text-muted">Mukkani · {st.businessPhone}</div>
+              <div className="mt-2 text-xs text-muted">Mukkani · {st.businessPhone}</div>
             </div>
           </Card>
           <Callout tone="brand">Sunday is a company holiday and is not counted in the 26 days.</Callout>

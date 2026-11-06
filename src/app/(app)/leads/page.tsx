@@ -84,12 +84,12 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
               {leads.map((l) => (
                 <tr key={l.id} className={l.id === selected?.id ? 'bg-brand-soft/60' : ''}>
                   <td className="td"><RowCheck formId="bulk-leads" id={l.id} /></td>
-                  <td className="td"><Who name={l.name} sub={l.phone || 'No phone'} href={`${list}&lead=${l.id}`} />{missingDetails(l).length > 0 && <div className="mt-0.5 text-[11px] font-semibold text-red">Missing: {missingDetails(l).join(', ')}</div>}</td>
+                  <td className="td"><Who name={l.name} sub={l.phone || 'No phone'} href={`${list}&lead=${l.id}`} />{missingDetails(l).length > 0 && <div className="mt-0.5 text-xs font-semibold text-red">Missing: {missingDetails(l).join(', ')}</div>}</td>
                   <td className="td">{l.region?.name ?? '—'}</td>
                   <td className="td">{sourceLabel(l)}</td>
                   <td className="td">
                     <StatusChip map={LEAD_STATUS} value={l.status} />
-                    {l.status === 'NOT_INTERESTED' && l.notInterestedReason && <div className="mt-0.5 text-[11px] text-muted">{l.notInterestedReason}</div>}
+                    {l.status === 'NOT_INTERESTED' && l.notInterestedReason && <div className="mt-0.5 text-xs text-muted">{l.notInterestedReason}</div>}
                   </td>
                   <td className="td">{l.status === 'FOLLOW_UP' ? fmtDay(l.nextFollowUpAt) : '—'}</td>
                   <td className="td"><StatusChip map={LOCATION_STATUS} value={l.locationStatus} /></td>

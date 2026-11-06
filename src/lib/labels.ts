@@ -71,6 +71,7 @@ export const ROLE: Record<Role, [string, Tone]> = {
   ADMIN: ['Admin', 'leaf'],
   SALES: ['Sales', 'sky'],
   KITCHEN: ['Kitchen manager', 'warn'],
+  DELIVERY: ['Delivery', 'brand'],
 }
 
 // Call register results for leads (plan doc section 4). The first three need a next call date.

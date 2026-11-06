@@ -55,7 +55,7 @@ export default async function DuesPage({ searchParams }: { searchParams: Promise
               {dues.map((d) => (
                 <tr key={d.id} className={!d.paidAt && d.dueDate < today ? 'bg-red-soft' : ''}>
                   <td className="td whitespace-nowrap font-semibold">{fmtWeekday(d.dueDate)}</td>
-                  <td className="td">{DUE_KINDS[d.kind] ?? d.kind}{d.repeatMonthly && <span className="ml-1.5 text-[11px] font-semibold text-muted">every month</span>}</td>
+                  <td className="td">{DUE_KINDS[d.kind] ?? d.kind}{d.repeatMonthly && <span className="ml-1.5 text-xs font-semibold text-muted">every month</span>}</td>
                   <td className="td">{d.title}</td>
                   <td className="td text-right font-semibold">{rupees(d.amount)}</td>
                   <td className="td">{d.paidAt ? fmtDay(d.paidAt) : when(d.dueDate)}</td>

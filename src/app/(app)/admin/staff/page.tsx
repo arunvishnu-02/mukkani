@@ -86,14 +86,14 @@ export default async function AdminStaffPage({ searchParams }: { searchParams: P
             <thead>
               <tr>
                 <th className="th text-left">Name</th>
-                {dates.map((d) => <th key={keyOf(d)} className={`px-1 py-2 text-[11px] font-semibold ${off(d) ? 'bg-s2 text-muted' : ''}`}>{d.getUTCDate()}</th>)}
+                {dates.map((d) => <th key={keyOf(d)} className={`px-1 py-2 text-xs font-semibold ${off(d) ? 'bg-s2 text-muted' : ''}`}>{d.getUTCDate()}</th>)}
                 <th className="th">Present</th><th className="th">Absent</th><th className="th">Not entered</th><th className="th">Km</th>
               </tr>
             </thead>
             <tbody>
               {rows.map(({ s, present, absent, missing }) => (
                 <tr key={s.id} className="border-t border-line">
-                  <td className="td text-left font-semibold whitespace-nowrap">{s.name}<div className="text-[11px] font-normal text-muted">{s.kind === 'DELIVERY' ? 'Delivery' : s.kind === 'OFFICE' ? 'Office' : 'Kitchen'}</div></td>
+                  <td className="td text-left font-semibold whitespace-nowrap">{s.name}<div className="text-xs font-normal text-muted">{s.kind === 'DELIVERY' ? 'Delivery' : s.kind === 'OFFICE' ? 'Office' : 'Kitchen'}</div></td>
                   {dates.map((d) => {
                     const r = of.get(`${s.id}|${keyOf(d)}`)
                     const a = r?.attendance
