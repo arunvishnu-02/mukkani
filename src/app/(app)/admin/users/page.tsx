@@ -16,7 +16,8 @@ export default async function UsersRegions({ searchParams }: { searchParams: Pro
   const [users, regions, team] = await Promise.all([
     db.user.findMany({ orderBy: [{ role: 'asc' }, { name: 'asc' }] }),
     db.region.findMany({ orderBy: { name: 'asc' }, include: { owner: true, deliveryUser: true, _count: { select: { leads: true } } } }),
-    teamFigures(month),
+    // The figures are a help: if they fail the team list and the Add user form still open.
+    teamFigures(month).catch(() => []),
   ])
   const editUser = sp.user === 'new' ? null : users.find((u) => u.id === sp.user)
   const editRegion = sp.region === 'new' ? null : regions.find((r) => r.id === sp.region)
