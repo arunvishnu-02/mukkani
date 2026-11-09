@@ -85,10 +85,20 @@ const leadFields = (form: FormData) => ({
   deliveryTime: s(form, 'deliveryTime'),
 })
 
+// A pasted Google Maps link on the customer form sets the delivery spot (lat/lng) and, when no region is picked, the nearest region.
+async function locationFromLink(form: FormData, back: string) {
+  const link = s(form, 'mapLink')
+  if (!link) return {}
+  const point = await pointFromText(link)
+  if (!point) redirect(withError(back, new FlowError('Could not read that location link. In Google Maps tap Share, Copy link, and paste it here.')))
+  const regionId = s(form, 'regionId') ?? (await nearestRegionId(point.lat, point.lng))
+  return { lat: point.lat, lng: point.lng, accuracyM: null, locationStatus: 'PIN_SAVED' as const, locationUpdatedAt: new Date(), ...(regionId ? { regionId } : {}) }
+}
+
 // Leads
 export async function createLead(form: FormData) {
   const user = await requireUser(['SALES'])
-  const data = leadFields(form)
+  const data = { ...leadFields(form), ...(await locationFromLink(form, '/leads?new=1')) }
   // A new person can go straight to a trial box or a monthly pack instead of Follow up.
   const startAs = s(form, 'startAs') === 'TRIAL' ? 'TRIAL' : s(form, 'startAs') === 'MONTHLY' ? 'MONTHLY' : 'FOLLOW_UP'
   const lead = await db.lead.create({ data: { ...data, ownerId: user.id, nextFollowUpAt: startAs === 'FOLLOW_UP' ? (date(form, 'nextFollowUpAt') ?? day(0)) : null } })
@@ -162,8 +172,10 @@ export async function updateLead(form: FormData) {
   const user = await requireUser(['SALES', 'KITCHEN'])
   const id = z.string().uuid().parse(s(form, 'id'))
   const data = leadFields(form)
-  await db.lead.update({ where: { id }, data: { ...data, nextFollowUpAt: date(form, 'nextFollowUpAt') } })
+  const loc = await locationFromLink(form, back(form, `/leads?lead=${id}`))
+  await db.lead.update({ where: { id }, data: { ...data, ...loc, nextFollowUpAt: date(form, 'nextFollowUpAt') } })
   await log(id, 'lead', 'Details updated', null, user.id)
+  if ('lat' in loc) await log(id, 'location', 'Location set from a Google Maps link', null, user.id)
   revalidatePath('/', 'layout')
   redirect(back(form, `/leads?lead=${id}`))
 }

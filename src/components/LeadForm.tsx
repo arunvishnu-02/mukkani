@@ -39,6 +39,15 @@ export function LeadFields({ lead, regions, slots }: { lead?: Lead | null; regio
       <div><label className="label">Foods to avoid *</label><input name="avoidFoods" required className="input" placeholder="For example: banana, papaya. Type None if nothing" defaultValue={lead?.avoidFoods ?? ''} /></div>
       <div><label className="label">Salad to avoid</label><input name="avoidSalad" className="input" placeholder="For example: peanut, onion. Leave empty if nothing" defaultValue={lead?.avoidSalad ?? ''} /></div>
       <div><label className="label">Health issues *</label><input name="healthNotes" required className="input" placeholder="For example: sugar patient. Type None if nothing" defaultValue={lead?.healthNotes ?? ''} /></div>
+      <div>
+        <label className="label">Google Maps location link</label>
+        <input name="mapLink" className="input" placeholder="Paste the link from Google Maps (Share, then Copy link)" inputMode="url" autoComplete="off" />
+        <p className="mt-1 text-[11px] text-muted">
+          {lead?.lat != null && lead?.lng != null
+            ? <>Location is saved. <a className="font-semibold text-brand underline" href={`https://www.google.com/maps?q=${lead.lat},${lead.lng}`} target="_blank" rel="noreferrer">Open on map</a>. Paste a new link only to change it.</>
+            : 'Paste the customer\'s location link and the delivery spot is set by itself. The delivery person sees it on the map.'}
+        </p>
+      </div>
       <div><label className="label">Notes</label><textarea name="notes" rows={2} className="input" defaultValue={lead?.notes ?? ''} /></div>
     </>
   )
