@@ -14,10 +14,16 @@ export function SendReport({ packageId, fileName, waHref, text, small }: { packa
     frame.src = `/print/report/${packageId}`
     document.body.appendChild(frame)
     try {
-      await new Promise<void>((ok, bad) => { frame.onload = () => ok(); frame.onerror = () => bad(new Error('load')) })
+      await new Promise<void>((ok, bad) => { frame.onload = () => ok(); frame.onerror = () => bad(new Error('load')); setTimeout(() => bad(new Error('slow')), 20000) })
       const doc = frame.contentDocument!
       await doc.fonts?.ready
-      await Promise.all([...doc.images].map((img) => (img.complete ? null : new Promise((r) => { img.onload = img.onerror = r }))))
+      // Images in a hidden frame stay lazy and never load: make them load now, and never wait more than 8 seconds.
+      const imgs = [...doc.images]
+      imgs.forEach((img) => { img.loading = 'eager'; img.decoding = 'sync' })
+      await Promise.race([
+        Promise.all(imgs.map((img) => (img.complete ? null : new Promise((r) => { img.onload = img.onerror = r })))),
+        new Promise((r) => setTimeout(r, 8000)),
+      ])
       const page = doc.querySelector<HTMLElement>('.a4')
       if (!page) throw new Error('no page')
       const [{ toJpeg }, { jsPDF }] = await Promise.all([import('html-to-image'), import('jspdf')])
@@ -42,7 +48,7 @@ export function SendReport({ packageId, fileName, waHref, text, small }: { packa
   async function make() {
     setState('making')
     try {
-      setFile(await makePdf())
+      setFile(await Promise.race([makePdf(), new Promise<File>((_, bad) => setTimeout(() => bad(new Error('timeout')), 45000))]))
       setState('ready')
     } catch {
       setState('failed')
