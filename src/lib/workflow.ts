@@ -144,6 +144,12 @@ export async function setCustomerStatus(leadId: string, byId: string, status: st
     await log(leadId, 'status', 'Inactive', 'Stopped for good', byId)
   } else {
     await db.lead.update({ where: { id: leadId }, data: { customerStatus: 'ACTIVE', pausedUntil: null } })
+    // Active again after Inactive: the pack that was stopped runs again, otherwise the customer is "active" but on no sheet.
+    const running = await db.package.count({ where: { leadId, status: 'ACTIVE' } })
+    if (running === 0) {
+      const stopped = await db.package.findFirst({ where: { leadId, status: 'CANCELLED' }, orderBy: { number: 'desc' } })
+      if (stopped) await db.package.update({ where: { id: stopped.id }, data: { status: 'ACTIVE' } })
+    }
     await log(leadId, 'status', 'Active', null, byId)
   }
 }
